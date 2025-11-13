@@ -1,0 +1,194 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+    <!--项目结构解析-->
+    <!-- POM 模型版本，固定 4.0.0 -->
+    <modelVersion>4.0.0</modelVersion>
+    <!-- 继承 Spring Boot Parent，这是最佳实践，它提供了依赖管理和插件管理 -->
+    <parent>
+        <groupId>org.springframework.boot</groupId>
+        <artifactId>spring-boot-starter-parent</artifactId>
+        <version>2.7.17</version>
+        <relativePath/> <!-- lookup parent from repository -->
+    </parent>
+
+
+    <!-- 项目坐标（唯一标识） -->
+    <groupId>com.jfeng.pan</groupId>
+    <artifactId>cloud-drive-parent</artifactId>
+    <version>1.0</version>
+    <name>cloud-drive-parent</name>
+    <description>云盘项目</description>
+    <modules>
+        <module>framework</module>
+        <module>server</module>
+        <module>distribution</module>
+    </modules>
+
+    <!-- 项目打包方式（默认 jar，也可以是 war、pom 等） -->
+    <packaging>pom</packaging>
+
+    <properties>
+        <!-- 基础配置 -->
+        <java.version>20</java.version>
+        <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+        <project.reporting.outputEncoding>UTF-8</project.reporting.outputEncoding>
+        <maven.compiler.compilerVersion>20</maven.compiler.compilerVersion>
+        <maven.compiler.source>20</maven.compiler.source>
+        <maven.compiler.target>20</maven.compiler.target>
+
+        <!-- core -->
+        <spring-context.version>5.3.30</spring-context.version>
+        <spring-core.version>5.3.30</spring-core.version>
+        <commons-lang3.verson>3.19.0</commons-lang3.verson>
+        <lombok.version>1.18.42</lombok.version>
+        <jackson-annotations.verison>2.19.2</jackson-annotations.verison>
+        <fastjson.version>2.0.58</fastjson.version>
+        <hutool-all.version>5.8.41</hutool-all.version>
+        <jjwt-api.version>0.12.6</jjwt-api.version>
+        <jjwt-impl.version>0.13.0</jjwt-impl.version>
+        <jjwt-jackson.version>0.13.0</jjwt-jackson.version>
+
+        <!--    web    -->
+        <spring-boot-starter-web.version>2.7.17</spring-boot-starter-web.version>
+        <spring-boot-starter-validation.version>2.7.17</spring-boot-starter-validation.version>
+
+        <!--  swagger2  -->
+        <springdoc.version>1.8.0</springdoc.version>
+
+        <!--  serve  -->
+        <spring-boot-configuration-processor.version>2.7.17</spring-boot-configuration-processor.version>
+        <spring-boot-devtools.version>2.7.17</spring-boot-devtools.version>
+
+        <!-- orm framework -->
+        <mysql-connector.version>8.0.11</mysql-connector.version>
+        <mybatis-plus.version>3.3.2</mybatis-plus.version>
+        <velocity.version>2.3</velocity.version>
+
+    </properties>
+
+    <dependencyManagement>
+        <dependencies>
+            <!--    core      -->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-context</artifactId>
+                <version>${spring-context.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-core</artifactId>
+                <version>${spring-core.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.commons</groupId>
+                <artifactId>commons-lang3</artifactId>
+                <version>${commons-lang3.verson}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.projectlombok</groupId>
+                <artifactId>lombok</artifactId>
+                <version>${lombok.version}</version>
+                <optional>true</optional>
+            </dependency>
+            <dependency>
+                <groupId>com.fasterxml.jackson.core</groupId>
+                <artifactId>jackson-annotations</artifactId>
+                <version>${jackson-annotations.verison}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba</groupId>
+                <artifactId>fastjson</artifactId>
+                <version>${fastjson.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>cn.hutool</groupId>
+                <artifactId>hutool-all</artifactId>
+                <version>${hutool-all.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-api</artifactId>
+                <version>${jjwt-api.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-impl</artifactId>
+                <version>${jjwt-impl.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+            <dependency>
+                <groupId>io.jsonwebtoken</groupId>
+                <artifactId>jjwt-jackson</artifactId>
+                <version>${jjwt-jackson.version}</version>
+                <scope>runtime</scope>
+            </dependency>
+
+
+            <!--     web    -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-web</artifactId>
+                <version>${spring-boot-starter-web.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-validation</artifactId>
+                <version>${spring-boot-starter-validation.version}</version>
+            </dependency>
+
+            <!--swagger2-->
+
+            <!-- Spring doc -->
+            <dependency>
+                <groupId>org.springdoc</groupId>
+                <artifactId>springdoc-openapi-ui</artifactId>
+                <version>${springdoc.version}</version>
+            </dependency>
+
+
+            <!--serve-->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-configuration-processor</artifactId>
+                <version>${spring-boot-configuration-processor.version}</version>
+            </dependency>
+                <!-- 热部署 -->
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-devtools</artifactId>
+                <version>${spring-boot-devtools.version}</version>
+            </dependency>
+
+            <!-- orm framework-->
+            <!--mysql-connector-java-->
+            <dependency>
+                <groupId>mysql</groupId>
+                <artifactId>mysql-connector-java</artifactId>
+                <scope>runtime</scope>
+                <version>${mysql-connector.version}</version>
+            </dependency>
+            <!--mybatis-plus-spring-boot-starter-->
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-boot-starter</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.baomidou</groupId>
+                <artifactId>mybatis-plus-generator</artifactId>
+                <version>${mybatis-plus.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>org.apache.velocity</groupId>
+                <artifactId>velocity-engine-core</artifactId>
+                <version>${velocity.version}</version>
+            </dependency>
+
+
+
+        </dependencies>
+    </dependencyManagement>
+
+
+</project>

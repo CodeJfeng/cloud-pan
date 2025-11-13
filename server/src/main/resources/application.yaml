@@ -1,0 +1,51 @@
+spring:
+  application:
+    name: cloud-drive-serve
+  output:
+    ansi:
+      enabled: always
+  mvc:
+    servlet:
+      load-on-startup: 1
+  servlet:
+    multipart:
+      max-file-size: 3072MB
+      max-request-size: 3072MB
+  datasource:
+    username: root
+    password: 123456
+    url: jdbc::mysql://127.0.0.1:3306/cloud_drive_pan?characterEncoding=utf-8&&serverTimeZone=Asia/Shangghai&&useSSL=false&allowPublicKeyRetrieval=true
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+mybatis-plus:
+  mapper-locations: classpath:/mappers/**/*.xml
+
+server:
+  port: 8080
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: '*'
+        exclude: env,beans
+
+# SpringBoot 2.x 版本配置
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    # 是否开启接口文档
+    enabled: true
+    # OpenAPI文档的路径
+    path: /v3/api-docs
+  swagger-ui:
+    # swagger-ui路径
+    path: /swagger-ui.html
+    # 持久化认证数据
+    persistAuthorization: true
+  # 分组配置
+  group-configs:
+    - group: SpringDoc项目模块接口文档
+      packages-to-scan: com.jfeng.pan
+
+

@@ -1,0 +1,17 @@
+# SpringBoot 2.x 版本配置
+# SpringDoc OpenAPI 配置
+springdoc:
+  api-docs:
+    # 是否开启接口文档
+    enabled: true
+    # OpenAPI文档的路径
+    path: /v3/api-docs
+  swagger-ui:
+    # swagger-ui路径
+    path: /swagger-ui.html
+    # 持久化认证数据
+    persistAuthorization: true
+  # 分组配置
+  group-configs:
+    - group: SpringDoc项目模块接口文档
+      packages-to-scan: com.jfeng.pan
