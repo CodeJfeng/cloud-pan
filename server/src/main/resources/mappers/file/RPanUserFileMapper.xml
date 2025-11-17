@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper">
+
+    <resultMap id="BaseResultMap" type="com.jfeng.pan.server.modules.file.entity.RPanUserFile">
+            <id property="file_id" column="file_id" />
+            <result property="user_id" column="user_id" />
+            <result property="parent_id" column="parent_id" />
+            <result property="real_file_id" column="real_file_id" />
+            <result property="filename" column="filename" />
+            <result property="folder_flag" column="folder_flag" />
+            <result property="file_size_desc" column="file_size_desc" />
+            <result property="file_type" column="file_type" />
+            <result property="del_flag" column="del_flag" />
+            <result property="create_user" column="create_user" />
+            <result property="create_time" column="create_time" />
+            <result property="update_user" column="update_user" />
+            <result property="update_time" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        file_id,user_id,parent_id,real_file_id,filename,folder_flag,
+        file_size_desc,file_type,del_flag,create_user,create_time,
+        update_user,update_time
+    </sql>
+</mapper>

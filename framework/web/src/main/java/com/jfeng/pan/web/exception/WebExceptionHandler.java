@@ -1,6 +1,7 @@
 package com.jfeng.pan.web.exception;
 
 import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.core.exception.RPanFrameworkException;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.response.ResponseCode;
 import org.springframework.validation.BindException;
@@ -60,4 +61,9 @@ public class WebExceptionHandler {
     public R runtimeExceptionHandler(RuntimeException e){
        return R.fail(ResponseCode.ERROR.getCode(), e.getMessage());
    }
+
+    @ExceptionHandler(value = RPanFrameworkException.class)
+    public R runtimeExceptionHandler(RPanFrameworkException e){
+        return R.fail(ResponseCode.ERROR.getCode(), e.getMessage());
+    }
 }

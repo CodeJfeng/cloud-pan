@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project version="4">
+  <component name="CompilerConfiguration">
+    <annotationProcessing>
+      <profile default="true" name="Default" enabled="true" />
+      <profile name="Maven default annotation processors profile" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <module name="cloud-drive-distribution" />
+        <module name="cloud-drive-web" />
+        <module name="cloud-drive-caffeine" />
+        <module name="cloud-drive-schedule" />
+        <module name="cloud-drive-swagger2" />
+        <module name="cloud-drive-core" />
+        <module name="cloud-drive-cache-core" />
+        <module name="cloud-drive-mybatis-plus" />
+        <module name="cloud-drive-redis" />
+      </profile>
+      <profile name="Annotation profile for cloud-drive-parent" enabled="true">
+        <sourceOutputDir name="target/generated-sources/annotations" />
+        <sourceTestOutputDir name="target/generated-test-sources/test-annotations" />
+        <outputRelativeToContentRoot value="true" />
+        <processorPath useClasspath="false">
+          <entry name="$MAVEN_REPOSITORY$/org/mapstruct/mapstruct-processor/1.5.5.Final/mapstruct-processor-1.5.5.Final.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok/1.18.42/lombok-1.18.42.jar" />
+          <entry name="$MAVEN_REPOSITORY$/org/projectlombok/lombok-mapstruct-binding/0.2.0/lombok-mapstruct-binding-0.2.0.jar" />
+        </processorPath>
+        <module name="cloud-drive-server" />
+      </profile>
+    </annotationProcessing>
+    <bytecodeTargetLevel>
+      <module name="r-panredis" target="20" />
+    </bytecodeTargetLevel>
+  </component>
+  <component name="JavacSettings">
+    <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="cloud-drive-cache" options="" />
+      <module name="cloud-drive-cache-core" options="-parameters" />
+      <module name="cloud-drive-caffeine" options="-parameters" />
+      <module name="cloud-drive-core" options="-parameters" />
+      <module name="cloud-drive-distribution" options="-parameters" />
+      <module name="cloud-drive-framework" options="" />
+      <module name="cloud-drive-mybatis-plus" options="-parameters" />
+      <module name="cloud-drive-orm" options="" />
+      <module name="cloud-drive-parent" options="" />
+      <module name="cloud-drive-redis" options="-parameters" />
+      <module name="cloud-drive-schedule" options="-parameters" />
+      <module name="cloud-drive-server" options="-parameters" />
+      <module name="cloud-drive-swagger2" options="-parameters" />
+      <module name="cloud-drive-web" options="-parameters" />
+      <module name="r-panredis" options="-parameters" />
+    </option>
+  </component>
+</project>

@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jfeng.pan.server.modules.share.mapper.RPanShareMapper">
+
+    <resultMap id="BaseResultMap" type="com.jfeng.pan.server.modules.share.entity.RPanShare">
+            <id property="share_id" column="share_id" />
+            <result property="share_name" column="share_name" />
+            <result property="share_type" column="share_type" />
+            <result property="share_day_type" column="share_day_type" />
+            <result property="share_day" column="share_day" />
+            <result property="share_end_time" column="share_end_time" />
+            <result property="share_url" column="share_url" />
+            <result property="share_code" column="share_code" />
+            <result property="share_status" column="share_status" />
+            <result property="create_user" column="create_user" />
+            <result property="create_time" column="create_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        share_id,share_name,share_type,share_day_type,share_day,share_end_time,
+        share_url,share_code,share_status,create_user,create_time
+    </sql>
+</mapper>

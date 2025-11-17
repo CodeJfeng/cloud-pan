@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE mapper
+        PUBLIC "-//mybatis.org//DTD Mapper 3.0//EN"
+        "http://mybatis.org/dtd/mybatis-3-mapper.dtd">
+<mapper namespace="com.jfeng.pan.server.modules.log.mapper.RPanErrorLogMapper">
+
+    <resultMap id="BaseResultMap" type="com.jfeng.pan.server.modules.log.entity.RPanErrorLog">
+            <id property="id" column="id" />
+            <result property="log_content" column="log_content" />
+            <result property="log_status" column="log_status" />
+            <result property="create_user" column="create_user" />
+            <result property="create_time" column="create_time" />
+            <result property="update_user" column="update_user" />
+            <result property="update_time" column="update_time" />
+    </resultMap>
+
+    <sql id="Base_Column_List">
+        id,log_content,log_status,create_user,create_time,update_user,
+        update_time
+    </sql>
+</mapper>
