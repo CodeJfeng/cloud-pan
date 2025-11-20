@@ -16,10 +16,10 @@ public class PasswordUtil {
     }
 
     /**
-     * 密码加密
+     * 密码加密函数
      *
-     * @param salt
-     * @param inputPassword
+     * @param salt 加密盐值
+     * @param inputPassword 加密密码
      * @return
      */
     public static String encryptPassword(String salt, String inputPassword) {

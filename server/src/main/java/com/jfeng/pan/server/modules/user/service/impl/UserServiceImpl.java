@@ -1,19 +1,26 @@
 package com.jfeng.pan.server.modules.user.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.jfeng.pan.cache.core.constants.CacheConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.response.ResponseCode;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.PasswordUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
+import com.jfeng.pan.server.modules.user.constants.UserConstants;
+import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.converter.UserConverter;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.mapper.RPanUserMapper;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cache.Cache;
+import org.springframework.cache.CacheManager;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -33,8 +40,12 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     @Autowired
     private IUserFileService iUserFileService;
+
+    @Autowired
+    private CacheManager cacheManager;
+
     /**
-     * 用户注册业务实现
+     * 用户注册业务的实现
      * 需要实现的功能点：
      * 1、注册用户信息
      * 2、创建新用户的根本目录信息
@@ -55,8 +66,76 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         return userRegisterContext.getEntity().getUserId();
     }
 
+    /**
+     * <p>
+     * 用户登录业务的实现
+     * 需要实现的功能：
+     * 1、用户的登录信息校验
+     * 2、生成具有时效性的accessToken
+     * 3、将accessToken缓存起来，实现单机版登录
+     * </p>
+     *
+     * @param userLoginContext 用户信息
+     * @return
+     */
+    @Override
+    public String login(UserLoginContext userLoginContext) {
+        checkLoginInfo(userLoginContext);
+        generateAndSaveAccessToken(userLoginContext);
+        return userLoginContext.getAccessToken();
+    }
+
+
+
 
     /****************************************************** private ***************************************************************/
+
+    /**
+     * 生成accessToken并保存凭证
+     */
+    private void generateAndSaveAccessToken(UserLoginContext userLoginContext) {
+        RPanUser entity = userLoginContext.getEntity();
+        String token = JwtUtil.generateToken(entity.getUsername(), UserConstants.LOGIN_USER_ID, entity.getUserId(), UserConstants.ONE_DAY_LONG);
+        Cache cache = cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
+        assert cache != null;
+        cache.put(UserConstants.USER_LOGIN_PREFIX+entity.getUserId(), token);
+        userLoginContext.setAccessToken(token);
+    }
+
+
+    /**
+     * 校验用户和密码
+     * @param userLoginContext
+     */
+    private void checkLoginInfo(UserLoginContext userLoginContext) {
+        String username = userLoginContext.getUsername();
+        String password = userLoginContext.getPassword();
+        RPanUser entity =  getRPanUserByUsername(username);
+        if(Objects.isNull(entity)){
+            throw new RPanBusinessException("用户名称不存在");
+        }
+        String salt = entity.getSalt();
+        String encPassword = PasswordUtil.encryptPassword(salt, password);
+        String dbPassword = entity.getPassword();
+        if(!encPassword.equals(dbPassword)){
+            throw new RPanBusinessException("密码信息不正确");
+        }
+        userLoginContext.setEntity(entity);
+    }
+
+    /**
+     * 通过用户名获取用户实体
+     * 采用Lambda表达式，杜绝硬编码的查询形式
+     * @param username 用户名
+     * @return RPanUser
+     */
+    private RPanUser getRPanUserByUsername(String username) {
+        LambdaQueryWrapper<RPanUser> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RPanUser::getUsername, username);
+        return getOne(wrapper);
+    }
+
+
 
     /**
      * 创建用户的根目录信息
@@ -98,7 +177,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     private void assembleUserEntity(UserRegisterContext userRegisterContext) {
         RPanUser entity = userConverter.userRegisterContext2RPanUser(userRegisterContext);
         String salt = PasswordUtil.getSalt(),
-             dbPassword = PasswordUtil.encryptPassword(salt, userRegisterContext.getPassword());
+            dbPassword = PasswordUtil.encryptPassword(salt, userRegisterContext.getPassword());
         entity.setUserId(IdUtil.get());
         entity.setSalt(salt);
         entity.setPassword(dbPassword);

@@ -2,6 +2,7 @@ package com.jfeng.pan.server.modules.user.context;
 
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import lombok.Data;
+
 import java.io.Serial;
 import java.io.Serializable;
 
@@ -13,10 +14,10 @@ import java.io.Serializable;
  * </p>
  */
 @Data
-public class UserRegisterContext implements Serializable {
+public class UserLoginContext implements Serializable {
 
     @Serial
-    private static final long  serialVersionUID = -123123123121L;
+    private static final long  serialVersionUID = -45624137318L;
 
     /**
      * 用户名
@@ -29,18 +30,13 @@ public class UserRegisterContext implements Serializable {
     private String password;
 
     /**
-     * 密保问题
-     */
-    private String question;
-
-    /**
-     * 密保答案
-     */
-    private String answer;
-
-    /**
      * 用户实体对象
      */
     private RPanUser entity;
+
+    /**
+     * 登录成功的accessToken
+     */
+    private String accessToken;
 
 }

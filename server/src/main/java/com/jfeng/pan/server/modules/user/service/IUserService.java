@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.user.service;
 
+import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -17,4 +18,11 @@ public interface IUserService extends IService<RPanUser> {
      * @return 用户加密的userID
      */
     Long register(UserRegisterContext userRegisterContext);
+
+    /**
+     * 用户登录接口
+     * @param userLoginContext 用户信息
+     * @return 带过期时间的token
+     */
+    String login(UserLoginContext userLoginContext);
 }

@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.constants.RPanConstants;
@@ -122,7 +123,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
             newFilenameWithoutSuffix = filename.substring(0, newFilenamePointPosition);
             newFileNameSuffix = filename.substring(newFilenamePointPosition);
         }
-        int count = getDuplicateFilename(entity, newFilenameWithoutSuffix);
+        long count = getDuplicateFilename(entity, newFilenameWithoutSuffix);
         if(count == 0){
             return;
         }
@@ -137,7 +138,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param newFileNameSuffix
      * @return
      */
-    private String assmebleNewFilename(String newFilenameWithoutSuffix, int count, String newFileNameSuffix) {
+    private String assmebleNewFilename(String newFilenameWithoutSuffix, long count, String newFileNameSuffix) {
         return newFilenameWithoutSuffix +
                 FileConstants.LEFT_PARENTHESIS_STR +
                 count +
@@ -151,16 +152,15 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param newFilenameWithoutSuffix
      * @return
      */
-    private int getDuplicateFilename(RPanUserFile entity, String newFilenameWithoutSuffix) {
-        QueryWrapper queryWrapper = new QueryWrapper();
-        queryWrapper.eq("parent_id", entity.getParentId());
-        queryWrapper.eq("folder_flag", entity.getFolderFlag());
-        queryWrapper.eq("user_id", entity.getUserId());
-        queryWrapper.eq("del_flag", DelFlagEnum.NO.getCode());
-        queryWrapper.likeLeft("filename", newFilenameWithoutSuffix);
+    private long getDuplicateFilename(RPanUserFile entity, String newFilenameWithoutSuffix) {
+        LambdaQueryWrapper<RPanUserFile> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(RPanUserFile::getParentId, entity.getParentId())
+                .eq(RPanUserFile::getFolderFlag, entity.getFolderFlag())
+                .eq(RPanUserFile::getUserId, entity.getUserId())
+                .eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode())
+                .likeLeft(RPanUserFile::getFilename, newFilenameWithoutSuffix);
         return count(queryWrapper);
     }
-
 }
 
 

@@ -1,14 +1,16 @@
 package com.jfeng.pan.server.modules.user.converter;
 
+import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
+import com.jfeng.pan.server.modules.user.po.UserLoginPO;
 import com.jfeng.pan.server.modules.user.po.UserRegisterPO;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-11-17T10:30:57+0800",
+    date = "2025-11-19T20:52:00+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -43,5 +45,19 @@ public class UserConverterImpl implements UserConverter {
         rPanUser.setAnswer( userRegisterContext.getAnswer() );
 
         return rPanUser;
+    }
+
+    @Override
+    public UserLoginContext userLoginPO2RPanLoginContext(UserLoginPO userLoginPO) {
+        if ( userLoginPO == null ) {
+            return null;
+        }
+
+        UserLoginContext userLoginContext = new UserLoginContext();
+
+        userLoginContext.setUsername( userLoginPO.getUsername() );
+        userLoginContext.setPassword( userLoginPO.getPassword() );
+
+        return userLoginContext;
     }
 }
