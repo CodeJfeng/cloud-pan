@@ -31,7 +31,6 @@ public class StartedListener implements ApplicationListener<ApplicationReadyEven
             log.info(AnsiOutput.toString(AnsiColor.BRIGHT_BLUE,  "Cloud Drive's Doc start at "+ serverUrl+ "/doc.html"));
         }
         log.info(AnsiOutput.toString(AnsiColor.BRIGHT_YELLOW,  "Cloud Drive Server has started successfully!"));
-
     }
 
     /**

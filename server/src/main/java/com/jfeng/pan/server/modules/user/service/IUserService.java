@@ -25,4 +25,10 @@ public interface IUserService extends IService<RPanUser> {
      * @return 带过期时间的token
      */
     String login(UserLoginContext userLoginContext);
+
+    /**
+     * 用户退出登录业务接口
+     * @param userId 用户id
+     */
+    void exit(Long userId);
 }

@@ -56,7 +56,8 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 1、幂等性通过数据库表对用户名字字段添加唯一索引，我们上游业务捕获对应的冲突异常，转化返回
      * 2、数据库表对用户名字字段添加唯一索引
      * @param userRegisterContext 用户信息
-     * @return
+     * @return 注册成功的用户ID
+     * @throws RPanBusinessException 标识业务注册失败异常
      */
     @Override
     public Long register(UserRegisterContext userRegisterContext) {
@@ -85,10 +86,27 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         return userLoginContext.getAccessToken();
     }
 
+    /**
+     * <p>
+     * 用户退出登录的业务实现
+     * 1、清除用户的登录凭证
+     * </p>
+     * @param userId 用户id
+     */
+    @Override
+    public void exit(Long userId) {
+        try {
+            Cache cache = cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
+            assert cache != null;
+            cache.evict(UserConstants.USER_LOGIN_PREFIX+userId);
+        }catch (Exception e){
+            e.printStackTrace();
+            throw new RPanBusinessException("用户登录失败");
+        }
+    }
 
 
-
-    /****************************************************** private ***************************************************************/
+/****************************************************** private ***************************************************************/
 
     /**
      * 生成accessToken并保存凭证

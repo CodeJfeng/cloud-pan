@@ -20,7 +20,7 @@ public class PasswordUtil {
      *
      * @param salt 加密盐值
      * @param inputPassword 加密密码
-     * @return
+     * @return 密码加密后的字符串
      */
     public static String encryptPassword(String salt, String inputPassword) {
         return MessageDigestUtil.sha256(MessageDigestUtil.sha1(inputPassword) + salt);

@@ -2,6 +2,7 @@ package com.jfeng.pan.server.modules.user.controller;
 
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.converter.UserConverter;
@@ -71,5 +72,22 @@ public class UserController {
         UserLoginContext userLoginContext = userConverter.userLoginPO2RPanLoginContext(userLoginPO);
         String token = iuserService.login(userLoginContext);
         return R.data(token);
+    }
+
+    /**
+     * <p>
+     *     用户登出接口
+     *     该接口提供了用户退出登录的功能，
+     * </p>
+     *
+     * @return 返回退出成功信息
+     */
+    @Operation(summary ="用户登出接口",
+            description = "该接口提供了用户登出账号的功能"
+    )
+    @PostMapping("exit")
+    public R exit(){
+        iuserService.exit(UserIdUtil.get());
+        return R.success();
     }
 }

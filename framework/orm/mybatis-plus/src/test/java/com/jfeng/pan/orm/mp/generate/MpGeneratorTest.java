@@ -11,7 +11,7 @@ public class MpGeneratorTest {
      * r_pan_user
      * @param args
      */
-    public static void main(String[] args) {
-        CodeGenerator.generate();
-    }
+//    public static void main(String[] args) {
+//        CodeGenerator.generate();
+//    }
 }

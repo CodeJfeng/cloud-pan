@@ -2,7 +2,9 @@ package com.jfeng.pan.server.modules.user;
 
 import cn.hutool.core.lang.Assert;
 import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.server.RPanServerLauncher;
+import com.jfeng.pan.server.modules.user.constants.UserConstants;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.service.IUserService;
@@ -89,6 +91,22 @@ public class UserTest {
         String token = userService.login(loginContext);
     }
 
+    /**
+     * 用户成功登出单元测试
+     */
+    @Test
+    public void exitSuccess(){
+        UserRegisterContext context = createRegisterContext();
+        Long register = userService.register(context);
+        Assert.isTrue(register > 0L);
+
+        UserLoginContext loginContext = createLoginContext();
+        String token = userService.login(loginContext);
+        Assert.isTrue(StringUtils.isNotBlank(token));
+
+        Long userId = (Long) JwtUtil.analyzeToken(token, UserConstants.LOGIN_USER_ID);
+        userService.exit(userId);
+    }
 
     /********************************* private ************************************/
     private final static String USERNAME = "Jfeng";
