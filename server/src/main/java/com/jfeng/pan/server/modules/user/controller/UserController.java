@@ -2,6 +2,7 @@ package com.jfeng.pan.server.modules.user.controller;
 
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.annotation.LoginIgnore;
 import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
@@ -45,6 +46,7 @@ public class UserController {
             description = "提供用户登录接口，实现了幂等注册的逻辑，可以放心调用"
     )
     @PostMapping("register")
+    @LoginIgnore
     public R register(@Validated  @RequestBody UserRegisterPO userRegisterPO){
         UserRegisterContext userRegisterContext = userConverter.userRegisterPO2UserRegisterContext(userRegisterPO);
         Long userID = iuserService.register(userRegisterContext);
@@ -59,6 +61,7 @@ public class UserController {
      *
      * @return 返回加密后的用户ID
      */
+    @LoginIgnore
     @Operation(summary ="用户登录接口",
             description = "该接口提供了用户登录功能，成功登录以后，会返回具有时效性的accessToken",
             responses = {
