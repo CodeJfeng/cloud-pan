@@ -18,4 +18,14 @@ public interface UserConstants {
      * 用户登录缓存前缀
      */
     String USER_LOGIN_PREFIX = "USER_LOGIN_";
+
+    /**
+     * 用户忘记密码--重置密码临时token
+     */
+    String FORGET_USERNAME = "FORGET_USERNAME_";
+
+    /**
+     * 五分钟的毫秒时间
+     */
+    Long FIVE_MINUTES_LONG = 5 * 60 * 1000L;
 }

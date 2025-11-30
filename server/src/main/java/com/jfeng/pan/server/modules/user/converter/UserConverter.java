@@ -1,10 +1,8 @@
 package com.jfeng.pan.server.modules.user.converter;
 
-import com.jfeng.pan.server.modules.user.context.UserLoginContext;
-import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
+import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
-import com.jfeng.pan.server.modules.user.po.UserLoginPO;
-import com.jfeng.pan.server.modules.user.po.UserRegisterPO;
+import com.jfeng.pan.server.modules.user.po.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -33,5 +31,26 @@ public interface UserConverter {
      * @return
      */
     UserLoginContext userLoginPO2RPanLoginContext(UserLoginPO userLoginPO);
+
+    /**
+     * CheckUsernamePO装化成 CheckUsernameContext
+     * @param checkUsernamePO
+     * @return
+     */
+    CheckUsernameContext checkUsernamePO2CheckUsernameContext(CheckUsernamePO checkUsernamePO);
+
+    /**
+     * CheckAnswerPO装化成 CheckAnswerContext
+     * @param checkAnswerPO checkAnswer的PO对象
+     * @return CheckAnswerContext上下文
+     */
+    CheckAnswerContext checkAnswerPO2CheckAnswerContext(CheckAnswerPO checkAnswerPO);
+
+    /**
+     * ResetPasswordPO 转化成 ResetPasswordContext
+     * @param resetPasswordPO resetPassword的PO对象
+     * @return ResetPasswordContext上下文
+     */
+    ResetPasswordContext  resetPasswordPO2ResetPasswordContext(ResetPasswordPO resetPasswordPO);
 
 }

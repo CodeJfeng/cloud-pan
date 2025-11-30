@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.cache.core.constants.CacheConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
@@ -12,12 +13,12 @@ import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.user.constants.UserConstants;
-import com.jfeng.pan.server.modules.user.context.UserLoginContext;
-import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
+import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.converter.UserConverter;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.mapper.RPanUserMapper;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
@@ -105,8 +106,108 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         }
     }
 
+    /**
+     * <p>
+     * 用户忘记密码——校验用户名称并返回密保问题
+     * 查询数据库的Username
+     * </p>
 
-/****************************************************** private ***************************************************************/
+     * @param checkUsernameContext 校验上下文
+     * @return 返回密保问题
+     */
+    @Override
+    public String checkUsername(CheckUsernameContext checkUsernameContext) {
+        String question = baseMapper.selectQuestionByUsername(checkUsernameContext.getUsername());
+        if(StringUtils.isEmpty(question)){
+            throw new RPanBusinessException("没有此用户");
+        }
+        return question;
+    }
+
+    /**
+     * 用户忘记密码——校验密保答案并生成登录token
+     * @param checkAnswerContext 校验密保问题上下文
+     * @return
+     */
+    @Override
+    public String checkAnswer(CheckAnswerContext checkAnswerContext) {
+        LambdaQueryWrapper<RPanUser> queryWrapper = new LambdaQueryWrapper<>();
+        queryWrapper.eq(RPanUser::getUsername, checkAnswerContext.getUsername())
+                .eq(RPanUser::getQuestion, checkAnswerContext.getQuestion())
+                .eq(RPanUser::getAnswer, checkAnswerContext.getAnswer());
+        long count = count(queryWrapper);
+        if(count == 0){
+            throw new RPanBusinessException("密保答案错误");
+        }
+        return generateAccessToken(checkAnswerContext);
+    }
+
+    /**
+     * 用户重置密码
+     * 1、校验token是否有效
+     * 2、重置密码
+     * @param resetPasswordContext 重置密码上下文
+     */
+    @Override
+    public void resetPassword(ResetPasswordContext resetPasswordContext) {
+        checkForgetPasswordToken(resetPasswordContext);
+        checkAndResetUserPassword(resetPasswordContext);
+    }
+
+
+    /****************************************************** private ***************************************************************/
+
+
+    /**
+     * 校验并重置密码
+     * @param resetPasswordContext 重置密码上下文
+     */
+    private void checkAndResetUserPassword(ResetPasswordContext resetPasswordContext) {
+        String username = resetPasswordContext.getUsername();
+        String password = resetPasswordContext.getPassword();
+        RPanUser entity = getRPanUserByUsername(username);
+        if(Objects.isNull(entity)){
+            throw new RPanBusinessException("用户信息不存在");
+        }
+        String newDbPassword = PasswordUtil.encryptPassword(entity.getSalt(), password);
+        entity.setPassword(newDbPassword);
+        entity.setUpdateTime(new Date());
+
+        if( !updateById(entity)){
+            throw new RPanBusinessException("重置用户密码失败");
+        }
+
+
+    }
+
+    /**
+     * 验证忘记密码的token信息是否有效
+     * @param resetPasswordContext 重置密码上下文信息
+     */
+    private void checkForgetPasswordToken(ResetPasswordContext resetPasswordContext) {
+        Object value = JwtUtil.analyzeToken(resetPasswordContext.getToken(), UserConstants.FORGET_USERNAME);
+        if(Objects.isNull(value)){
+            throw new RPanBusinessException(ResponseCode.TOKEN_EXPIRE);
+        }
+        String tokenUsername = String.valueOf(value);
+        if(!resetPasswordContext.getUsername().equals(tokenUsername)){
+            throw new RPanBusinessException("token信息与用户信息不一致");
+        }
+    }
+
+
+    /**
+     * <p>
+     *     用户忘记密码——校验密保通过的临时token
+     *     token的失效时间定义为5分钟
+     * </p>
+     * @param checkAnswerContext
+     * @return
+     */
+    private String generateAccessToken(CheckAnswerContext checkAnswerContext) {
+        return JwtUtil.generateToken(checkAnswerContext.getUsername(), UserConstants.FORGET_USERNAME, checkAnswerContext.getUsername(), UserConstants.FIVE_MINUTES_LONG);
+    }
+
 
     /**
      * 生成accessToken并保存凭证

@@ -1,8 +1,14 @@
 package com.jfeng.pan.server.modules.user.converter;
 
+import com.jfeng.pan.server.modules.user.context.CheckAnswerContext;
+import com.jfeng.pan.server.modules.user.context.CheckUsernameContext;
+import com.jfeng.pan.server.modules.user.context.ResetPasswordContext;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
+import com.jfeng.pan.server.modules.user.po.CheckAnswerPO;
+import com.jfeng.pan.server.modules.user.po.CheckUsernamePO;
+import com.jfeng.pan.server.modules.user.po.ResetPasswordPO;
 import com.jfeng.pan.server.modules.user.po.UserLoginPO;
 import com.jfeng.pan.server.modules.user.po.UserRegisterPO;
 import javax.annotation.processing.Generated;
@@ -10,7 +16,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-11-28T12:06:21+0800",
+    date = "2025-11-30T19:29:29+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -59,5 +65,48 @@ public class UserConverterImpl implements UserConverter {
         userLoginContext.setPassword( userLoginPO.getPassword() );
 
         return userLoginContext;
+    }
+
+    @Override
+    public CheckUsernameContext checkUsernamePO2CheckUsernameContext(CheckUsernamePO checkUsernamePO) {
+        if ( checkUsernamePO == null ) {
+            return null;
+        }
+
+        CheckUsernameContext checkUsernameContext = new CheckUsernameContext();
+
+        checkUsernameContext.setUsername( checkUsernamePO.getUsername() );
+
+        return checkUsernameContext;
+    }
+
+    @Override
+    public CheckAnswerContext checkAnswerPO2CheckAnswerContext(CheckAnswerPO checkAnswerPO) {
+        if ( checkAnswerPO == null ) {
+            return null;
+        }
+
+        CheckAnswerContext checkAnswerContext = new CheckAnswerContext();
+
+        checkAnswerContext.setUsername( checkAnswerPO.getUsername() );
+        checkAnswerContext.setQuestion( checkAnswerPO.getQuestion() );
+        checkAnswerContext.setAnswer( checkAnswerPO.getAnswer() );
+
+        return checkAnswerContext;
+    }
+
+    @Override
+    public ResetPasswordContext resetPasswordPO2ResetPasswordContext(ResetPasswordPO resetPasswordPO) {
+        if ( resetPasswordPO == null ) {
+            return null;
+        }
+
+        ResetPasswordContext resetPasswordContext = new ResetPasswordContext();
+
+        resetPasswordContext.setUsername( resetPasswordPO.getUsername() );
+        resetPasswordContext.setPassword( resetPasswordPO.getPassword() );
+        resetPasswordContext.setToken( resetPasswordPO.getToken() );
+
+        return resetPasswordContext;
     }
 }

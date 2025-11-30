@@ -1,7 +1,6 @@
 package com.jfeng.pan.server.modules.user.service;
 
-import com.jfeng.pan.server.modules.user.context.UserLoginContext;
-import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
+import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -31,4 +30,20 @@ public interface IUserService extends IService<RPanUser> {
      * @param userId 用户id
      */
     void exit(Long userId);
+
+    /**
+     * 用户忘记密码-校验用户名业务接口
+     * @param checkUsernameContext 校验用户上下文
+     * @return 返回密码问题
+     */
+    String checkUsername(CheckUsernameContext checkUsernameContext);
+
+    /**
+     * 用户忘记密码-校验密保答案
+     * @param checkAnswerContext 校验密保问题上下文
+     * @return 返回token
+     */
+    String checkAnswer(CheckAnswerContext checkAnswerContext);
+
+    void resetPassword(ResetPasswordContext resetPasswordContext);
 }
