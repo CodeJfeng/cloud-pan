@@ -235,13 +235,47 @@ public class UserTest {
         iuserService.resetPassword(resetPasswordContext);
     }
 
+    /**
+     * 正常在线修改新密码
+     */
+    @Test
+    public void changePasswordSuccess(){
+        UserRegisterContext context = createRegisterContext();
+        Long register = iuserService.register(context);
+        Assert.isTrue(register > 0L);
+
+        ChangePasswordContext changePasswordContext = new ChangePasswordContext();
+        changePasswordContext.setUserId(register);
+        changePasswordContext.setOldPassword(PASSWORD);
+        changePasswordContext.setNewPassword(PASSWORD+"_new");
+
+        iuserService.changePassword(changePasswordContext);
+    }
+
+    /**
+     * 修改密码失败--与旧密码错误
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void changePasswordFailByWrongOldPassword(){
+        UserRegisterContext context = createRegisterContext();
+        Long register = iuserService.register(context);
+        Assert.isTrue(register > 0L);
+
+        ChangePasswordContext changePasswordContext = new ChangePasswordContext();
+        changePasswordContext.setUserId(register);
+        changePasswordContext.setOldPassword(PASSWORD+ "_err");
+        changePasswordContext.setNewPassword(PASSWORD+ "_new");
+
+        iuserService.changePassword(changePasswordContext);
+
+    }
     /********************************* private ************************************/
 
 
-    private final static String USERNAME = "Jfeng";
-    private final static String PASSWORD = "12345678";
-    private final static String QUESTION = "Question123";
-    private final static String ANSWER = "Answer123";
+    private final String USERNAME = "Jfeng";
+    private final String PASSWORD = "12345678";
+    private final String QUESTION = "Question123";
+    private final String ANSWER = "Answer123";
 
 
     /**

@@ -45,5 +45,15 @@ public interface IUserService extends IService<RPanUser> {
      */
     String checkAnswer(CheckAnswerContext checkAnswerContext);
 
+    /**
+     * 用户忘记密码-重新设置密码
+     * @param resetPasswordContext 重设密码上下文
+     */
     void resetPassword(ResetPasswordContext resetPasswordContext);
+
+    /**
+     * 用户在线修改密码
+     * @param changePasswordContext 更新密码上下文
+     */
+    void changePassword(ChangePasswordContext changePasswordContext);
 }

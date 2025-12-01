@@ -134,7 +134,7 @@ public class UserController {
      *     该接口提供了用户在忘记密码时，通过token去更新密码信息
      * </p>
      *
-     * @return 返回密保答案校验结果
+     * @return
      */
     @Operation(summary ="用户忘记密码--更新密码",
             description = "该接口提供了用户在忘记密码时，通过token去更新密码信息"
@@ -143,6 +143,25 @@ public class UserController {
     public R resetPassword(@Validated @RequestBody ResetPasswordPO resetPasswordPO){
         ResetPasswordContext resetPasswordContext = userConverter.resetPasswordPO2ResetPasswordContext(resetPasswordPO);
         iuserService.resetPassword(resetPasswordContext);
+        return R.success();
+    }
+
+    /**
+     * <p>
+     *     用户在线更新密码
+     *     该接口提供了用户在线更新密码
+     * </p>
+     *
+     * @return
+     */
+    @Operation(summary ="用户在线更新密码",
+            description = "该接口提供了用户在线更新密码"
+    )
+    @PostMapping("password/change")
+    public R changePassword(@Validated @RequestBody ChangePasswordPO changePasswordPO){
+        ChangePasswordContext  changePasswordContext = userConverter.changePasswordPO2ChangePasswordContext(changePasswordPO);
+        changePasswordContext.setUserId(UserIdUtil.get());
+        iuserService.changePassword(changePasswordContext);
         return R.success();
     }
 }

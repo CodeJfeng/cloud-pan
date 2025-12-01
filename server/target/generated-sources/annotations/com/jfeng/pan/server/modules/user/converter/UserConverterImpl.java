@@ -1,11 +1,13 @@
 package com.jfeng.pan.server.modules.user.converter;
 
+import com.jfeng.pan.server.modules.user.context.ChangePasswordContext;
 import com.jfeng.pan.server.modules.user.context.CheckAnswerContext;
 import com.jfeng.pan.server.modules.user.context.CheckUsernameContext;
 import com.jfeng.pan.server.modules.user.context.ResetPasswordContext;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
+import com.jfeng.pan.server.modules.user.po.ChangePasswordPO;
 import com.jfeng.pan.server.modules.user.po.CheckAnswerPO;
 import com.jfeng.pan.server.modules.user.po.CheckUsernamePO;
 import com.jfeng.pan.server.modules.user.po.ResetPasswordPO;
@@ -16,7 +18,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-11-30T19:29:29+0800",
+    date = "2025-11-30T20:28:07+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -108,5 +110,19 @@ public class UserConverterImpl implements UserConverter {
         resetPasswordContext.setToken( resetPasswordPO.getToken() );
 
         return resetPasswordContext;
+    }
+
+    @Override
+    public ChangePasswordContext changePasswordPO2ChangePasswordContext(ChangePasswordPO changePasswordPO) {
+        if ( changePasswordPO == null ) {
+            return null;
+        }
+
+        ChangePasswordContext changePasswordContext = new ChangePasswordContext();
+
+        changePasswordContext.setOldPassword( changePasswordPO.getOldPassword() );
+        changePasswordContext.setNewPassword( changePasswordPO.getNewPassword() );
+
+        return changePasswordContext;
     }
 }

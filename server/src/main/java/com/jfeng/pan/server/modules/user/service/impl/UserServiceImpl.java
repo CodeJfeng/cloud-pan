@@ -154,8 +154,65 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         checkAndResetUserPassword(resetPasswordContext);
     }
 
+    /**
+     * 用户在线更新密码
+     * 1、校验旧密码
+     * 2、重置新密码
+     * 3、退出当前的登录状态
+     * @param changePasswordContext 更新密码上下文
+     */
+    @Override
+    public void changePassword(ChangePasswordContext changePasswordContext) {
+        checkOldPassword(changePasswordContext);
+        doChangePassword(changePasswordContext);
+        exitLoginStatus(changePasswordContext);
+    }
 
     /****************************************************** private ***************************************************************/
+
+    /**
+     * 退出用户的登录状态
+     * @param changePasswordContext
+     */
+    private void exitLoginStatus(ChangePasswordContext changePasswordContext) {
+        exit(changePasswordContext.getUserId());
+    }
+
+    /**
+     * 修改新密码信息
+     * @param changePasswordContext
+     */
+    private void doChangePassword(ChangePasswordContext changePasswordContext) {
+        String newPassword = changePasswordContext.getNewPassword();
+        RPanUser entity = changePasswordContext.getEntity();
+        String salt = entity.getSalt();
+        String encNewPassword = PasswordUtil.encryptPassword(salt, newPassword);
+
+        entity.setPassword(encNewPassword);
+        if(!updateById(entity)){
+            throw new RPanBusinessException("修改用户密码失败");
+        }
+    }
+
+    /**
+     * 校验用户旧密码
+     * 该代码查询并封装用户实体信息到上下文对象中
+     * @param changePasswordContext
+     */
+    private void checkOldPassword(ChangePasswordContext changePasswordContext) {
+        Long userId = changePasswordContext.getUserId();
+        String oldPassword = changePasswordContext.getOldPassword();
+
+        RPanUser entity = getById(userId);
+        if(Objects.isNull(entity)){
+            throw new RPanBusinessException("用户信息不存在");
+        }
+        changePasswordContext.setEntity(entity);
+        String encOldPassword = PasswordUtil.encryptPassword(entity.getSalt(), oldPassword);
+        if(!encOldPassword.equals(entity.getPassword())){
+            throw new RPanBusinessException("旧密码不正确");
+        }
+    }
 
 
     /**
