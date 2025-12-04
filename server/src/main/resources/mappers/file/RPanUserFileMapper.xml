@@ -25,4 +25,31 @@
         file_size_desc,file_type,del_flag,create_user,create_time,
         update_user,update_time
     </sql>
+
+    <select id="selectFileList" resultType="com.jfeng.pan.server.modules.file.vo.RPanUserFileVO">
+        SELECT
+            file_id AS fileId,
+            parent_id AS parentId,
+            filename AS fileName,
+            file_size_desc AS fileSizeDesc,
+            folder_flag AS folderFlag,
+            file_type AS fileType,
+            update_time AS updateTime
+        FROM
+            r_pan_user_file
+        WHERE
+            user_id = #{param.userId}
+        <if test="param.parentId != null and param.parentId != -1">
+            AND parent_id = #{param.parentId}
+        </if>
+        <if test="param.fileTypeArray != null ">
+            AND file_type IN
+            <foreach collection="param.fileTypeArray" open ="(" close = ")" item="item" separator=",">
+                #{item}
+            </foreach>
+        </if>
+        AND del_flag = #{param.delFlag}
+    </select>
+
+
 </mapper>

@@ -7,14 +7,17 @@ import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.enums.FolderFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
+import java.util.List;
 
 /**
 * @author 16837
@@ -53,6 +56,17 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
                 .eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode())
                 .eq(RPanUserFile::getFolderFlag, DelFlagEnum.YES.getCode());
         return getOne(rPanUserFileLambdaQueryWrapper);
+    }
+
+    /**
+     * 查询用户的文件列表
+     *
+     * @param queryFileListContext
+     * @return
+     */
+    @Override
+    public List<RPanUserFileVO> getFileList(QueryFileListContext queryFileListContext) {
+        return baseMapper.selectFileList(queryFileListContext);
     }
 
     /****************************************************** private ***************************************************************/

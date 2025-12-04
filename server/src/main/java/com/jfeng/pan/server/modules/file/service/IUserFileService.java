@@ -1,8 +1,12 @@
 package com.jfeng.pan.server.modules.file.service;
 
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+
+import java.util.List;
 
 /**
 * @author 16837
@@ -24,4 +28,12 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @return
      */
     RPanUserFile getUserRootFile(Long userId);
+
+    /**
+     * 查询用户的文件列表
+     *
+     * @param queryFileListContext
+     * @return
+     */
+    List<RPanUserFileVO> getFileList(QueryFileListContext queryFileListContext);
 }
