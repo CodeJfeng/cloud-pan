@@ -7,6 +7,7 @@ import com.jfeng.pan.server.RPanServerLauncher;
 import com.jfeng.pan.server.modules.user.constants.UserConstants;
 import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.service.IUserService;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import org.apache.commons.lang3.StringUtils;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -269,6 +270,17 @@ public class UserTest {
         iuserService.changePassword(changePasswordContext);
 
     }
+
+    @Test
+    public void testQueryUserInfo(){
+        UserRegisterContext context = createRegisterContext();
+        Long register = iuserService.register(context);
+        Assert.isTrue(register > 0L);
+
+        UserInfoVO userInfoVO = iuserService.info(register);
+        Assert.notNull(userInfoVO);
+    }
+
     /********************************* private ************************************/
 
 

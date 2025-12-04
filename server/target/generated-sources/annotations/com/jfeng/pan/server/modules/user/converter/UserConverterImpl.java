@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.user.converter;
 
+import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.user.context.ChangePasswordContext;
 import com.jfeng.pan.server.modules.user.context.CheckAnswerContext;
 import com.jfeng.pan.server.modules.user.context.CheckUsernameContext;
@@ -13,12 +14,13 @@ import com.jfeng.pan.server.modules.user.po.CheckUsernamePO;
 import com.jfeng.pan.server.modules.user.po.ResetPasswordPO;
 import com.jfeng.pan.server.modules.user.po.UserLoginPO;
 import com.jfeng.pan.server.modules.user.po.UserRegisterPO;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2025-11-30T20:28:07+0800",
+    date = "2025-12-01T19:41:29+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -124,5 +126,24 @@ public class UserConverterImpl implements UserConverter {
         changePasswordContext.setNewPassword( changePasswordPO.getNewPassword() );
 
         return changePasswordContext;
+    }
+
+    @Override
+    public UserInfoVO assembleUserInfoVO(RPanUser rPanUser, RPanUserFile rPanUserFile) {
+        if ( rPanUser == null && rPanUserFile == null ) {
+            return null;
+        }
+
+        UserInfoVO userInfoVO = new UserInfoVO();
+
+        if ( rPanUser != null ) {
+            userInfoVO.setUsername( rPanUser.getUsername() );
+        }
+        if ( rPanUserFile != null ) {
+            userInfoVO.setRootFiled( rPanUserFile.getFileId() );
+            userInfoVO.setRootFilename( rPanUserFile.getFilename() );
+        }
+
+        return userInfoVO;
     }
 }

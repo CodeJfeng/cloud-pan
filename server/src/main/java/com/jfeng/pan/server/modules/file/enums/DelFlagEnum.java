@@ -18,5 +18,5 @@ public enum DelFlagEnum {
      */
     YES(1);
 
-    private int code;
+    private final int code;
 }

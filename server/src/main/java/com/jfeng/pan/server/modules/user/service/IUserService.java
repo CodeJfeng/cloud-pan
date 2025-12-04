@@ -3,6 +3,7 @@ package com.jfeng.pan.server.modules.user.service;
 import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 
 /**
 * @author 16837
@@ -56,4 +57,11 @@ public interface IUserService extends IService<RPanUser> {
      * @param changePasswordContext 更新密码上下文
      */
     void changePassword(ChangePasswordContext changePasswordContext);
+
+    /**
+     * 在线查询用户的基本信息
+     * @param userId
+     * @return
+     */
+    UserInfoVO info(Long userId);
 }

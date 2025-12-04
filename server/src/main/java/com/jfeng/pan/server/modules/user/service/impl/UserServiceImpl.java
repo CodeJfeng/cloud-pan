@@ -11,6 +11,7 @@ import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.PasswordUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.user.constants.UserConstants;
 import com.jfeng.pan.server.modules.user.context.*;
@@ -18,6 +19,7 @@ import com.jfeng.pan.server.modules.user.converter.UserConverter;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.mapper.RPanUserMapper;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
@@ -168,7 +170,37 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         exitLoginStatus(changePasswordContext);
     }
 
+    /**
+     * 在线查询用户的基本信息
+     * @param userId 用户唯一标识
+     * @return
+     */
+    @Override
+    public UserInfoVO info(Long userId){
+        RPanUser entity = getById(userId);
+        if(Objects.isNull(entity)){
+            throw new RPanBusinessException("用户查询信息失败");
+        }
+
+        RPanUserFile rPanUserFile = getUserRootFileInfo(userId);
+        if(Objects.isNull(rPanUserFile)){
+            throw new RPanBusinessException("查询用户根文件夹信息失败");
+        }
+        return userConverter.assembleUserInfoVO(entity, rPanUserFile);
+    }
+
+
     /****************************************************** private ***************************************************************/
+
+    /**
+     * 获取用户根目录夹信息实体
+     *
+     * @param userId 用户唯一标识
+     * @return
+     */
+    private RPanUserFile getUserRootFileInfo(Long userId) {
+        return iUserFileService.getUserRootFile(userId);
+    }
 
     /**
      * 退出用户的登录状态

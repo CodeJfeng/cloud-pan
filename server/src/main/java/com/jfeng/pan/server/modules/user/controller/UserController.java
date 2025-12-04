@@ -8,15 +8,13 @@ import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.converter.UserConverter;
 import com.jfeng.pan.server.modules.user.po.*;
 import com.jfeng.pan.server.modules.user.service.IUserService;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.PostMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 /**
  * 用户模块的控制器实体
@@ -163,5 +161,20 @@ public class UserController {
         changePasswordContext.setUserId(UserIdUtil.get());
         iuserService.changePassword(changePasswordContext);
         return R.success();
+    }
+
+    /**
+     * <p>
+     *     提供了查询用户的基本信息接口
+     * </p>
+     * @return
+     */
+    @Operation(summary ="查询用户的基本信息",
+            description = "该接口提供了查询用户的基本信息"
+    )
+    @GetMapping("/")
+    public R<UserInfoVO> info(){
+        UserInfoVO userInfoVO = iuserService.info(UserIdUtil.get());
+        return R.data(userInfoVO);
     }
 }

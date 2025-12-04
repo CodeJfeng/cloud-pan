@@ -1,8 +1,10 @@
 package com.jfeng.pan.server.modules.user.converter;
 
+import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.user.context.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.po.*;
+import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -59,4 +61,15 @@ public interface UserConverter {
      * @return ChangePasswordContext上下文
      */
     ChangePasswordContext changePasswordPO2ChangePasswordContext(ChangePasswordPO changePasswordPO);
+
+    /**
+     * 拼装用户基本信息实体
+     * @param rPanUser
+     * @param rPanUserFile
+     * @return
+     */
+    @Mapping(source = "rPanUser.username", target = "username")
+    @Mapping(source = "rPanUserFile.fileId", target = "rootFiled")
+    @Mapping(source = "rPanUserFile.filename", target = "rootFilename")
+    UserInfoVO assembleUserInfoVO(RPanUser rPanUser, RPanUserFile rPanUserFile);
 }
