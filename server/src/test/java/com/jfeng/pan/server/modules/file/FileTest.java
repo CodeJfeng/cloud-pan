@@ -2,8 +2,10 @@ package com.jfeng.pan.server.modules.file;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
+import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
+import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
@@ -64,9 +66,125 @@ public class FileTest {
         createFolderContext.setUserId(userId);
         createFolderContext.setParentId(userInfoVO.getRootFiled());
         createFolderContext.setFolderName("folder-name");
-        Long folder = iUserFileService.createFolder(createFolderContext);
-        Assert.notNull(folder);
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
     }
+
+    /**
+     * 更新文件名称成功
+     */
+    @Test
+    public void testUpdateFilenameSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+//        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+//        updateFilenameContext.setUserId(userId);
+//        updateFilenameContext.setFileId(fileId);
+//        updateFilenameContext.setNewFileName("new-folder-name");
+//        iUserFileService.updateFilename(updateFilenameContext);
+    }
+    /**
+     * 更新文件名称失败--文件ID无效
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testUpdateFilenameFailByWrongFileId(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+        updateFilenameContext.setUserId(userId);
+        updateFilenameContext.setFileId(fileId+1);
+        updateFilenameContext.setNewFileName("new-folder-name");
+        iUserFileService.updateFilename(updateFilenameContext);
+    }
+
+    /**
+     * 更新文件名称失败--当前用户没有修改该文件名称的权限
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testUpdateFilenameFailByWrongUserId(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+        updateFilenameContext.setUserId(userId+1);
+        updateFilenameContext.setFileId(fileId);
+        updateFilenameContext.setNewFileName("new-folder-name");
+        iUserFileService.updateFilename(updateFilenameContext);
+    }
+
+    /**
+     * 更新文件名称失败--不能与当前文件夹名称一致
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testUpdateFilenameFailByWrongFileName(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+        updateFilenameContext.setUserId(userId);
+        updateFilenameContext.setFileId(fileId);
+        updateFilenameContext.setNewFileName("folder-name");
+        iUserFileService.updateFilename(updateFilenameContext);
+    }
+
+    /**
+     * 更新文件名称失败--当前文件名称已被使用
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testUpdateFilenameFailByWrongUsedFileName(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-2");
+        fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+        updateFilenameContext.setUserId(userId);
+        updateFilenameContext.setFileId(fileId);
+        updateFilenameContext.setNewFileName("folder-name-2");
+        iUserFileService.updateFilename(updateFilenameContext);
+    }
+
 
     /********************************* private ************************************/
 

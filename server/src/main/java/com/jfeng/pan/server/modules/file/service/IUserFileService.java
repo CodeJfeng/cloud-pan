@@ -2,6 +2,7 @@ package com.jfeng.pan.server.modules.file.service;
 
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
+import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
@@ -36,4 +37,12 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @return
      */
     List<RPanUserFileVO> getFileList(QueryFileListContext queryFileListContext);
+
+    /**
+     * 更新文件名称
+     *
+     * @param updateFilenameContext
+     * @return
+     */
+    Long updateFilename(UpdateFilenameContext updateFilenameContext);
 }

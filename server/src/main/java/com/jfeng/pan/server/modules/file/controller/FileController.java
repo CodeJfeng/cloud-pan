@@ -8,19 +8,18 @@ import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
+import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.po.CreateFolderPO;
+import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RequestBody;
-import org.springframework.web.bind.annotation.RequestParam;
-import org.springframework.web.bind.annotation.RestController;
+import org.springframework.web.bind.annotation.*;
 
 import javax.validation.constraints.NotBlank;
 import java.util.List;
@@ -65,10 +64,19 @@ public class FileController {
 
     @Operation(summary = "创建文件夹",
             description = "该接口提供了用户创建文件夹的功能")
-    @GetMapping("file/create")
-    public R<String> createFolder(@RequestBody CreateFolderPO createFolderPO){
+    @PostMapping("file/folder")
+    public R createFolder(@Validated @RequestBody CreateFolderPO createFolderPO){
         CreateFolderContext createFolderContext = fileConverter.createFolderPO2CreateFolderContext(createFolderPO);
         Long fileId = iUserFileService.createFolder(createFolderContext);
+        return R.data(IdUtil.encrypt(fileId));
+    }
+
+    @Operation(summary = "文件重命名",
+            description = "该接口提供了文件重命名的功能")
+    @GetMapping("file")
+    public R updateFilename(@RequestBody UpdateFilenamePO updateFilenamePO){
+        UpdateFilenameContext updateFilenameContext = fileConverter.updateFilenamePO2UpdateFilenameContext(updateFilenamePO);
+        Long fileId = iUserFileService.updateFilename(updateFilenameContext);
         return R.data(IdUtil.encrypt(fileId));
     }
 

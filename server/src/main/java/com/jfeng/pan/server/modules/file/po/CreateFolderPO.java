@@ -8,7 +8,7 @@ import java.io.Serial;
 import java.io.Serializable;
 
 /**
- *
+ * 创建文件夹的PO对象
  */
 @Data
 public class CreateFolderPO implements Serializable {
