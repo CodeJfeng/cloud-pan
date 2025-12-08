@@ -7,14 +7,12 @@ import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
-import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
-import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
-import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
-import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
+import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.po.CreateFolderPO;
 import com.jfeng.pan.server.modules.file.po.DeleteFilePO;
+import com.jfeng.pan.server.modules.file.po.SecUploadPO;
 import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
@@ -93,6 +91,19 @@ public class FileController {
         deleteFileContext.setFileIdList(fileIdList);
         iUserFileService.deleteFile(deleteFileContext);
         return R.data("文件删除成功");
+    }
+
+    @Operation(summary = "文件秒传",
+            description = "该接口提供了文件秒传的功能")
+    @DeleteMapping("file/sec-upload")
+    public R secUpload(@Validated @RequestBody SecUploadPO secUploadPO){
+
+        SecUploadContext secUploadContext = fileConverter.secUpdatePO2SecUploadContext(secUploadPO);
+        boolean success = iUserFileService.SecUpload(secUploadContext);
+        if(success){
+            return R.data("文件秒传成功");
+        }
+        return R.fail("文件唯一标识不存在，请手动执行上传的操作");
     }
 
 

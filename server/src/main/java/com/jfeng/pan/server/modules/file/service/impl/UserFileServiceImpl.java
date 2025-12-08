@@ -1,32 +1,34 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
+import cn.hutool.core.stream.CollectorUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
+import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.event.file.DeleteFileEvent;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
-import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
-import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
-import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
-import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
+import com.jfeng.pan.server.modules.file.context.*;
+import com.jfeng.pan.server.modules.file.entity.RPanFile;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
+import com.jfeng.pan.server.modules.file.enums.FileTypeEnum;
 import com.jfeng.pan.server.modules.file.enums.FolderFlagEnum;
+import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import org.springframework.beans.BeansException;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
+import org.springframework.util.CollectionUtils;
 
-import java.util.Date;
-import java.util.List;
-import java.util.Objects;
-import java.util.Set;
+import java.util.*;
 import java.util.stream.Collectors;
 
 /**
@@ -38,6 +40,9 @@ import java.util.stream.Collectors;
 public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService, ApplicationContextAware {
 
     private  ApplicationContext applicationContext;
+
+    @Autowired
+    private IFileService iFileService;
 
     @Override
     public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
@@ -116,9 +121,53 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         afterFileDelete(deleteFileContext);
     }
 
+    /**
+     * 文件秒传
+     * 1、通过文件的唯一标识，查找对应的实体文件记录
+     * 2、如果没有查到，直接返回秒传失败
+     * 3、如果查到记录，直接挂载到关联关系，返回秒传成功
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public boolean SecUpload(SecUploadContext context) {
+        RPanFile recode = getFileByUserIdAndIdentifier(context.getUserId(), context.getIdentifier());
+        if(Objects.isNull(recode)){
+            return false;
+        }
+        saveUserFile(context.getParentId(),
+                context.getFilename(),
+                FolderFlagEnum.NO,
+                FileTypeEnum.getFileTypeCode(FileUtil.getFileSuffix(context.getFilename())),
+                recode.getFileId(),
+                context.getUserId(),
+                recode.getFileSizeDesc());
+        return true;
+    }
+
+
+
 
     /****************************************************** private ***************************************************************/
 
+    /**
+     *  根据用户id和文件唯一标识获取第一条文件信息
+     *
+     * @param userId
+     * @param identifier
+     * @return
+     */
+    private RPanFile getFileByUserIdAndIdentifier(Long userId, String identifier) {
+        LambdaQueryChainWrapper<RPanFile> wrapper = new LambdaQueryChainWrapper<>(RPanFile.class);
+        wrapper.eq(RPanFile::getCreateUser, userId)
+                .eq(RPanFile::getIdentifier, identifier);
+        List<RPanFile> list = wrapper.list();
+        if(CollectionUtils.isEmpty(list)){
+            return null;
+        }
+        return list.getFirst();
+    }
 
     /**
      * 文件删除的后置操作

@@ -1,9 +1,6 @@
 package com.jfeng.pan.server.modules.file.service;
 
-import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
-import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
-import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
-import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
+import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
@@ -53,4 +50,12 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @param deleteFileContext
      */
     void deleteFile(DeleteFileContext deleteFileContext);
+
+    /**
+     * 文件秒传
+     *
+     * @param secUploadContext
+     * @return
+     */
+    boolean SecUpload(SecUploadContext secUploadContext);
 }

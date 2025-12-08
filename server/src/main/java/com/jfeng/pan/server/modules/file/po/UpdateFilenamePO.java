@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.file.po;
 
 import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
 
 import javax.validation.constraints.NotBlank;
@@ -11,6 +12,7 @@ import java.io.Serializable;
  * 文件重命名的PO对象
  */
 @Data
+@Tag(name = "文件重命名的PO对象")
 public class UpdateFilenamePO implements Serializable {
     @Serial
     private static final long serialVersionUID = -861234656452L;
