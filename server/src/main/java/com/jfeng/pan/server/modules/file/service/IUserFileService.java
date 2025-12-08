@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.file.service;
 
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
@@ -45,4 +46,11 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @return
      */
     Long updateFilename(UpdateFilenameContext updateFilenameContext);
+
+    /**
+     * 批量删除用户文件
+     *
+     * @param deleteFileContext
+     */
+    void deleteFile(DeleteFileContext deleteFileContext);
 }

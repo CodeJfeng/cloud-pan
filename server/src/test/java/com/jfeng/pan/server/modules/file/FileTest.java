@@ -4,6 +4,7 @@ import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.lang.Assert;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
@@ -20,6 +21,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 
 /**
@@ -85,11 +87,11 @@ public class FileTest {
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
 
-//        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
-//        updateFilenameContext.setUserId(userId);
-//        updateFilenameContext.setFileId(fileId);
-//        updateFilenameContext.setNewFileName("new-folder-name");
-//        iUserFileService.updateFilename(updateFilenameContext);
+        UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
+        updateFilenameContext.setUserId(userId);
+        updateFilenameContext.setFileId(fileId);
+        updateFilenameContext.setNewFileName("new-folder-name");
+        iUserFileService.updateFilename(updateFilenameContext);
     }
     /**
      * 更新文件名称失败--文件ID无效
@@ -185,6 +187,80 @@ public class FileTest {
         iUserFileService.updateFilename(updateFilenameContext);
     }
 
+    /**
+     * 校验文件删除失败——非法的文件ID
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void tesDeleteFileFailByWrongFileId(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        DeleteFileContext deleteFileContext = new DeleteFileContext();
+        List<Long> fileIdList = new ArrayList<>();
+        fileIdList.add(fileId+1L);
+        deleteFileContext.setFileIdList(fileIdList);
+        deleteFileContext.setUserId(userId);
+
+        iUserFileService.deleteFile(deleteFileContext);
+    }
+
+    /**
+     * 校验文件删除失败——非法的用户ID
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void tesDeleteFileFailByWrongUserId(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        DeleteFileContext deleteFileContext = new DeleteFileContext();
+        List<Long> fileIdList = new ArrayList<>();
+        fileIdList.add(fileId);
+        deleteFileContext.setFileIdList(fileIdList);
+        deleteFileContext.setUserId(userId+1L);
+
+        iUserFileService.deleteFile(deleteFileContext);
+    }
+
+    /**
+     * 校验用户删除文件成功
+     */
+    @Test
+    public void tesDeleteFileSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        DeleteFileContext deleteFileContext = new DeleteFileContext();
+        List<Long> fileIdList = new ArrayList<>();
+        fileIdList.add(fileId);
+        deleteFileContext.setFileIdList(fileIdList);
+        deleteFileContext.setUserId(userId);
+
+        iUserFileService.deleteFile(deleteFileContext);
+    }
 
     /********************************* private ************************************/
 

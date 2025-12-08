@@ -1,12 +1,15 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.event.file.DeleteFileEvent;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
+import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
@@ -15,12 +18,16 @@ import com.jfeng.pan.server.modules.file.enums.FolderFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
-import org.apache.commons.lang3.StringUtils;
+import org.springframework.beans.BeansException;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 
 import java.util.Date;
 import java.util.List;
 import java.util.Objects;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 /**
 * @author 16837
@@ -28,7 +35,15 @@ import java.util.Objects;
 * @createDate 2025-11-06 19:22:58
 */
 @Service
-public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService {
+public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService, ApplicationContextAware {
+
+    private  ApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
+        this.applicationContext = applicationContext;
+    }
+
     /**
      * 创建文件夹信息
      * @param createFolderContext
@@ -86,8 +101,83 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         return context.getFileId();
     }
 
+    /**
+     * 批量删除用户文件
+     * 1、校验删除的条件
+     * 2、执行批量删除的动作
+     * 3、发布批量删除文件的时间，给其他模块订阅使用 （事件模型）
+     *
+     * @param deleteFileContext
+     */
+    @Override
+    public void deleteFile(DeleteFileContext deleteFileContext) {
+        checkFileDeleteCondition(deleteFileContext);
+        doDeleteFile(deleteFileContext);
+        afterFileDelete(deleteFileContext);
+    }
+
 
     /****************************************************** private ***************************************************************/
+
+
+    /**
+     * 文件删除的后置操作
+     * 1、对外发布文件删除的事件
+     * @param deleteFileContext
+     */
+    private void afterFileDelete(DeleteFileContext deleteFileContext) {
+        DeleteFileEvent deleteFileEvent = new DeleteFileEvent(this, deleteFileContext.getFileIdList());
+        applicationContext.publishEvent(deleteFileEvent);
+    }
+
+    /**
+     * 执行文件删除的操作
+     * @param deleteFileContext
+     */
+    private void doDeleteFile(DeleteFileContext deleteFileContext) {
+        List<Long> fileIdList = deleteFileContext.getFileIdList();
+
+        LambdaUpdateWrapper<RPanUserFile> wrapper = new LambdaUpdateWrapper<>();
+        wrapper.in(RPanUserFile::getFileId, fileIdList)
+                .set(RPanUserFile::getDelFlag, DelFlagEnum.YES.getCode())
+                .set(RPanUserFile::getUpdateTime, new Date());
+        if(!update(wrapper)){
+            throw new RPanBusinessException("文件删除失败");
+        }
+
+    }
+
+    /**
+     * 删除文件之前的前置校验
+     * 1、文件ID合法校验
+     * 2、用户拥有删除该文件的权限
+     *
+     * @param deleteFileContext
+     */
+    private void checkFileDeleteCondition(DeleteFileContext deleteFileContext) {
+        List<Long> fileIdsList = deleteFileContext.getFileIdList();
+        List<RPanUserFile> rPanUserFiles = listByIds(fileIdsList);
+        if(rPanUserFiles.size() != fileIdsList.size())
+            throw new RPanBusinessException("存在不合法的文件记录");
+
+        Set<Long> fileIdSet = rPanUserFiles.stream().map(RPanUserFile::getFileId).collect(Collectors.toSet());
+        int oldSize = fileIdSet.size();
+        fileIdSet.addAll(fileIdsList);
+        int newSize = fileIdSet.size();
+        if(oldSize != newSize){
+            throw new RPanBusinessException("存在不合法的文件信息");
+        }
+
+        Set<Long> userIdSet = rPanUserFiles.stream().map(RPanUserFile::getUserId).collect(Collectors.toSet());
+        if (userIdSet.size() != 1){
+            throw new RPanBusinessException("存在不合法的文件记录");
+        }
+
+        Long dbUserId = userIdSet.stream().findFirst().get();
+        if(!Objects.equals(dbUserId, deleteFileContext.getUserId())){
+            throw new RPanBusinessException("当前登录用户没有删除该文件的权限");
+        }
+    }
 
     /**
      * 执行文件名称更新的操作
