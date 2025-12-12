@@ -11,10 +11,14 @@
         <module name="cloud-drive-web" />
         <module name="cloud-drive-caffeine" />
         <module name="cloud-drive-schedule" />
-        <module name="cloud-drive-swagger2" />
-        <module name="cloud-drive-core" />
         <module name="cloud-drive-cache-core" />
         <module name="cloud-drive-mybatis-plus" />
+        <module name="cloud-drive-storage-engine-fastdfs" />
+        <module name="cloud-drive-storage-engine-local" />
+        <module name="cloud-drive-storage-engine-oss" />
+        <module name="cloud-drive-swagger2" />
+        <module name="cloud-drive-storage-engine-core" />
+        <module name="cloud-drive-core" />
         <module name="cloud-drive-redis" />
       </profile>
       <profile name="Annotation profile for cloud-drive-parent" enabled="true">
@@ -47,6 +51,11 @@
       <module name="cloud-drive-redis" options="-parameters" />
       <module name="cloud-drive-schedule" options="-parameters" />
       <module name="cloud-drive-server" options="-parameters" />
+      <module name="cloud-drive-storage-engine" options="" />
+      <module name="cloud-drive-storage-engine-core" options="-parameters" />
+      <module name="cloud-drive-storage-engine-fastdfs" options="-parameters" />
+      <module name="cloud-drive-storage-engine-local" options="-parameters" />
+      <module name="cloud-drive-storage-engine-oss" options="-parameters" />
       <module name="cloud-drive-swagger2" options="-parameters" />
       <module name="cloud-drive-web" options="-parameters" />
       <module name="r-panredis" options="-parameters" />

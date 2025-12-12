@@ -18,9 +18,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
+import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
@@ -318,6 +321,47 @@ public class FileTest {
 
         boolean success = iUserFileService.SecUpload(context);
         Assert.isFalse(success);
+    }
+
+    /**
+     * 测试单文件上传成功
+     */
+    @Test
+    public void testUploadSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        FileUploadContext context = new FileUploadContext();
+        MultipartFile file = generateMultipartFile();
+        context.setFile(file);
+        context.setFilename(file.getName());
+        context.setParentId(userInfoVO.getRootFiled());
+        context.setUserId(userId);
+        context.setIdentifier("12345678");
+        context.setTotalSize(file.getSize());
+        iUserFileService.upload(context);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setUserId(userId);
+        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        List<RPanUserFileVO> fileList = iUserFileService.getFileList(queryFileListContext);
+        Assert.notEmpty(fileList);
+        Assert.isTrue(fileList.size() == 1);
+    }
+
+    /**
+     * 生成的网络文件实体
+     * @return
+     */
+    private MultipartFile generateMultipartFile() {
+        MultipartFile file = null;
+        try {
+            file = new MockMultipartFile("file", "test.txt", "multipart/form-data", "test upload contedt".getBytes(StandardCharsets.UTF_8));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return file;
     }
 
     /********************************* private ************************************/

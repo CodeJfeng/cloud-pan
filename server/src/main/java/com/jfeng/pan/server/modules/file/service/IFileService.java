@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.service;
 
+import com.jfeng.pan.server.modules.file.context.FileSaveContext;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -10,4 +11,10 @@ import com.baomidou.mybatisplus.extension.service.IService;
 */
 public interface IFileService extends IService<RPanFile> {
 
+    /**
+     * 上传单文件并保存文件记录
+     *
+     * @param context
+     */
+    void saveFile(FileSaveContext context);
 }

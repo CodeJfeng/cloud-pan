@@ -1,13 +1,7 @@
 package com.jfeng.pan.server.modules.file.converter;
 
-import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
-import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
-import com.jfeng.pan.server.modules.file.context.SecUploadContext;
-import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
-import com.jfeng.pan.server.modules.file.po.CreateFolderPO;
-import com.jfeng.pan.server.modules.file.po.DeleteFilePO;
-import com.jfeng.pan.server.modules.file.po.SecUploadPO;
-import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
+import com.jfeng.pan.server.modules.file.context.*;
+import com.jfeng.pan.server.modules.file.po.*;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -28,5 +22,12 @@ public interface FileConverter {
 
     @Mapping(target = "parentId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(secUploadPO.getParentId()))")
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
-    SecUploadContext secUpdatePO2SecUploadContext(SecUploadPO secUploadPO);
+    SecUploadContext secUploadPO2SecUploadContext(SecUploadPO secUploadPO);
+
+    @Mapping(target = "parentId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(fileUploadPO.getParentId()))")
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    FileUploadContext fileUploadPO2FileUploadContext(FileUploadPO fileUploadPO);
+
+    @Mapping(target = "recode", ignore = true)
+    FileSaveContext fileUploadContext2FileSaveContext(FileUploadContext context);
 }

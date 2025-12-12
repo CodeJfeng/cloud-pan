@@ -10,10 +10,7 @@ import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
-import com.jfeng.pan.server.modules.file.po.CreateFolderPO;
-import com.jfeng.pan.server.modules.file.po.DeleteFilePO;
-import com.jfeng.pan.server.modules.file.po.SecUploadPO;
-import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
+import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -97,14 +94,23 @@ public class FileController {
             description = "该接口提供了文件秒传的功能")
     @DeleteMapping("file/sec-upload")
     public R secUpload(@Validated @RequestBody SecUploadPO secUploadPO){
-
-        SecUploadContext secUploadContext = fileConverter.secUpdatePO2SecUploadContext(secUploadPO);
+        SecUploadContext secUploadContext = fileConverter.secUploadPO2SecUploadContext(secUploadPO);
         boolean success = iUserFileService.SecUpload(secUploadContext);
         if(success){
             return R.data("文件秒传成功");
         }
         return R.fail("文件唯一标识不存在，请手动执行上传的操作");
     }
+
+    @Operation(summary = "单文件上传",
+            description = "该接口提供了单文件上传的功能")
+    @DeleteMapping("file/upload")
+    public R upload(@Validated @RequestBody FileUploadPO fileUploadPO){
+        FileUploadContext fileUploadContext = fileConverter.fileUploadPO2FileUploadContext(fileUploadPO);
+        iUserFileService.upload(fileUploadContext);
+        return R.data("文件上传成功");
+    }
+
 
 
 

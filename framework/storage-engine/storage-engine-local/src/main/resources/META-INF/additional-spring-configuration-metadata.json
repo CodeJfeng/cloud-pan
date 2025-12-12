@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "com.jfeng.pan.storage.engine.local.root-file-path",
+      "type": "java.lang.String",
+      "description": "文件上传根目录",
+      "defaultValue": "@see com.jfeng.pan.core.utils.FileUtil.generateDefaultStoreFileRealPath"
+    }
+  ]
+}

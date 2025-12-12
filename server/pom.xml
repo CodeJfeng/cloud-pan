@@ -81,6 +81,11 @@
             <groupId>org.springframework.boot</groupId>
             <artifactId>spring-boot-starter-aop</artifactId>
         </dependency>
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-storage-engine-local</artifactId>
+            <version>1.0</version>
+        </dependency>
     </dependencies>
 
     <build>

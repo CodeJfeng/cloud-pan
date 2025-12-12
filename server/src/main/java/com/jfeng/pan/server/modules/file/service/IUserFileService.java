@@ -58,4 +58,10 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @return
      */
     boolean SecUpload(SecUploadContext secUploadContext);
+
+    /**
+     * 单文件上传
+     * @param fileUploadContext
+     */
+    void upload(FileUploadContext fileUploadContext);
 }
