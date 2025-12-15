@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.service;
 
+import com.jfeng.pan.server.modules.file.context.FileChunkSaveContext;
 import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
 import com.baomidou.mybatisplus.extension.service.IService;
 
@@ -9,5 +10,11 @@ import com.baomidou.mybatisplus.extension.service.IService;
 * @createDate 2025-11-06 19:22:58
 */
 public interface IFileChunkService extends IService<RPanFileChunk> {
+
+    /**
+     * 文件分片保存
+     * @param context
+     */
+    void saveChunkFile(FileChunkSaveContext context);
 
 }

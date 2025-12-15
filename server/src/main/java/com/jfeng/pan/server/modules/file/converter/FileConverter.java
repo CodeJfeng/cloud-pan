@@ -30,4 +30,9 @@ public interface FileConverter {
 
     @Mapping(target = "recode", ignore = true)
     FileSaveContext fileUploadContext2FileSaveContext(FileUploadContext context);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    FileChunkUploadContext fileChunkUploadPO2FileChunkUploadContext(FileChunkUploadPO fileChunkUploadPO);
+
+    FileChunkSaveContext fileChunkUploadContext2FileChunkSaveContext(FileChunkUploadContext context);
 }

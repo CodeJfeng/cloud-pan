@@ -1,6 +1,5 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
-import cn.hutool.core.stream.CollectorUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
@@ -18,9 +17,11 @@ import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.enums.FileTypeEnum;
 import com.jfeng.pan.server.modules.file.enums.FolderFlagEnum;
+import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
+import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,6 +46,9 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
 
     @Autowired
     private IFileService iFileService;
+
+    @Autowired
+    private IFileChunkService iFileChunkService;
 
     @Autowired
     private FileConverter fileConverter;
@@ -171,8 +175,25 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
                 context.getRecode().getFileSizeDesc());
     }
 
+    /**
+     * 文件分片上传
+     * 1、上传文件实体
+     * 2、保存分片文件的记录
+     * 3、校验是否全部的文件上传
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public FileChunkUploadVO chunkUpload(FileChunkUploadContext context) {
+        FileChunkSaveContext fileChunkSaveContext = fileConverter.fileChunkUploadContext2FileChunkSaveContext(context);
+        iFileChunkService.saveChunkFile(fileChunkSaveContext);
+        FileChunkUploadVO vo = new FileChunkUploadVO();
+        vo.setMergeFlag(fileChunkSaveContext.getMergeFlagEnum().getCode());
+        return vo;
+    }
 
-    /****************************************************** private ***************************************************************/
+/****************************************************** private ***************************************************************/
 
 
     /**

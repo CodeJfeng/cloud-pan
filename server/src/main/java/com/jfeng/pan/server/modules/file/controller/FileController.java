@@ -12,6 +12,7 @@ import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
+import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -109,6 +110,15 @@ public class FileController {
         FileUploadContext fileUploadContext = fileConverter.fileUploadPO2FileUploadContext(fileUploadPO);
         iUserFileService.upload(fileUploadContext);
         return R.data("文件上传成功");
+    }
+
+    @Operation(summary = "文件分片上传",
+            description = "该接口提供了文件分片上传的功能")
+    @DeleteMapping("file/chunk-upload")
+    public R<FileChunkUploadVO> upload(@Validated @RequestBody FileChunkUploadPO fileChunkUploadPO){
+        FileChunkUploadContext context = fileConverter.fileChunkUploadPO2FileChunkUploadContext(fileChunkUploadPO);
+        FileChunkUploadVO vo =  iUserFileService.chunkUpload(context);
+        return R.data(vo);
     }
 
 
