@@ -2,6 +2,7 @@ package com.jfeng.pan.storage.engine.fastdfs;
 
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
 import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
+import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
 import org.springframework.stereotype.Component;
 
@@ -17,6 +18,11 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
 
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
+
+    }
+
+    @Override
+    protected void doStoreChunk(StoreFileChunkContext context) throws IOException {
 
     }
 }

@@ -50,5 +50,3 @@ springdoc:
   group-configs:
     - group: SpringDoc项目模块接口文档
       packages-to-scan: com.jfeng.pan
-
-

@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "com.imooc.pan.server.chunk-file-expiration-days",
+      "type": "java.lang.Integer",
+      "description": "分片上传的天数",
+      "defaultValue": "1"
+    }
+  ]
+}

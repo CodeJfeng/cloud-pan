@@ -108,7 +108,8 @@ public class FileUtil {
 
     /**
      * 将文件的输入流写入到文件中
-     * 使用底层的Sendfile零拷贝调高传输效率
+     * 使用Java底层 NIO实现
+     * 调用sendfile零拷贝技术提高传输效率
      *
      * @param inputStream
      * @param targetFile
@@ -150,5 +151,49 @@ public class FileUtil {
                File.separator +
                "RPan";
 
+    }
+
+    /**
+     * 生成默认的文件分片的存储路径抢嘴
+     * @return
+     */
+    public static String generateDefaultStoreFileChunkRealPath() {
+        return System.getProperty("user.home") +
+                File.separator +
+                "RPan" +
+                File.separator +
+                "chunks";
+
+
+    }
+
+    /**
+     * <p>
+     *     <li>生成文件分片的存储路径</li>
+     *     <li>生成规则：基础路径+年+月+日+唯一标识+随机的文件名称+__,__+文件分片下标</li>
+     * </p>
+     *
+     * @param basePath
+     * @param filename
+     * @param identifier
+     * @param chunkNumber
+     * @return
+     */
+    public static String generateStoreFileChunkRealPath(String basePath, String filename, String identifier, Integer chunkNumber) {
+        return basePath +
+                File.separator +
+                DateUtil.thisYear() +
+                File.separator +
+                DateUtil.thisMonth() +
+                File.separator +
+                DateUtil.thisDayOfMonth() +
+                File.separator +
+                identifier +
+                File.separator +
+                UUIDUtil.getUUID() +
+                File.separator +
+                RPanConstants.COMMON_SEPARATOR +
+                File.separator +
+                chunkNumber;
     }
 }

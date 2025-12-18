@@ -5,6 +5,12 @@
       "type": "java.lang.String",
       "description": "文件上传根目录",
       "defaultValue": "@see com.jfeng.pan.core.utils.FileUtil.generateDefaultStoreFileRealPath"
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.local.root-file-chunk-path",
+      "type": "java.lang.String",
+      "description": "文件分片上传根目录",
+      "defaultValue": "@see com.jfeng.pan.core.utils.FileUtil.generateDefaultStoreFileChunkRealPath"
     }
   ]
 }

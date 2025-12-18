@@ -1,11 +1,24 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
+import cn.hutool.core.date.DateUtil;
+import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.server.common.config.RPanServerConfig;
 import com.jfeng.pan.server.modules.file.context.FileChunkSaveContext;
+import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
+import com.jfeng.pan.server.modules.file.enums.MergeFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.mapper.RPanFileChunkMapper;
+import com.jfeng.pan.storage.engine.core.StorageEngine;
+import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
+
+import java.io.IOException;
+import java.util.Date;
 
 /**
 * @author 16837
@@ -14,6 +27,15 @@ import org.springframework.stereotype.Service;
 */
 @Service
 public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanFileChunk> implements IFileChunkService {
+
+    @Autowired
+    private RPanServerConfig  config;
+
+    @Autowired
+    private FileConverter fileConverter;
+
+    @Autowired
+    private StorageEngine storageEngine;
     /**
      * 文件分片保存
      * 1、保存文件分片和记录
@@ -32,8 +54,13 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
      * @param context
      */
     private void doJudgeMergeFile(FileChunkSaveContext context) {
-
-
+        LambdaQueryWrapper<RPanFileChunk> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RPanFileChunk::getIdentifier, context.getIdentifier());
+        wrapper.eq(RPanFileChunk::getCreateUser, context.getUserId());
+        long count = count(wrapper);
+        if(count == context.getTotalChunks()){
+            context.setMergeFlagEnum(MergeFlagEnum.READY);
+        }
     }
 
     /**
@@ -47,8 +74,21 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
         doSaveRecord(context);
     }
 
+    /**
+     * 保存文件分片记录
+     * @param context
+     */
     private void doSaveRecord(FileChunkSaveContext context) {
-
+        RPanFileChunk record = new RPanFileChunk();
+        record.setId(context.getUserId());
+        record.setIdentifier(context.getIdentifier());
+        record.setChunkNumber(context.getChunkNumber());
+        record.setExpirationTime(DateUtil.offsetDay(new Date(), config.getChunkFileExpirationDays()));
+        record.setCreateUser(context.getUserId());
+        record.setCreateTime(new Date());
+        if(!save(record)){
+            throw new RPanBusinessException("文件分片记录上传失败");
+        }
     }
 
     /**
@@ -56,7 +96,15 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
      * @param context
      */
     private void doStoreFileChunk(FileChunkSaveContext context) {
-
+        try {
+            StoreFileChunkContext chunkContext = fileConverter.fileChunkSaveContext2StoreFileChunkContext(context);
+            chunkContext.setInputStream(context.getFile().getInputStream());
+            storageEngine.storeChunk(chunkContext);
+            context.setRealPath(chunkContext.getRealPath());
+        }catch (IOException e){
+            e.printStackTrace();
+            throw new RPanBusinessException("文件分片上传失败");
+        }
     }
 }
 

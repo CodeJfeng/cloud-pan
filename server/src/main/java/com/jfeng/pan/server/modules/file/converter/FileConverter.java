@@ -2,6 +2,7 @@ package com.jfeng.pan.server.modules.file.converter;
 
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.po.*;
+import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 
@@ -35,4 +36,7 @@ public interface FileConverter {
     FileChunkUploadContext fileChunkUploadPO2FileChunkUploadContext(FileChunkUploadPO fileChunkUploadPO);
 
     FileChunkSaveContext fileChunkUploadContext2FileChunkSaveContext(FileChunkUploadContext context);
+
+    @Mapping(target = "realPath", ignore = true)
+    StoreFileChunkContext fileChunkSaveContext2StoreFileChunkContext(FileChunkSaveContext fileChunkSaveContext);
 }

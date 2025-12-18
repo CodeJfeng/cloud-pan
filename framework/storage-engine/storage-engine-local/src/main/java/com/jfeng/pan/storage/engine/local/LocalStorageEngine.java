@@ -3,6 +3,7 @@ package com.jfeng.pan.storage.engine.local;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
 import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
+import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
 import com.jfeng.pan.storage.engine.local.config.LocalStoreEngineConfig;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,5 +46,20 @@ public class LocalStorageEngine extends AbstractStorageEngine {
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
         FileUtil.deleteFiles(context.getRealPathList());
+    }
+
+    /**
+     * 存储物理文件的分片
+     * 1、参数校验
+     *
+     * @param context
+     * @throws IOException
+     */
+    @Override
+    protected void doStoreChunk(StoreFileChunkContext context) throws IOException {
+        String basePath = config.getRootFileChunkPath();
+        String realFilePath = FileUtil.generateStoreFileChunkRealPath(basePath, context.getFilename(), context.getIdentifier(), context.getChunkNumber());
+        FileUtil.writeStream2File(context.getInputStream(), new File(realFilePath), context.getTotalSize());
+        context.setRealPath(realFilePath);
     }
 }
