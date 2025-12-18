@@ -14,6 +14,7 @@ import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -81,7 +82,7 @@ public class FileController {
 
     @Operation(summary = "批量删除文件",
             description = "该接口提 供了文件批量删除的功能")
-    @DeleteMapping("file")
+    @PostMapping("file")
     public R delete(@Validated @RequestBody DeleteFilePO deleteFilePO){
         DeleteFileContext deleteFileContext = fileConverter.deleteFilePO2DeleteFileContext(deleteFilePO);
         String fileIds = deleteFilePO.getFileIds();
@@ -93,7 +94,7 @@ public class FileController {
 
     @Operation(summary = "文件秒传",
             description = "该接口提供了文件秒传的功能")
-    @DeleteMapping("file/sec-upload")
+    @PostMapping("file/sec-upload")
     public R secUpload(@Validated @RequestBody SecUploadPO secUploadPO){
         SecUploadContext secUploadContext = fileConverter.secUploadPO2SecUploadContext(secUploadPO);
         boolean success = iUserFileService.SecUpload(secUploadContext);
@@ -105,7 +106,7 @@ public class FileController {
 
     @Operation(summary = "单文件上传",
             description = "该接口提供了单文件上传的功能")
-    @DeleteMapping("file/upload")
+    @PostMapping("file/upload")
     public R upload(@Validated @RequestBody FileUploadPO fileUploadPO){
         FileUploadContext fileUploadContext = fileConverter.fileUploadPO2FileUploadContext(fileUploadPO);
         iUserFileService.upload(fileUploadContext);
@@ -114,13 +115,22 @@ public class FileController {
 
     @Operation(summary = "文件分片上传",
             description = "该接口提供了文件分片上传的功能")
-    @DeleteMapping("file/chunk-upload")
-    public R<FileChunkUploadVO> upload(@Validated @RequestBody FileChunkUploadPO fileChunkUploadPO){
+    @PostMapping("file/chunk-upload")
+    public R<FileChunkUploadVO> upload(@Validated FileChunkUploadPO fileChunkUploadPO){
         FileChunkUploadContext context = fileConverter.fileChunkUploadPO2FileChunkUploadContext(fileChunkUploadPO);
         FileChunkUploadVO vo =  iUserFileService.chunkUpload(context);
         return R.data(vo);
     }
 
+
+    @Operation(summary = "文件分片查询",
+            description = "该接口提供了查询用户上传分片的功能")
+    @GetMapping("file/chunk-upload")
+    public R<UploadedChunksVO> getUploadedChunks(@Validated QueryUploadedChunksPO queryUploadedChunksPO){
+        QueryUploadedChunksContext context = fileConverter.queryUploadedChunksPO2QueryUploadedChunksContext(queryUploadedChunksPO);
+        UploadedChunksVO vo =  iUserFileService.getUploadedChunks(context);
+        return R.data(vo);
+    }
 
 
 

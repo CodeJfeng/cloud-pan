@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -13,6 +14,7 @@ import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
+import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.enums.FileTypeEnum;
@@ -23,6 +25,7 @@ import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -193,7 +196,31 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         return vo;
     }
 
-/****************************************************** private ***************************************************************/
+    /**
+     * 查询用户已经上传的分片列表
+     * 1、查询已上传对的分片列表
+     * 2、封装返回实体
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public UploadedChunksVO getUploadedChunks(QueryUploadedChunksContext context) {
+        LambdaQueryWrapper<RPanFileChunk> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(RPanFileChunk::getChunkNumber);
+        wrapper.eq(RPanFileChunk::getIdentifier, context.getIdentifier());
+        wrapper.eq(RPanFileChunk::getCreateUser, context.getUserId());
+        wrapper.gt(RPanFileChunk::getExpirationTime, new Date());
+
+        List<Integer> uploadedChunks = iFileChunkService.listObjs(wrapper, value -> (Integer) value);
+
+        UploadedChunksVO vo = new UploadedChunksVO();
+        vo.setUploadedChunks(uploadedChunks);
+        return vo;
+    }
+
+
+    /****************************************************** private ***************************************************************/
 
 
     /**

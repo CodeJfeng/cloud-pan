@@ -1,15 +1,19 @@
 package com.jfeng.pan.server.modules.file;
 
 import cn.hutool.core.collection.CollectionUtil;
+import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Assert;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
+import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
+import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.service.IUserService;
@@ -45,6 +49,9 @@ public class FileTest {
 
     @Autowired
     private IFileService iFileService;
+
+    @Autowired
+    private IFileChunkService iFileChunkService;
     /**
      * 测试用户查询文件列表
      */
@@ -362,6 +369,36 @@ public class FileTest {
             e.printStackTrace();
         }
         return file;
+    }
+
+    /**
+     * 测试查询用户已上传分片信息成功
+     */
+    @Test
+    public void  testQueryUploadedChunksSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        String identifier = "123456789";
+
+        RPanFileChunk record = new RPanFileChunk();
+        record.setId(IdUtil.get());
+        record.setIdentifier(identifier);
+        record.setRealPath("realPath");
+        record.setChunkNumber(1);
+        record.setExpirationTime(DateUtil.offsetDay(new Date(), 1));
+        record.setCreateUser(userId);
+        record.setCreateTime(new Date());
+        boolean save = iFileChunkService.save(record);
+        Assert.isTrue(save);
+
+        QueryUploadedChunksContext context = new QueryUploadedChunksContext();
+        context.setUserId(userId);
+        context.setIdentifier(identifier);
+
+        UploadedChunksVO uploadedChunksVO  = iUserFileService.getUploadedChunks(context);
+        Assert.notNull(uploadedChunksVO);
+        Assert.notEmpty(uploadedChunksVO.getUploadedChunks());
     }
 
     /********************************* private ************************************/
