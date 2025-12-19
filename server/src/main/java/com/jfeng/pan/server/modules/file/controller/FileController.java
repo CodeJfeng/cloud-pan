@@ -124,7 +124,7 @@ public class FileController {
 
 
     @Operation(summary = "文件分片查询",
-            description = "该接口提供了查询用户上传分片的功能")
+            description = "该接口提供了查询用户已经上传的分片列表")
     @GetMapping("file/chunk-upload")
     public R<UploadedChunksVO> getUploadedChunks(@Validated QueryUploadedChunksPO queryUploadedChunksPO){
         QueryUploadedChunksContext context = fileConverter.queryUploadedChunksPO2QueryUploadedChunksContext(queryUploadedChunksPO);
@@ -132,7 +132,14 @@ public class FileController {
         return R.data(vo);
     }
 
-
+    @Operation(summary = "文件分片合并",
+            description = "该接口提供了文件分片合并的的功能")
+    @GetMapping("file/merge")
+    public R mergeFile(@Validated @RequestBody FileChunkMergePO fileChunkMergePO){
+        FileChunkMergeContext context = fileConverter.fileChunkMergePO2FileChunkMergeContext(fileChunkMergePO);
+        iUserFileService.mergeFile(context);
+        return R.success();
+    }
 
 
 }

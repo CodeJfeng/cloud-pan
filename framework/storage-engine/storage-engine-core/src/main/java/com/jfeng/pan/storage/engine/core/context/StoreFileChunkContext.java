@@ -39,7 +39,7 @@ public class StoreFileChunkContext implements Serializable {
     /**
      * 文件的总分片数
      */
-    private Integer totalChunk;
+    private Integer totalChunks;
 
     /**
      * 当前分片的下标

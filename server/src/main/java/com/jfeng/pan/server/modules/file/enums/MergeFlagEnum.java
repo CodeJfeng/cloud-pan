@@ -19,5 +19,5 @@ public enum MergeFlagEnum {
      */
     READY(1);
 
-    private Integer code;
+    private final Integer code;
 }

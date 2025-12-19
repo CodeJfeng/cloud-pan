@@ -2,6 +2,7 @@ package com.jfeng.pan.storage.engine.oss;
 
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
 import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
+import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
 import org.springframework.stereotype.Component;
@@ -11,18 +12,43 @@ import java.io.IOException;
 @Component
 public class OSSStorageEngine extends AbstractStorageEngine {
 
+    /**
+     * 执行保存物理文件的动作
+     *
+     * @param context
+     * @throws IOException
+     */
     @Override
     protected void doStore(StoreFileContext context) throws IOException {
 
     }
-
+    /**
+     * 执行删除物理文件的动作
+     *
+     * @param context
+     */
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
 
     }
 
+    /**
+     * 执行保存文件分片
+     *
+     * @param context
+     * @throws IOException
+     */
     @Override
     protected void doStoreChunk(StoreFileChunkContext context) throws IOException {
+
+    }
+
+    /**
+     * 执行文件分片的动作
+     * @param context
+     */
+    @Override
+    protected void doMergeFile(MergeFileContext context) throws IOException {
 
     }
 }

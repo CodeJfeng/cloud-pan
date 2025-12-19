@@ -2,9 +2,9 @@ package com.jfeng.pan.server.modules.file.service.impl;
 
 import cn.hutool.core.date.DateUtil;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
 import com.jfeng.pan.server.modules.file.context.FileChunkSaveContext;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
@@ -80,8 +80,9 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
      */
     private void doSaveRecord(FileChunkSaveContext context) {
         RPanFileChunk record = new RPanFileChunk();
-        record.setId(context.getUserId());
+        record.setId(IdUtil.get());
         record.setIdentifier(context.getIdentifier());
+        record.setRealPath(context.getRealPath());
         record.setChunkNumber(context.getChunkNumber());
         record.setExpirationTime(DateUtil.offsetDay(new Date(), config.getChunkFileExpirationDays()));
         record.setCreateUser(context.getUserId());

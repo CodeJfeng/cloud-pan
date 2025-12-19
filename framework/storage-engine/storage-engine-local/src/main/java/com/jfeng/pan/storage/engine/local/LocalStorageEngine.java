@@ -3,6 +3,7 @@ package com.jfeng.pan.storage.engine.local;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
 import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
+import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
 import com.jfeng.pan.storage.engine.local.config.LocalStoreEngineConfig;
@@ -11,6 +12,8 @@ import org.springframework.stereotype.Component;
 
 import java.io.File;
 import java.io.IOException;
+import java.nio.file.Paths;
+import java.util.List;
 
 /**
  * 本地文件存储引擎实现类
@@ -23,7 +26,6 @@ public class LocalStorageEngine extends AbstractStorageEngine {
 
     /**
      * 执行保存物理文件的动作
-     * 下沉到具体的子类去实现
      *
      * @param context
      * @throws IOException
@@ -38,7 +40,6 @@ public class LocalStorageEngine extends AbstractStorageEngine {
 
     /**
      * 执行物理删除文件的动作
-     * 下沉到子类去实现
      *
      * @param context
      * @throws IOException
@@ -60,6 +61,23 @@ public class LocalStorageEngine extends AbstractStorageEngine {
         String basePath = config.getRootFileChunkPath();
         String realFilePath = FileUtil.generateStoreFileChunkRealPath(basePath, context.getFilename(), context.getIdentifier(), context.getChunkNumber());
         FileUtil.writeStream2File(context.getInputStream(), new File(realFilePath), context.getTotalSize());
+        context.setRealPath(realFilePath);
+    }
+
+    /**
+     * 执行文件分片的动作
+     * @param context
+     */
+    @Override
+    protected void doMergeFile(MergeFileContext context) throws IOException{
+        String basePath = config.getRootFilePath();
+        String realFilePath = FileUtil.generateStoreFileRealPath(basePath, context.getFilename());
+        FileUtil.createFile(new File(realFilePath));
+        List<String > realPathList = context.getRealPathList();
+        for(String chunkPath : realPathList){
+            FileUtil.appendWrite(Paths.get(realFilePath), new File(chunkPath).toPath());
+        }
+        FileUtil.deleteFiles(realPathList);
         context.setRealPath(realFilePath);
     }
 }

@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.service;
 
+import com.jfeng.pan.server.modules.file.context.FileChunkMergeAndSaveContext;
 import com.jfeng.pan.server.modules.file.context.FileSaveContext;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -17,4 +18,14 @@ public interface IFileService extends IService<RPanFile> {
      * @param context
      */
     void saveFile(FileSaveContext context);
+
+    /**
+     * 合并物理文件并保存文件记录
+     * 1、委托物理存储引擎合并文件分片
+     * 2、保存物理文件记录
+     *
+     * @param context
+     */
+    void mergeFileChunkAndSaveFile(FileChunkMergeAndSaveContext context);
+
 }

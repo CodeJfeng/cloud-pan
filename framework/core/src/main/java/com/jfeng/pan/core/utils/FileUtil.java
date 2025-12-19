@@ -12,6 +12,9 @@ import java.io.RandomAccessFile;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.StandardOpenOption;
 import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Objects;
@@ -195,5 +198,15 @@ public class FileUtil {
                 RPanConstants.COMMON_SEPARATOR +
                 File.separator +
                 chunkNumber;
+    }
+
+    /**
+     * 追加写文件
+     *
+     * @param target
+     * @param source
+     */
+    public static void appendWrite(Path target, Path source) throws IOException {
+        Files.write(target, Files.readAllBytes(source), StandardOpenOption.APPEND);
     }
 }

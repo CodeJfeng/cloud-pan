@@ -54,7 +54,7 @@ public class FileChunkSaveContext implements Serializable {
     /**
      * 文件合并标识
      */
-    private MergeFlagEnum mergeFlagEnum;
+    private MergeFlagEnum mergeFlagEnum = MergeFlagEnum.NOT_READY;
 
     /**
      * 文件分片上传的真实存储路径

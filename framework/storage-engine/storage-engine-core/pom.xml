@@ -23,6 +23,12 @@
             <artifactId>cloud-drive-cache-core</artifactId>
             <version>1.0</version>
         </dependency>
+        <dependency>
+            <groupId>org.checkerframework</groupId>
+            <artifactId>checker-qual</artifactId>
+            <version>3.19.0</version>
+            <scope>compile</scope>
+        </dependency>
 
 
     </dependencies>

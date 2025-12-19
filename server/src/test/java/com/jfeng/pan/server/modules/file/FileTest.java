@@ -9,15 +9,18 @@ import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
 import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
+import com.jfeng.pan.server.modules.file.enums.MergeFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
+import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
+import lombok.AllArgsConstructor;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -31,6 +34,7 @@ import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
 import java.util.Date;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
 
 /**
  * 文件模块测试用例
@@ -356,21 +360,6 @@ public class FileTest {
         Assert.notEmpty(fileList);
         Assert.isTrue(fileList.size() == 1);
     }
-
-    /**
-     * 生成的网络文件实体
-     * @return
-     */
-    private MultipartFile generateMultipartFile() {
-        MultipartFile file = null;
-        try {
-            file = new MockMultipartFile("file", "test.txt", "multipart/form-data", "test upload contedt".getBytes(StandardCharsets.UTF_8));
-        }catch (Exception e){
-            e.printStackTrace();
-        }
-        return file;
-    }
-
     /**
      * 测试查询用户已上传分片信息成功
      */
@@ -401,7 +390,92 @@ public class FileTest {
         Assert.notEmpty(uploadedChunksVO.getUploadedChunks());
     }
 
+    /**
+     * 测试文件分片上传成功
+     * 多文件分片并发上传
+     */
+    @Test
+    public void uploadWithChunkTest() throws InterruptedException {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CountDownLatch countDownLatch = new CountDownLatch(10);
+        for (int i = 0; i < 10 ; i++){
+            new ChunkUpload(countDownLatch, i+1, 10, iUserFileService, userId, userInfoVO.getRootFiled()).start();
+        }
+        countDownLatch.await();
+    }
+
     /********************************* private ************************************/
+
+    /**
+     * 文件分片上传器
+     */
+    @AllArgsConstructor
+    private static class ChunkUpload extends Thread{
+        private CountDownLatch countDownLatch;
+        private Integer chunk;
+        private Integer chunks;
+        private IUserFileService iUserFileService;
+        private Long userId;
+        private Long parentId;
+
+
+        /**
+         * 1、上传文件分片
+         * 2、根据上传的结果调用文件分片合并
+         */
+        @Override
+        public void run() {
+            super.run();
+            MultipartFile file = generateMultipartFile();
+            Long totalSize = file.getSize() * chunks;
+            String filename = "test.txt";
+            String identifier = "123456789";
+
+            FileChunkUploadContext context = new FileChunkUploadContext();
+            context.setFilename(filename);
+            context.setIdentifier(identifier);
+            context.setChunkNumber(chunk);
+            context.setTotalChunks(chunks);
+            context.setCurrentChunkSize(file.getSize());
+            context.setTotalSize(totalSize);
+            context.setFile(file);
+            context.setUserId(userId);
+
+            FileChunkUploadVO vo = iUserFileService.chunkUpload(context);
+            if(vo.getMergeFlag().equals(MergeFlagEnum.READY.getCode())){
+                System.out.println("分片" + chunk + "检测到可以合并分片");
+
+                FileChunkMergeContext mergeContext = new FileChunkMergeContext();
+                mergeContext.setFilename(filename);
+                mergeContext.setIdentifier(identifier);
+                mergeContext.setTotalSize(totalSize);
+                mergeContext.setParentId(parentId);
+                mergeContext.setUserId(userId);
+
+                iUserFileService.mergeFile(mergeContext);
+                countDownLatch.countDown();
+            }else{
+                countDownLatch.countDown();
+            }
+        }
+    }
+
+    /**
+     * 生成的网络文件实体
+     * @return
+     */
+    private static MultipartFile generateMultipartFile() {
+        MultipartFile file = null;
+        try {
+            file = new MockMultipartFile("file", "test.txt", "multipart/form-data", "test upload contedt".getBytes(StandardCharsets.UTF_8));
+        }catch (Exception e){
+            e.printStackTrace();
+        }
+        return file;
+    }
+
 
     /**
      * 用户注册方法
