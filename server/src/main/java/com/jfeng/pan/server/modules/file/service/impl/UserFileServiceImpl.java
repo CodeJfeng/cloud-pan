@@ -256,15 +256,51 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
     @Override
     public void download(FileDownloadContext context) {
         RPanUserFile record = getById(context.getFileId());
-        checkOperatePermission(record, context);
+        checkOperatePermission(record, context.getUserId());
         if(checkIsFolder(record)){
             throw new RPanBusinessException("文件夹暂时不支持下载");
         }
         doDownload(record, context.getResponse());
     }
 
+    /**
+     * 文件预览
+     * 1、参数校验
+     * 2、该文件是不是文件
+     * 3、执行文件预览的动作
+     * @param context
+     */
+    @Override
+    public void preview(FilePreviewContext context) {
+        RPanUserFile record = getById(context.getFileId());
+        checkOperatePermission(record, context.getUserId());
+        if(checkIsFolder(record)){
+            throw new RPanBusinessException("文件夹暂时不支持预览");
+        }
+        doPreview(record, context.getResponse());
+
+    }
+
+
     /****************************************************** private ***************************************************************/
 
+
+    /**
+     * 执行文件预览的动作
+     * 1、获取文件信息 并检查是否存在，防止NPE
+     * 2、添加跨域的公共响应头
+     * 3、委托文件存储引擎去读取文件内容到相应的输出流中
+     * @param record
+     * @param response
+     */
+    private void doPreview(RPanUserFile record, HttpServletResponse response) {
+        RPanFile realFileRecord = iFileService.getById(record.getFileId());
+        if(Objects.isNull(realFileRecord)){
+            throw new RPanBusinessException("当前的文件记录不存在");
+        }
+        addCommonResponseHeader(response, realFileRecord.getFilePreviewContentType());
+        realFile2OutputStream(realFileRecord.getRealPath(), response);
+    }
     /**
      * 执行文件下载的动作
      * 1、查询文件的真实存储路径
@@ -355,14 +391,14 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * 1、文件记录必须存在
      * 2、文件的创建者必须是该用户
      *
-     * @param record
-     * @param context
+     * @param record 文件记录信息
+     * @param UserId 用户Id
      */
-    private void checkOperatePermission(RPanUserFile record, FileDownloadContext context) {
+    private void checkOperatePermission(RPanUserFile record, Long UserId) {
         if(Objects.isNull(record)){
             throw new RPanBusinessException("当前文件记录不存在");
         }
-        if(!record.getUserId().equals(context.getUserId())){
+        if(!record.getUserId().equals(UserId)){
             throw new RPanBusinessException("你没有该文件的操作权限");
         }
     }
