@@ -1,7 +1,6 @@
 package com.jfeng.pan.server.modules.file.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import com.baomidou.mybatisplus.extension.conditions.query.LambdaQueryChainWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
@@ -10,6 +9,7 @@ import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.event.file.DeleteFileEvent;
+import com.jfeng.pan.server.common.utils.HttpUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
@@ -26,14 +26,20 @@ import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
+import com.jfeng.pan.storage.engine.core.StorageEngine;
+import com.jfeng.pan.storage.engine.core.context.ReadFileContext;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import javax.servlet.http.HttpServletResponse;
+import java.io.IOException;
+import java.io.UnsupportedEncodingException;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -240,8 +246,126 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         );
     }
 
+    /**
+     * 文件下载
+     *  1、 参数校验：检验文件是否存在，文件是否属于该用户，
+     *  2、该文件是不是文件
+     *  3、执行下载的动作
+     * @param context
+     */
+    @Override
+    public void download(FileDownloadContext context) {
+        RPanUserFile record = getById(context.getFileId());
+        checkOperatePermission(record, context);
+        if(checkIsFolder(record)){
+            throw new RPanBusinessException("文件夹暂时不支持下载");
+        }
+        doDownload(record, context.getResponse());
+    }
 
     /****************************************************** private ***************************************************************/
+
+    /**
+     * 执行文件下载的动作
+     * 1、查询文件的真实存储路径
+     * 2、添加跨域的公共响应头
+     * 3、拼装下载文件的名称、长度等等响应信息
+     * 4、委托文件存储引擎去读取文件内容到相应的输出流中
+     *
+     * @param record
+     * @param response
+     */
+    private void doDownload(RPanUserFile record, HttpServletResponse response) {
+        RPanFile realFileRecord = iFileService.getById(record.getFileId());
+        if(Objects.isNull(realFileRecord)){
+            throw new RPanBusinessException("当前的文件记录不存在");
+        }
+        addCommonResponseHeader(response, MediaType.APPLICATION_OCTET_STREAM_VALUE);
+        addDownloadAttribute(response, record, realFileRecord);
+        realFile2OutputStream(realFileRecord.getRealPath(), response);
+    }
+
+    /**
+     * 委托文件存储引擎读取文件内容并写入到输出流
+     *
+     * @param realPath
+     * @param response
+     */
+    @Autowired
+    private StorageEngine storageEngine;
+    private void realFile2OutputStream(String realPath, HttpServletResponse response) {
+        try {
+            ReadFileContext context = new ReadFileContext();
+            context.setRealPath(realPath);
+            context.setOutputStream(response.getOutputStream());
+            storageEngine.readFile(context);
+        } catch (IOException e) {
+            e.printStackTrace();
+            throw new RPanBusinessException("文件下载失败");
+        }
+    }
+
+    /**
+     * 添加文件下载的属性信息
+     * @param response
+     * @param record
+     * @param realFileRecord
+     */
+    private void addDownloadAttribute(HttpServletResponse response, RPanUserFile record, RPanFile realFileRecord) {
+        try {
+            response.addHeader(FileConstants.CONTENT_DISPOSITION_STR,
+                    FileConstants.CONTENT_DISPOSITION_VALUE_PREFIX_STR
+                            + new String(record.getFilename().getBytes(FileConstants.GB2312_STR), FileConstants.IOS_8859_1_STR));
+        } catch (UnsupportedEncodingException e) {
+            e.printStackTrace();
+            throw new RPanBusinessException("文件下载失败");
+        }
+        response.setContentLengthLong(Long.parseLong(realFileRecord.getFileSize()));
+    }
+
+    /**
+     * 添加公共的文件读取响应头
+     *
+     * @param response
+     * @param contentTypeValue
+     */
+    private void addCommonResponseHeader(HttpServletResponse response, String contentTypeValue) {
+        response.reset();
+        HttpUtil.addCorsResponseHeaders(response);
+        response.addHeader("Content-Type",contentTypeValue);
+        response.setContentType(contentTypeValue)
+        ;
+    }
+
+    /**
+     * 检查当前文件记录是不是一个文件夹
+     *
+     * @param record
+     * @return
+     */
+    private boolean checkIsFolder(RPanUserFile record) {
+        if(Objects.isNull(record)){
+            throw new RPanBusinessException("当前文件记录不存在");
+        }
+        return FolderFlagEnum.YES.getCode().equals(record.getFolderFlag());
+    }
+
+    /**
+     * 校验用户的操作权限
+     * 1、文件记录必须存在
+     * 2、文件的创建者必须是该用户
+     *
+     * @param record
+     * @param context
+     */
+    private void checkOperatePermission(RPanUserFile record, FileDownloadContext context) {
+        if(Objects.isNull(record)){
+            throw new RPanBusinessException("当前文件记录不存在");
+        }
+        if(!record.getUserId().equals(context.getUserId())){
+            throw new RPanBusinessException("你没有该文件的操作权限");
+        }
+    }
 
     /**
      * 合并文件分片并保存物理文件记录

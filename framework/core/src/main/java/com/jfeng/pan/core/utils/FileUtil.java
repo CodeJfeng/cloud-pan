@@ -5,13 +5,11 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
-import java.io.RandomAccessFile;
+import java.io.*;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
 import java.nio.channels.ReadableByteChannel;
+import java.nio.channels.WritableByteChannel;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.StandardOpenOption;
@@ -208,5 +206,27 @@ public class FileUtil {
      */
     public static void appendWrite(Path target, Path source) throws IOException {
         Files.write(target, Files.readAllBytes(source), StandardOpenOption.APPEND);
+    }
+
+    /**
+     * <p>利用零拷贝技术读取文件内容并写入到文件的输出流中</p>
+     *
+     * @param fileInputStream
+     * @param outputStream
+     * @param length
+     */
+    public static void writeFile2OutputStream(FileInputStream fileInputStream, OutputStream outputStream, long length) throws IOException {
+        FileChannel fileChannel = fileInputStream.getChannel();
+        WritableByteChannel writableByteChannel = Channels.newChannel(outputStream);
+        try {
+            fileChannel.transferTo(RPanConstants.ZERO_LONG, length, writableByteChannel);
+            outputStream.flush();
+        } catch (IOException e) {
+            throw new RuntimeException(e);
+        }finally {
+            writableByteChannel.close();
+            fileChannel.close();
+            outputStream.close();
+        }
     }
 }

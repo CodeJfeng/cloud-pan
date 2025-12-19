@@ -1,10 +1,7 @@
 package com.jfeng.pan.storage.engine.fastdfs;
 
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
-import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
-import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
+import com.jfeng.pan.storage.engine.core.context.*;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -47,6 +44,16 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
      */
     @Override
     protected void doMergeFile(MergeFileContext context) throws IOException {
+
+    }
+
+    /**
+     * 读取文件内容并写入到输出流中
+     *
+     * @param context
+     */
+    @Override
+    protected void doReadFile(ReadFileContext context)throws IOException {
 
     }
 }

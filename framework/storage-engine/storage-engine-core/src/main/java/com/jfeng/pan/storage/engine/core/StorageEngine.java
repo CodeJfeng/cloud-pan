@@ -1,9 +1,6 @@
 package com.jfeng.pan.storage.engine.core;
 
-import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
-import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
+import com.jfeng.pan.storage.engine.core.context.*;
 
 import java.io.IOException;
 
@@ -39,4 +36,12 @@ public interface StorageEngine {
      * @throws IOException
      */
     void mergeFile(MergeFileContext context) throws IOException;
+
+    /**
+     * 读取文件内容写入到输出流中
+     * @param context
+     * @throws IOException
+     */
+    void readFile(ReadFileContext context) throws  IOException;
+
 }

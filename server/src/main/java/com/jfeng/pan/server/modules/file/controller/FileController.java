@@ -21,6 +21,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotBlank;
 import java.util.List;
 import java.util.Objects;
@@ -139,6 +140,18 @@ public class FileController {
         FileChunkMergeContext context = fileConverter.fileChunkMergePO2FileChunkMergeContext(fileChunkMergePO);
         iUserFileService.mergeFile(context);
         return R.success();
+    }
+
+    @Operation(summary = "文件下载",
+            description = "该接口提供了文件下载的的功能")
+    @GetMapping("file/download")
+    public void download(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId, HttpServletResponse response){
+        FileDownloadContext context = new FileDownloadContext();
+        context.setFileId(IdUtil.decrypt(fileId));
+        context.setResponse(response);
+        context.setUserId(UserIdUtil.get());
+
+        iUserFileService.download(context);
     }
 
 

@@ -3,14 +3,12 @@ package com.jfeng.pan.storage.engine.core;
 import cn.hutool.core.lang.Assert;
 import com.jfeng.pan.cache.core.constants.CacheConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
-import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
-import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
+import com.jfeng.pan.storage.engine.core.context.*;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.util.Objects;
 
@@ -159,5 +157,35 @@ public abstract class AbstractStorageEngine  implements  StorageEngine{
         Assert.notBlank(context.getIdentifier(), "文件唯一标识不能为空");
         Assert.notNull(context.getUserId(), "当前登录用户ID不能为空");
         Assert.notEmpty(context.getRealPathList(), "文件分片列表不能为空");
+    }
+
+    /**
+     * 读取文件内容写入到输出流中
+     * 1、参数校验
+     * 2、执行动作
+     *
+     * @param context
+     * @throws IOException
+     */
+    @Override
+    public void readFile(ReadFileContext context) throws IOException {
+        checkReadFileContext(context);
+        doReadFile(context);
+    }
+
+    /**
+     * 读取文件内容并写入到输出流中
+     * 下沉到子类实现
+     * @param context
+     */
+    protected abstract void doReadFile(ReadFileContext context) throws IOException;
+
+    /**
+     * 检查读取文件的上下文实体信息
+     * @param context
+     */
+    private void checkReadFileContext(ReadFileContext context) {
+        Assert.notBlank(context.getRealPath(), "文件的真实路径不能为空");
+        Assert.notNull(context.getOutputStream(), "文件的输出流不能为空");
     }
 }

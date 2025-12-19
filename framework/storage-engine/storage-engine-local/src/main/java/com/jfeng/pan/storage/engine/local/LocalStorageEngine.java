@@ -2,15 +2,14 @@ package com.jfeng.pan.storage.engine.local;
 
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
-import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
-import com.jfeng.pan.storage.engine.core.context.MergeFileContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
-import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
+import com.jfeng.pan.storage.engine.core.context.*;
 import com.jfeng.pan.storage.engine.local.config.LocalStoreEngineConfig;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.nio.file.Paths;
 import java.util.List;
@@ -79,5 +78,16 @@ public class LocalStorageEngine extends AbstractStorageEngine {
         }
         FileUtil.deleteFiles(realPathList);
         context.setRealPath(realFilePath);
+    }
+
+    /**
+     * 读取文件内容并写入到输出流中
+     *
+     * @param context
+     */
+    @Override
+    protected void doReadFile(ReadFileContext context) throws IOException {
+        File file = new File(context.getRealPath());
+        FileUtil.writeFile2OutputStream(new FileInputStream(file), context.getOutputStream(), file.length());
     }
 }
