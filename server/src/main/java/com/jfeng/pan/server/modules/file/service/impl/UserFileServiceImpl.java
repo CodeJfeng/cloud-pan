@@ -24,10 +24,12 @@ import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
+import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import com.jfeng.pan.storage.engine.core.StorageEngine;
 import com.jfeng.pan.storage.engine.core.context.ReadFileContext;
+import org.assertj.core.util.Lists;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
@@ -281,9 +283,68 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
 
     }
 
+    /**
+     * 查询用户的文件夹树
+     * 1、查询出该用户所有的文件夹列表
+     * 2、在内存中拼装文件夹树
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public List<FolderTreeNodeVO> getFolderTree(QueryFolderTreeContext context) {
+        List<RPanUserFile> folderRecords = queryFolderRecords(context.getUserId());
+        return assembleFolderTreeNodeVOList(folderRecords);
+    }
+
 
     /****************************************************** private ***************************************************************/
 
+    /**
+     * 拼装文件夹树列表
+     *
+     * @param folderRecords
+     * @return
+     */
+    private List<FolderTreeNodeVO> assembleFolderTreeNodeVOList(List<RPanUserFile> folderRecords) {
+        if (CollectionUtils.isEmpty(folderRecords)) {
+            return Collections.emptyList();
+        }
+        List<FolderTreeNodeVO> nodes = folderRecords.stream()
+                .map(fileConverter::rPanUserFile2FolderTreeNodeVO)
+                .collect(Collectors.toCollection(ArrayList::new));
+
+        Map<Long, FolderTreeNodeVO> nodeMap = new HashMap<>(nodes.size());
+        Map<Long, List<FolderTreeNodeVO>> childrenMap = new HashMap<>();
+        for (FolderTreeNodeVO node : nodes) {
+            nodeMap.put(node.getId(), node);
+            childrenMap.computeIfAbsent(node.getParentId(), k -> new ArrayList<>())
+                    .add(node);
+        }
+        childrenMap.forEach((parentId, children) -> {
+            FolderTreeNodeVO parent = nodeMap.get(parentId);
+            if (parent != null) {
+                parent.getChildren().addAll(children);
+            }
+        });
+        return nodes.stream()
+                .filter(node -> Objects.equals(node.getParentId(), FileConstants.TOP_PARENT_ID))
+                .collect(Collectors.toList());
+    }
+
+    /**
+     * 查询用户所有有效的文件夹信息
+     *
+     * @param userId
+     * @return
+     */
+    private List<RPanUserFile> queryFolderRecords(Long userId) {
+        LambdaQueryWrapper<RPanUserFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RPanUserFile::getUserId, userId);
+        wrapper.eq(RPanUserFile::getFolderFlag, FolderFlagEnum.YES.getCode());
+        wrapper.eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode());
+        return list(wrapper);
+    }
 
     /**
      * 执行文件预览的动作

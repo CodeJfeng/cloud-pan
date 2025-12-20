@@ -14,6 +14,7 @@ import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
+import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
@@ -404,6 +405,38 @@ public class FileTest {
             new ChunkUpload(countDownLatch, i+1, 10, iUserFileService, userId, userInfoVO.getRootFiled()).start();
         }
         countDownLatch.await();
+    }
+
+    /**
+     * 测试文件夹树查询
+     */
+    @Test
+    public void getFolderTreeNodeVOListTest(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        createFolderContext.setFolderName("folder-name-2");
+        fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        createFolderContext.setFolderName("folder-name-2-1");
+        createFolderContext.setParentId(fileId);
+        fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        QueryFolderTreeContext context = new QueryFolderTreeContext();
+        context.setUserId(userId);
+        List<FolderTreeNodeVO> folderTree = iUserFileService.getFolderTree(context);
+
+        Assert.isTrue(folderTree.size() == 1);
+        folderTree.forEach(FolderTreeNodeVO::print);
     }
 
     /********************************* private ************************************/

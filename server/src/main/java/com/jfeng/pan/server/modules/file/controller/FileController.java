@@ -13,6 +13,7 @@ import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
+import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -167,6 +168,17 @@ public class FileController {
     }
 
 
+
+
+    @Operation(summary = "查询文件夹树",
+            description = "该接口提供了高性能的文件夹查询功能的的功能，使用HashMap代替递归查询")
+    @GetMapping("file/folder/tree")
+    public R<List<FolderTreeNodeVO>> getFolderTree(){
+        QueryFolderTreeContext context = new QueryFolderTreeContext();
+        context.setUserId(UserIdUtil.get());
+        List<FolderTreeNodeVO> result = iUserFileService.getFolderTree(context);
+        return R.data(result);
+    }
 
 
 }

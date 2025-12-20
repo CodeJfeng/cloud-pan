@@ -4,6 +4,7 @@ import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
+import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
 
@@ -100,4 +101,12 @@ public interface IUserFileService extends IService<RPanUserFile> {
      * @param context
      */
     void preview(FilePreviewContext context);
+
+    /**
+     * 查询用户的文件夹树
+     *
+     * @param context
+     * @return
+     */
+    List<FolderTreeNodeVO> getFolderTree(QueryFolderTreeContext context);
 }
