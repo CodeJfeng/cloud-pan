@@ -22,6 +22,7 @@ import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import lombok.AllArgsConstructor;
+import org.assertj.core.util.Lists;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -438,6 +439,81 @@ public class FileTest {
         Assert.isTrue(folderTree.size() == 1);
         folderTree.forEach(FolderTreeNodeVO::print);
     }
+
+    /**
+     * 测试文件转移成功
+     */
+    @Test
+    public void testTransferFileSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        createFolderContext.setFolderName("folder-name-2");
+        Long folder2 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder2);
+
+        TransferFileConext transferFileContext = new TransferFileConext();
+        transferFileContext.setTargetParentId(folder1);
+        transferFileContext.setFileIdList(Lists.newArrayList(folder2));
+        transferFileContext.setUserId(userId);
+
+        iUserFileService.transfer(transferFileContext);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setUserId(userId);
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
+        Assert.notNull(records);
+    }
+
+
+
+    /**
+     * 测试文件转移失败——目标文件夹是要转移的文件列表中的文件夹或者其子文件夹
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testTransferFileFail(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        createFolderContext.setParentId(folder1);
+        createFolderContext.setFolderName("folder-name-2");
+        Long folder2 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder2);
+
+        TransferFileConext transferFileContext = new TransferFileConext();
+        transferFileContext.setTargetParentId(folder2);
+        transferFileContext.setFileIdList(Lists.newArrayList(folder1));
+        transferFileContext.setUserId(userId);
+
+        iUserFileService.transfer(transferFileContext);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setUserId(userId);
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
+        Assert.notNull(records);
+    }
+
+
 
     /********************************* private ************************************/
 

@@ -230,7 +230,6 @@ public class IdUtil {
             return new ArrayList<>();
         }
         List<String> decryptIdList = StrUtil.split(decryptIdStr, RPanConstants.COMMON_SEPARATOR, true, true);
-        //List<String> decryptIdList = Splitter.on(RPanConstants.COMMON_SEPARATOR).splitToList(decryptIdStr);
         if (CollUtil.isEmpty(decryptIdList)) {
             return new ArrayList<>();
         }

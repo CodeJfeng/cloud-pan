@@ -24,6 +24,7 @@ import org.springframework.web.bind.annotation.*;
 
 import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotBlank;
+import java.util.Arrays;
 import java.util.List;
 import java.util.Objects;
 
@@ -167,9 +168,6 @@ public class FileController {
         iUserFileService.preview(context);
     }
 
-
-
-
     @Operation(summary = "查询文件夹树",
             description = "该接口提供了高性能的文件夹查询功能的的功能，使用HashMap代替递归查询")
     @GetMapping("file/folder/tree")
@@ -178,6 +176,22 @@ public class FileController {
         context.setUserId(UserIdUtil.get());
         List<FolderTreeNodeVO> result = iUserFileService.getFolderTree(context);
         return R.data(result);
+    }
+
+
+    @Operation(summary = "文件转移",
+            description = "该接口提供了文件转移的功能")
+    @PostMapping("file/transfer")
+    public R transfer(@Validated @RequestBody TransferFilePO transferFilePO){
+        String fileIds = transferFilePO.getFileIds();
+        String targetParentId = transferFilePO.getTargetParentId();
+        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
+        TransferFileConext context = new TransferFileConext();
+        context.setFileIdList(fileIdList);
+        context.setTargetParentId(IdUtil.decrypt(targetParentId));
+        context.setUserId(UserIdUtil.get());
+        iUserFileService.transfer(context);
+        return R.success();
     }
 
 
