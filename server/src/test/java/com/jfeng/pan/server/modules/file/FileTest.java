@@ -513,6 +513,76 @@ public class FileTest {
         Assert.notNull(records);
     }
 
+    /**
+     * 测试文件复制成功
+     */
+    @Test
+    public void testCopyFileSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        createFolderContext.setParentId(folder1);
+        createFolderContext.setFolderName("folder-name-2");
+        Long folder2 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder2);
+
+        CopyFileContext copyFileContext = new CopyFileContext();
+        copyFileContext.setTargetParentId(folder1);
+        copyFileContext.setFileIdList(Lists.newArrayList(folder2));
+        copyFileContext.setUserId(userId);
+        iUserFileService.copy(copyFileContext);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setUserId(userId);
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setParentId(folder1);
+        List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
+        Assert.notNull(records);
+    }
+
+    /**
+     * 测试文件复制失败——目标文件夹是要转移的文件列表中的文件夹或者其子文件夹
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testCopyFileFail(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        createFolderContext.setParentId(folder1);
+        createFolderContext.setFolderName("folder-name-2");
+        Long folder2 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder2);
+
+        CopyFileContext copyFileContext = new CopyFileContext();
+        copyFileContext.setTargetParentId(folder2);
+        copyFileContext.setFileIdList(Lists.newArrayList(folder1));
+        copyFileContext.setUserId(userId);
+        iUserFileService.copy(copyFileContext);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setUserId(userId);
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setParentId(folder1);
+        List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
+        Assert.notNull(records);
+    }
+
 
 
     /********************************* private ************************************/

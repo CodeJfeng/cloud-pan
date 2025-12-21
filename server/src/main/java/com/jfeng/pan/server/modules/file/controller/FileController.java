@@ -195,4 +195,22 @@ public class FileController {
     }
 
 
+    @Operation(summary = "文件复制",
+            description = "该文件提供了文件复制的功能")
+    @PostMapping("file/copy")
+    public R copy(@Validated @RequestBody CopyFilePO copyFilePO){
+        String fileIds = copyFilePO.getFileIds();
+        String targetParentId = copyFilePO.getTargetParentId();
+        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
+
+        CopyFileContext context = new CopyFileContext();
+        context.setFileIdList(fileIdList);
+        context.setTargetParentId(IdUtil.decrypt(targetParentId));
+        context.setUserId(UserIdUtil.get());
+        iUserFileService.copy(context);
+        return R.success();
+    }
+
+
+
 }

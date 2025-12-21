@@ -116,4 +116,10 @@ public interface IUserFileService extends IService<RPanUserFile> {
      */
     void transfer(TransferFileConext context);
 
+    /**
+     * 文件批量复制
+     * @param context
+     */
+    void copy(CopyFileContext context);
+
 }

@@ -34,6 +34,7 @@ import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
+import org.springframework.data.annotation.Id;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -297,10 +298,6 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         return assembleFolderTreeNodeVOList(folderRecords);
     }
 
-
-/****************************************************** private ***************************************************************/
-
-
     /**
      * 文件转移
      * 1、权限校验
@@ -312,6 +309,102 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         checkTransferCondition(context);
         doTransfer(context);
     }
+
+    /**
+     * 文件批量复制
+     * 1、条件校验
+     * 2、执行动作
+     *
+     * @param context
+     */
+    @Override
+    public void copy(CopyFileContext context) {
+        checkCopyCondition(context);
+        doCopyFile(context);
+    }
+
+    /**
+     * 执行文件复制的动作
+     *
+     * @param context
+     */
+    private void doCopyFile(CopyFileContext context) {
+        List<RPanUserFile> prepareRecords = context.getPrepareRecords();
+        if(!CollectionUtils.isEmpty(prepareRecords)){
+           List<RPanUserFile> allRecord = Lists.newArrayList();
+           prepareRecords.forEach(record -> assembleCopyChildRecord(allRecord, record, context.getTargetParentId(), context.getUserId()));
+        }
+    }
+
+    /**
+     * 拼装所有当前文件记录以及所有子文件记录
+     *
+     * @param allRecord
+     * @param record
+     * @param targetParentId
+     * @param userId
+     */
+    private void assembleCopyChildRecord(List<RPanUserFile> allRecord, RPanUserFile record, Long targetParentId, Long userId) {
+        Long newFileId = IdUtil.get();
+        Long oldFileId = record.getFileId();
+
+        record.setFileId(newFileId);
+        record.setParentId(targetParentId);
+        record.setUserId(userId);
+        record.setCreateUser(userId);
+        record.setCreateTime(new Date());
+        record.setUpdateUser(userId);
+        record.setUpdateTime(new Date());
+
+        allRecord.add(record);
+        if(checkIsFolder(record)){
+            List<RPanUserFile> childRecords = findChildRecords(oldFileId);
+            if(CollectionUtils.isEmpty(childRecords)){
+                return;
+            }
+            childRecords.forEach(childRecord -> assembleCopyChildRecord(allRecord, childRecord, targetParentId, userId));
+        }
+    }
+
+    /**
+     *  查找下一级的文件记录
+     *
+     * @param parentId
+     * @return
+     */
+    private List<RPanUserFile> findChildRecords(Long parentId) {
+        LambdaQueryWrapper<RPanUserFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.eq(RPanUserFile::getParentId, parentId);
+        wrapper.eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode());
+        return list(wrapper);
+    }
+
+    /**
+     * 文件复制的条件校验
+     * 1、目标文件ID必须是一个文件夹
+     * 2、选中的文件Id列表中不能含有目标文件夹以及其子文件夹
+     *
+     * @param context
+     */
+    private void checkCopyCondition(CopyFileContext context) {
+        Long targetParentId = context.getTargetParentId();
+        if(!checkIsFolder(getById(targetParentId))){
+            throw new RPanBusinessException("目标文件不是一个文件夹");
+        }
+
+        List<Long> fileIdList = context.getFileIdList();
+        List<RPanUserFile> prepareRecords = listByIds(fileIdList);
+        context.setPrepareRecords(prepareRecords);
+        if(checkIsChildFolder(prepareRecords, targetParentId, context.getUserId())){
+            throw new RPanBusinessException("目标文件夹ID不能是选中文件列表的文件夹ID或者其子文件夹ID");
+        }
+
+    }
+
+    /****************************************************** private ***************************************************************/
+
+
+
 
     /**
      * 执行文件转移的动作
