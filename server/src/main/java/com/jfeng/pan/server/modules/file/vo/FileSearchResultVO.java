@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.vo;
 
+import com.alibaba.fastjson.JSON;
 import com.fasterxml.jackson.databind.annotation.JsonSerialize;
 import com.jfeng.pan.web.serializer.Date2StringSerializer;
 import com.jfeng.pan.web.serializer.IdEncryptSerializer;
@@ -10,12 +11,17 @@ import lombok.Data;
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.Date;
+import java.util.List;
 
+/**
+ * 用户搜索文件对应的实体
+ */
 @Data
-@Tag(name="文件列表响应实体", description = "后端向前端返回文件列表实体信息")
-public class RPanUserFileVO implements Serializable {
+@Tag(name = "用户搜索文件对应的实体")
+public class FileSearchResultVO implements Serializable {
+
     @Serial
-    private static final long serialVersionUID = -889431231L;
+    private static final long serialVersionUID = -5478565753234L;
 
     @Schema(description = "文件ID")
     @JsonSerialize(using = IdEncryptSerializer.class)
@@ -24,6 +30,9 @@ public class RPanUserFileVO implements Serializable {
     @Schema(description = "父文件夹ID")
     @JsonSerialize(using = IdEncryptSerializer.class)
     private Long parentId;
+
+    @Schema(description = "父文件夹名称")
+    private String parentFilename;
 
     @Schema(description = "文件名称")
     private String fileName;
@@ -40,4 +49,5 @@ public class RPanUserFileVO implements Serializable {
     @Schema(description = "文件更新时间")
     @JsonSerialize(using = Date2StringSerializer.class)
     private Date updateTime;
+
 }

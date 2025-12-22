@@ -3,10 +3,7 @@ package com.jfeng.pan.server.modules.file.service;
 import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.extension.service.IService;
-import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
-import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
-import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
-import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
+import com.jfeng.pan.server.modules.file.vo.*;
 
 import java.util.List;
 
@@ -122,4 +119,11 @@ public interface IUserFileService extends IService<RPanUserFile> {
      */
     void copy(CopyFileContext context);
 
+    /**
+     * 文件列表搜索
+     *
+     * @param context
+     * @return
+     */
+    List<FileSearchResultVO> search(FileSearchContext context);
 }

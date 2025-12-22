@@ -1,8 +1,10 @@
 package com.jfeng.pan.server.modules.file.mapper;
 
+import com.jfeng.pan.server.modules.file.context.FileSearchContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.baomidou.mybatisplus.core.mapper.BaseMapper;
+import com.jfeng.pan.server.modules.file.vo.FileSearchResultVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import org.apache.ibatis.annotations.Param;
 
@@ -22,6 +24,13 @@ public interface RPanUserFileMapper extends BaseMapper<RPanUserFile> {
      * @return
      */
     List<RPanUserFileVO> selectFileList(@Param("param") QueryFileListContext queryFileListContext);
+
+    /**
+     * 文件搜索
+     * @param context
+     * @return
+     */
+    List<FileSearchResultVO> searchFile(@Param("param")FileSearchContext context);
 }
 
 

@@ -12,12 +12,10 @@ import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
-import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
-import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
-import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
-import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
+import com.jfeng.pan.server.modules.file.vo.*;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
+import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
@@ -210,6 +208,26 @@ public class FileController {
         iUserFileService.copy(context);
         return R.success();
     }
+
+    @Operation(summary = "文件搜索",
+            description = "该文件提供了文件搜索的功能")
+    @GetMapping("file/search")
+    public R<List<FileSearchResultVO>> search(@Validated FileSearchPO fileSearchPO){
+        FileSearchContext context = new FileSearchContext();
+        context.setKeyword(fileSearchPO.getKeyword());
+        context.setUserId(IdUtil.get());
+
+        String fileTypes = fileSearchPO.getFileTypes();
+        if(StringUtils.isNotBlank(fileTypes) && !Objects.equals(FileConstants.ALL_FILE_TYPE, fileTypes) ){
+            List<Integer> fileTypeArray = Arrays.stream(fileTypes.split(RPanConstants.COMMON_SEPARATOR)).map(Integer::valueOf).toList();
+            context.setFileTypeArray(fileTypeArray);
+        }
+
+        List<FileSearchResultVO> vo = iUserFileService.search(context);
+        return R.data(vo);
+    }
+
+
 
 
 

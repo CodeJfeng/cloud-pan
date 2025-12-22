@@ -13,10 +13,7 @@ import com.jfeng.pan.server.modules.file.enums.MergeFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
-import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
-import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
-import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
-import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
+import com.jfeng.pan.server.modules.file.vo.*;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
 import com.jfeng.pan.server.modules.user.service.IUserService;
@@ -583,7 +580,33 @@ public class FileTest {
         Assert.notNull(records);
     }
 
+    /**
+     * 测试文件搜索成功
+     */
+    @Test
+    public void testSearchSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
 
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        FileSearchContext searchContext = new FileSearchContext();
+        searchContext.setKeyword("folder-name");
+        searchContext.setUserId(userId);
+        List<FileSearchResultVO> result = iUserFileService.search(searchContext);
+        Assert.notEmpty(result);
+
+        searchContext.setKeyword("name-1");
+        result = iUserFileService.search(searchContext);
+        Assert.isTrue(CollectionUtil.isEmpty(result));
+
+    }
 
     /********************************* private ************************************/
 

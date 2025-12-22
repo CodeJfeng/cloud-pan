@@ -9,6 +9,7 @@ import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.event.file.DeleteFileEvent;
+import com.jfeng.pan.server.common.event.search.UserSearchEvent;
 import com.jfeng.pan.server.common.utils.HttpUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
@@ -23,10 +24,7 @@ import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
-import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
-import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
-import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
-import com.jfeng.pan.server.modules.file.vo.UploadedChunksVO;
+import com.jfeng.pan.server.modules.file.vo.*;
 import com.jfeng.pan.storage.engine.core.StorageEngine;
 import com.jfeng.pan.storage.engine.core.context.ReadFileContext;
 import org.assertj.core.util.Lists;
@@ -337,6 +335,65 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
     }
 
     /**
+     * 文件列表搜索
+     * 1、执行文件搜索
+     * 2、拼装文件的父文件ID
+     * 3、执行文件搜索后的后置动作
+     * 4、
+     * @param context
+     * @return
+     */
+    @Override
+    public List<FileSearchResultVO> search(FileSearchContext context) {
+        List<FileSearchResultVO> result = doSearch(context);
+        fileParentFilename(result);
+        afterSearch(context);
+        return result;
+    }
+
+
+
+/****************************************************** private ***************************************************************/
+
+
+    /**
+     * 搜索的后置操作
+     * 1、发布文件搜索的事件--搜索历史的保存
+     *
+     * @param context
+     */
+    private void afterSearch(FileSearchContext context) {
+        UserSearchEvent event = new UserSearchEvent(this, context.getKeyword(), context.getUserId() );
+        applicationContext.publishEvent(event);
+
+    }
+
+    /**
+     * 填充文件列表的父文件夹名称
+     *
+     * @param result
+     */
+    private void fileParentFilename(List<FileSearchResultVO> result) {
+        if(CollectionUtils.isEmpty(result)){
+            return;
+        }
+        List<Long> list = result.stream().map(FileSearchResultVO::getParentId).toList();
+        List<RPanUserFile> parentRecords = listByIds(list);
+        Map<Long, String> fileId2FileNameMap = parentRecords.stream().collect(Collectors.toMap(RPanUserFile::getFileId, RPanUserFile::getFilename));
+        result.forEach(vo -> vo.setParentFilename(fileId2FileNameMap.get(vo.getParentId())));
+    }
+
+    /**
+     * 搜索文件列表
+     *
+     * @param context
+     * @return
+     */
+    private List<FileSearchResultVO> doSearch(FileSearchContext context) {
+        return baseMapper.searchFile(context);
+    }
+
+    /**
      * 拼装所有当前文件记录以及所有子文件记录
      *
      * @param allRecord
@@ -400,11 +457,6 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         }
 
     }
-
-    /****************************************************** private ***************************************************************/
-
-
-
 
     /**
      * 执行文件转移的动作
