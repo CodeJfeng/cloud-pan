@@ -608,6 +608,31 @@ public class FileTest {
 
     }
 
+    /**
+     * 测试查询文件面包屑导航列表成功过
+     */
+    @Test
+    public void testGetBreadcrumbsSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name-1");
+
+        Long folder1 = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(folder1);
+
+        QueryBreadcrumbContext queryBreadcrumbContext = new QueryBreadcrumbContext();
+        queryBreadcrumbContext.setFileId(folder1);
+        queryBreadcrumbContext.setUserId(userId);
+
+        List<BreadcrumbVO> result = iUserFileService.getBreadcrumbs(queryBreadcrumbContext);
+        Assert.notEmpty(result);
+        Assert.isTrue(result.size() == 2);
+    }
+
     /********************************* private ************************************/
 
     /**

@@ -227,8 +227,16 @@ public class FileController {
         return R.data(vo);
     }
 
-
-
+    @Operation(summary = "查询面包屑列表",
+            description = "该文件提供了查询面包屑列表的功能")
+    @GetMapping("file/Breadcrumbs")
+    public R<List<BreadcrumbVO>> getBreadcrumbs(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = true) String fileId){
+        QueryBreadcrumbContext context = new QueryBreadcrumbContext();
+        context.setFileId(IdUtil.decrypt(fileId));
+        context.setUserId(IdUtil.get());
+        List<BreadcrumbVO> result = iUserFileService.getBreadcrumbs(context);
+        return R.data(result);
+    }
 
 
 }

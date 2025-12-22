@@ -351,7 +351,33 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         return result;
     }
 
+    /**
+     * 获取面包屑列表
+     * 1、获取用户所有的文件夹信息
+     * 2、拼接需要用到的面包屑列表
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public List<BreadcrumbVO> getBreadcrumbs(QueryBreadcrumbContext context) {
+        List<RPanUserFile> folderRecords = queryFolderRecords(context.getUserId());
+        Map<Long, BreadcrumbVO> prepareBreadcrumbVOMap = folderRecords.stream().map(BreadcrumbVO::transfer).collect(Collectors.toMap(BreadcrumbVO::getId, a -> a));
 
+        BreadcrumbVO currentNode;
+        Long fileId = context.getFileId();
+
+        List<BreadcrumbVO> result = new LinkedList<>();
+        do {
+            currentNode = prepareBreadcrumbVOMap.get(fileId);
+            if(Objects.nonNull(currentNode)){
+                result.addFirst(currentNode);
+                fileId = currentNode.getParentId();
+            }
+        }while (Objects.nonNull(currentNode));
+
+        return result;
+    }
 
 /****************************************************** private ***************************************************************/
 
