@@ -16,6 +16,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
+import org.springframework.util.CollectionUtils;
 
 import java.io.IOException;
 import java.io.Serial;
@@ -149,11 +150,53 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     }
 
     /**
-     * 执行文件分片的动作
+     * 实现分片文件的合并
+     * 1、获取缓存信息、难道全局的uploadId
+     * 2、从上下文信息里面获取所有分片的URL，解析出需要执行文件合并请求的参数
+     * 3、执行文件合并的请求
+     * 4、清除缓存
+     * 5、设置realPath
      * @param context
      */
     @Override
     protected void doMergeFile(MergeFileContext context) throws IOException {
+       String cacheKey = getCacheKey(context.getIdentifier(), context.getUserId());
+       ChunkUploadEntity entity = getCache().get(cacheKey, ChunkUploadEntity.class);
+       if(Objects.isNull(entity)){
+           throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为："+ context.getIdentifier());
+       }
+
+       List<String> chunkPaths = context.getRealPathList();
+       List<PartETag> partETags = Lists.newArrayList();
+       if (!CollectionUtils.isEmpty(chunkPaths)){
+           partETags = chunkPaths.stream()
+                   .filter(StringUtils::isNotBlank)
+                   .map(this::analysisUrlParams)
+                   .filter(Objects::nonNull)
+                   .filter(jsonObject -> !jsonObject.isEmpty())
+                   .map(jsonObject -> new PartETag(
+                           jsonObject.getIntValue(PART_NUMBER_KEY),
+                           jsonObject.getString(E_TAG_KEY),
+                           jsonObject.getLongValue(PART_SIZE_KEY),
+                           jsonObject.getLong(PART_CRC_KEY)
+                   )).toList();
+       }
+
+       CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
+               config.getBucketName(),
+               entity.getObjectKey(),
+               entity.getUploadId(),
+               partETags
+       );
+
+        CompleteMultipartUploadResult result = client.completeMultipartUpload(request);
+        if(Objects.isNull(result)){
+            throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为："+ context.getIdentifier());
+        }
+        getCache().evict(cacheKey);
+        context.setRealPath(entity.getObjectKey());
+
+
 
     }
 
