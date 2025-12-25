@@ -77,4 +77,28 @@ public interface RPanConstants {
      * 公用缓存前缀
      */
     String COMMON_CACHE_PREFIX = "r-pan:";
+
+    /**
+     * 问号常量
+     */
+    String QUESTION_MARK_STR = "?";
+
+    /**
+     * 等号常量
+     */
+    String EQUALS_MARK_STR = "=";
+
+    /**
+     * 逻辑与常量
+     */
+    String AND_MARK_STR = "&";
+
+    /**
+     * 左中括号
+     */
+    String LEFT_BRACKET_STR = "[";
+    /**
+     * 右中括号
+     */
+    String RIGHT_BRACKET_STR = "]";
 }

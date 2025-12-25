@@ -65,6 +65,8 @@
         <mybatis-plus.version>3.5.3</mybatis-plus.version>
         <velocity.version>2.3</velocity.version>
 
+        <aliyun-oss.version>3.18.3</aliyun-oss.version>
+
     </properties>
 
     <dependencyManagement>
@@ -193,6 +195,11 @@
                 <groupId>org.apache.velocity</groupId>
                 <artifactId>velocity-engine-core</artifactId>
                 <version>${velocity.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>com.aliyun.oss</groupId>
+                <artifactId>aliyun-sdk-oss</artifactId>
+                <version>${aliyun-oss.version}</version>
             </dependency>
 
         </dependencies>
