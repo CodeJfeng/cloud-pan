@@ -70,7 +70,8 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     /**
      * 执行批量删除物理文件的动作
      * 1、获取所有需要删除的文件存储路径
-     * 2、如果该存储路径是一个文件分片的路径，截取出对应的Object的name。然后秋绪
+     * 2、如果该存储路径是一个文件分片的路径，截取出对应的Object的name。发送request进行删除
+     * 3、如果是存储对象文件，直接调用client的删除函数
      * @param context
      */
     @Override
@@ -247,7 +248,11 @@ public class OSSStorageEngine extends AbstractStorageEngine {
      */
     @Override
     protected void doReadFile(ReadFileContext context) throws IOException {
-
+        OSSObject ossObject = client.getObject(config.getBucketName(), context.getRealPath());
+        if (Objects.isNull(ossObject)){
+            throw new RPanBusinessException("文件读取失败，文件的名称是"+ context.getRealPath());
+        }
+        FileUtil.writeStream2StreamNormal(ossObject.getObjectContent(), context.getOutputStream());
     }
 
     /********************************************* private ************************************************************/

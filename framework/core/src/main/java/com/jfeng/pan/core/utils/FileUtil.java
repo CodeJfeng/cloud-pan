@@ -229,4 +229,21 @@ public class FileUtil {
             outputStream.close();
         }
     }
+
+    /**
+     * 普通的流对流的数据传输
+     *
+     * @param inputStream
+     * @param outputStream
+     */
+    public static void writeStream2StreamNormal(InputStream inputStream, OutputStream outputStream) throws IOException {
+       byte[] buffer = new byte[1024];
+       int len;
+       while ((len=inputStream.read(buffer)) != RPanConstants.MINUS_ONE_INT ){
+           outputStream.write(buffer, RPanConstants.ZERO_INT, len);
+       }
+       outputStream.flush();
+       inputStream.close();
+       outputStream.close();
+    }
 }
