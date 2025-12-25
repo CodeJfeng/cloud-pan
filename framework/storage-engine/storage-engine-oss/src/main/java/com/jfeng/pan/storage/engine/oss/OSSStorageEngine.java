@@ -68,13 +68,41 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     }
 
     /**
-     * 执行删除物理文件的动作
-     *
+     * 执行批量删除物理文件的动作
+     * 1、获取所有需要删除的文件存储路径
+     * 2、如果该存储路径是一个文件分片的路径，截取出对应的Object的name。然后秋绪
      * @param context
      */
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
+        List<String> realFilePathList = context.getRealPathList();
+        realFilePathList.forEach(realPath->{
+            if(checkHaveParams(realPath)){
+                JSONObject params = JSONObject.from(analysisUrlParams(realPath));
+                if(Objects.nonNull(params) && !params.isEmpty()){
+                    String upload = params.getString(UPLOAD_ID_KEY);
+                    String identifier = params.getString(IDENTIFIER_KEY);
+                    Long userId = params.getLongValue(USER_ID_KEY);
+                    String cacheKey = getCacheKey(identifier, userId);
 
+                    getCache().evict(cacheKey);
+
+                    try{
+                        AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
+                                config.getBucketName(),
+                                getBaseUrl(realPath),
+                                upload
+                        );
+                        client.abortMultipartUpload(request);
+                    }catch (Exception ignored){
+                    }
+                }
+            }
+            // 普通文件的物理文件
+            else{
+                client.deleteObject(config.getBucketName(), realPath);
+            }
+        });
     }
 
     /**
@@ -150,13 +178,28 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     }
 
     /**
-     * 实现分片文件的合并
-     * 1、获取缓存信息、难道全局的uploadId
-     * 2、从上下文信息里面获取所有分片的URL，解析出需要执行文件合并请求的参数
-     * 3、执行文件合并的请求
-     * 4、清除缓存
-     * 5、设置realPath
-     * @param context
+     * 合并已上传的文件分片，完成分片上传流程
+     *
+     * <p><b>执行流程：</b></p>
+     * <ol>
+     *   <li>从缓存中获取全局一致的 uploadId /li>
+     *   <li>从上传上下文中提取所有分片URL，解析合并所需参数</li>
+     *   <li>向OSS服务发起文件合并请求</li>
+     *   <li>清理缓存中的分片数据</li>
+     *   <li>设置最终文件的真实存储路径</li>
+     * </ol>
+     *
+     * <p><b>注意事项：</b></p>
+     * <ul>
+     *   <li>合并操作是幂等的，可安全重试</li>
+     *   <li>合并成功后会自动清理缓存，避免内存泄漏</li>
+     *   <li>需确保所有分片均已成功上传，否则合并会失败</li>
+     *   <li>合并操作可能较耗时，建议异步执行</li>
+     * </ul>
+     *
+     * @param context 上传上下文，包含分片信息和OSS配置
+     * @throws IllegalStateException 缓存数据不存在或分片信息不完整
+     * @throws IOException OSS服务通信异常或合并操作失败
      */
     @Override
     protected void doMergeFile(MergeFileContext context) throws IOException {
@@ -195,9 +238,6 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         }
         getCache().evict(cacheKey);
         context.setRealPath(entity.getObjectKey());
-
-
-
     }
 
     /**
