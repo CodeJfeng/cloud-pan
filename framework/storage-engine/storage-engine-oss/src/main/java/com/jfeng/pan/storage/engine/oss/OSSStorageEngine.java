@@ -25,6 +25,7 @@ import java.util.Arrays;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.stream.Collectors;
 
 @Component
 public class OSSStorageEngine extends AbstractStorageEngine {
@@ -223,7 +224,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
                            jsonObject.getString(E_TAG_KEY),
                            jsonObject.getLongValue(PART_SIZE_KEY),
                            jsonObject.getLong(PART_CRC_KEY)
-                   )).toList();
+                   )).collect(Collectors.toList());
        }
 
        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
@@ -266,7 +267,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     @Setter
     @EqualsAndHashCode
     @ToString
-    private static class ChunkUploadEntity implements Serializable {
+    public static class ChunkUploadEntity implements Serializable {
         @Serial
         private static final long serialVersionUID = -32443597655643L;
 
@@ -412,7 +413,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
      * @param cacheKey
      * @return
      */
-    private ChunkUploadEntity initChunkUpload(String filename, String cacheKey) {
+    private synchronized ChunkUploadEntity initChunkUpload(String filename, String cacheKey) {
         String filePath = getFilePath(filename);
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(config.getBucketName(), filePath);
         InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
@@ -420,7 +421,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
             throw new RPanBusinessException("文件分片上传初始化失败");
         }
         ChunkUploadEntity entity = new ChunkUploadEntity();
-        entity.setObjectKey(filename);
+        entity.setObjectKey(filePath);
         entity.setUploadId(result.getUploadId());
         getCache().put(cacheKey, entity);
         return entity;
