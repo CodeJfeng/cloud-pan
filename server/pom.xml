@@ -89,16 +89,16 @@
         </dependency>
 
         <!--     storage engine         -->
-<!--        <dependency>-->
-<!--            <groupId>com.jfeng.pan</groupId>-->
-<!--            <artifactId>cloud-drive-storage-engine-local</artifactId>-->
-<!--            <version>1.0</version>-->
-<!--        </dependency>-->
-            <dependency>
-                <groupId>com.jfeng.pan</groupId>
-                <artifactId>cloud-drive-storage-engine-oss</artifactId>
-                <version>1.0</version>
-            </dependency>
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-storage-engine-local</artifactId>
+            <version>1.0</version>
+        </dependency>
+<!--            <dependency>-->
+<!--                <groupId>com.jfeng.pan</groupId>-->
+<!--                <artifactId>cloud-drive-storage-engine-oss</artifactId>-->
+<!--                <version>1.0</version>-->
+<!--            </dependency>-->
 
     </dependencies>
 
