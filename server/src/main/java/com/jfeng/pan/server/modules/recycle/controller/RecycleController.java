@@ -4,8 +4,10 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.recycle.context.DeleteContext;
 import com.jfeng.pan.server.modules.recycle.context.QueryRecycleFileListContext;
 import com.jfeng.pan.server.modules.recycle.context.RestoreContext;
+import com.jfeng.pan.server.modules.recycle.po.DeletePO;
 import com.jfeng.pan.server.modules.recycle.po.RestorePO;
 import com.jfeng.pan.server.modules.recycle.service.IRecycleService;
 import io.swagger.v3.oas.annotations.Operation;
@@ -13,6 +15,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
@@ -54,6 +57,20 @@ public class RecycleController {
         List<Long> fileIds = Arrays.stream(restorePO.getFileIds().split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
         context.setFileIdList(fileIds);
         iRecycleService.restore(context);
+        return R.success();
+    }
+
+    @Operation(summary  = "回收站文件批量彻底删除",
+            description = "该接口提供了回收站文件批量彻底删除的功能",
+            tags = {"回收站管理"}
+    )
+    @DeleteMapping("recycle")
+    public R delete(@Validated @RequestBody DeletePO deletePO){
+        DeleteContext context = new DeleteContext();
+        context.setUserId(IdUtil.get());
+        List<Long> fileIds = Arrays.stream(deletePO.getFileIds().split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
+        context.setFileIdList(fileIds);
+        iRecycleService.delete(context);
         return R.success();
     }
 

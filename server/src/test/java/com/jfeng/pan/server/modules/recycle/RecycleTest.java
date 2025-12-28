@@ -8,6 +8,7 @@ import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.recycle.context.DeleteContext;
 import com.jfeng.pan.server.modules.recycle.context.QueryRecycleFileListContext;
 import com.jfeng.pan.server.modules.recycle.context.RestoreContext;
 import com.jfeng.pan.server.modules.recycle.service.IRecycleService;
@@ -217,6 +218,67 @@ public class RecycleTest {
         iRecycleService.restore(restoreContext);
     }
 
+    /**
+     * 测试文件删除失败——错误的用户ID
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void testFileDeleteFailByWrongUserId(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建一个文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 删除该文件
+        DeleteFileContext deleteFileContext = new DeleteFileContext();
+        List<Long> fileIdList = new ArrayList<>();
+        fileIdList.add(fileId);
+        deleteFileContext.setFileIdList(fileIdList);
+        deleteFileContext.setUserId(userId);
+        iUserFileService.deleteFile(deleteFileContext);
+
+        // 文件彻底删除
+        DeleteContext deleteContext = new DeleteContext();
+        deleteContext.setUserId(userId+1L);
+        deleteContext.setFileIdList(Lists.newArrayList(fileId));
+        iRecycleService.delete(deleteContext);
+    }
+
+    /**
+     * 测试文件删除成功
+     */
+    @Test
+    public void testFileDeleteSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建一个文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 删除该文件
+        DeleteFileContext deleteFileContext = new DeleteFileContext();
+        List<Long> fileIdList = new ArrayList<>();
+        fileIdList.add(fileId);
+        deleteFileContext.setFileIdList(fileIdList);
+        deleteFileContext.setUserId(userId);
+        iUserFileService.deleteFile(deleteFileContext);
+
+        // 文件彻底删除
+        DeleteContext deleteContext = new DeleteContext();
+        deleteContext.setUserId(userId);
+        deleteContext.setFileIdList(Lists.newArrayList(fileId));
+        iRecycleService.delete(deleteContext);
+    }
 
     /**************************************** private **************************************************/
 

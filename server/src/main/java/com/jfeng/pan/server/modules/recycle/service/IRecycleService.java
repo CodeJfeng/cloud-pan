@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.recycle.service;
 
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
+import com.jfeng.pan.server.modules.recycle.context.DeleteContext;
 import com.jfeng.pan.server.modules.recycle.context.QueryRecycleFileListContext;
 import com.jfeng.pan.server.modules.recycle.context.RestoreContext;
 
@@ -23,4 +24,9 @@ public interface IRecycleService {
      */
     void restore(RestoreContext context);
 
+    /**
+     * 文件彻底删除
+     * @param context
+     */
+    void delete(DeleteContext context);
 }
