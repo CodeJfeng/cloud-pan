@@ -1,6 +1,7 @@
 package com.jfeng.pan.server.modules.share.service;
 
 import com.jfeng.pan.server.modules.share.context.CancelShareContext;
+import com.jfeng.pan.server.modules.share.context.CheckShareCodeContext;
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
 import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
@@ -39,4 +40,12 @@ public interface IShareService extends IService<RPanShare> {
      * @param context
      */
     void cancelShare(CancelShareContext context);
+
+    /**
+     * 校验分享码
+     *
+     * @param context
+     * @return
+     */
+    String checkShareCode(CheckShareCodeContext context);
 }

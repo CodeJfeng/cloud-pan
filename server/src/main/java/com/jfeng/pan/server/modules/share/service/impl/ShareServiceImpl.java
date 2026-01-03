@@ -6,12 +6,13 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
+import com.jfeng.pan.core.response.ResponseCode;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.core.utils.JwtUtil;
+import com.jfeng.pan.core.utils.UUIDUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
-import com.jfeng.pan.server.modules.share.context.CancelShareContext;
-import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
-import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
-import com.jfeng.pan.server.modules.share.context.SaveShareFilesContext;
+import com.jfeng.pan.server.modules.share.constants.ShareConstants;
+import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.jfeng.pan.server.modules.share.entity.RPanShareFile;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
@@ -92,7 +93,73 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     }
 
-    /******************************************************************* private *****************************************************************************/
+    /**
+     * 校验分享码
+     * 1、检查分享的状态是不是正常
+     * 2、校验分享的分享码是不是正确
+     * 3、生成一个短时间的分享token，返回给上游
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public String checkShareCode(CheckShareCodeContext context) {
+        RPanShare record = checkShareStatus(context.getShareId());
+        context.setRecord(record);
+        doCheckShareCode(context);
+        return generateShareToken(context);
+    }
+
+/******************************************************************* private *****************************************************************************/
+
+    /**
+     * 生成一个短期的分享token
+     *
+     * @param context
+     * @return
+     */
+    private String generateShareToken(CheckShareCodeContext context) {
+        RPanShare record = context.getRecord();
+        return JwtUtil.generateToken(UUIDUtil.getUUID(), ShareConstants.SHARE_ID, record.getShareId(), ShareConstants.ONE_HOUR_LONG);
+    }
+
+    /**
+     * 校验文件的分享码是否正确
+     * @param context
+     */
+    private void doCheckShareCode(CheckShareCodeContext context) {
+        RPanShare record = context.getRecord();
+        if(!Objects.equals(context.getShareCode(), record.getShareCode())){
+            throw new RPanBusinessException("分享码错误");
+        }
+    }
+
+    /**
+     * 校验分享的状态是不是正常
+     * @param shareId
+     * @return
+     */
+    private RPanShare checkShareStatus(Long shareId) {
+        RPanShare record = getById(shareId);
+
+        if(Objects.isNull(record)){
+            throw new RPanBusinessException(ResponseCode.SHARE_CANCELLED);
+        }
+
+        if(Objects.equals(ShareStatusEnum.FILE_DELETE.getCode(), record.getShareStatus())){
+            throw new RPanBusinessException(ResponseCode.SHARE_FILE_MISS);
+        }
+
+        if(Objects.equals(ShareDayTypeEnum.PERMANENT_VALIDITY.getCode(), record.getShareDayType())){
+            return record;
+        }
+
+        if(record.getShareEndTime().before(new Date())){
+            throw new RPanBusinessException(ResponseCode.SHARE_EXPIRED);
+        }
+
+        return record;
+    }
 
     /**
      * 取消文件和分享的关联关系数据

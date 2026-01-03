@@ -3,6 +3,7 @@ package com.jfeng.pan.server.modules.share;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.collection.ListUtil;
 import cn.hutool.core.lang.Assert;
+import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkMergeContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkUploadContext;
@@ -12,6 +13,7 @@ import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.share.context.CancelShareContext;
+import com.jfeng.pan.server.modules.share.context.CheckShareCodeContext;
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
 import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
@@ -167,6 +169,74 @@ public class ShareTest {
         // 查询分享链接列表
         result = iShareService.getShares(queryShareListContext);
         Assert.isTrue(CollectionUtil.isEmpty(result));
+    }
+
+    /**
+     * 校验分享码成功
+     */
+    @Test
+    public void checkShareCodeSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 校验文件的分享码
+        CheckShareCodeContext checkShareCodeContext = new CheckShareCodeContext();
+        checkShareCodeContext.setShareId(shareUrlVO.getShareId());
+        checkShareCodeContext.setShareCode(shareUrlVO.getShareCode());
+        String token = iShareService.checkShareCode(checkShareCodeContext);
+        Assert.notBlank(token);
+    }
+
+    /**
+     * 校验分享码失败——分享码错误
+     */
+    @Test(expected = RPanBusinessException.class)
+    public void checkShareCodeFail(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 校验文件的分享码
+        CheckShareCodeContext checkShareCodeContext = new CheckShareCodeContext();
+        checkShareCodeContext.setShareId(shareUrlVO.getShareId());
+        checkShareCodeContext.setShareCode(shareUrlVO.getShareCode() + "_change");
+        String token = iShareService.checkShareCode(checkShareCodeContext);
+        Assert.notBlank(token);
     }
 
     /************************************************************* private ****************************************************************/

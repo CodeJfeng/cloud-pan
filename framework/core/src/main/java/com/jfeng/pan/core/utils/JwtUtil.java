@@ -67,7 +67,6 @@ public class JwtUtil {
         Date renewalTime = new Date(nowMillis + expire / 2L); // 直接使用 2L 即可
 
         String token = Jwts.builder()
-//                .header()
                 .setSubject(subject) // 设置主题
                 .claim(claimKey, claimValue) // 添加自定义声明
                 .claim(RENEWAL_TIME_CLAIM_KEY, renewalTime) // 添加续签时间戳
