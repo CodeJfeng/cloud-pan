@@ -4,16 +4,16 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.annotation.LoginIgnore;
+import com.jfeng.pan.server.common.annotation.NeedShareCode;
+import com.jfeng.pan.server.common.utils.ShareIdUtil;
 import com.jfeng.pan.server.common.utils.UserIdUtil;
-import com.jfeng.pan.server.modules.share.context.CancelShareContext;
-import com.jfeng.pan.server.modules.share.context.CheckShareCodeContext;
-import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
-import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
+import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.converter.ShareConverter;
 import com.jfeng.pan.server.modules.share.po.CancelSharePO;
 import com.jfeng.pan.server.modules.share.po.CheckShareCodePO;
 import com.jfeng.pan.server.modules.share.po.CreateShareUrlPO;
 import com.jfeng.pan.server.modules.share.service.IShareService;
+import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -76,11 +76,11 @@ public class ShareController {
         return R.success("取消分享成功");
     }
 
-    @LoginIgnore
     @Operation(
             summary = "校验分享码",
             description = "该接口提供了校验分享码的功能"
     )
+    @LoginIgnore
     @PostMapping("share/code/check")
     public R<String> checkShareCode(@Validated @RequestBody CheckShareCodePO checkShareCodePO){
         CheckShareCodeContext context = new CheckShareCodeContext();
@@ -88,6 +88,20 @@ public class ShareController {
         context.setShareCode(checkShareCodePO.getShareCode());
         String token = iShareService.checkShareCode(context);
         return R.data(token);
+    }
+
+    @Operation(
+            summary = "查询分享的详情",
+            description = "该接口提供了查询分享的功能"
+    )
+    @LoginIgnore
+    @NeedShareCode
+    @GetMapping("share")
+    public R<ShareDetailVO> detail(){
+        QueryShareDetailContext context = new QueryShareDetailContext();
+        context.setShareId(ShareIdUtil.get());
+        ShareDetailVO vo = iShareService.detail(context);
+        return R.data(vo);
     }
 
 }

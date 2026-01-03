@@ -49,7 +49,7 @@ public class ShareCodeAspect {
     /**
      * 切点表达式——自定义注解的切点增强
      */
-    private static final String POINT_CUT = "annotation(com.jfeng.pan.server.common.annotation.NeedShareCode)";
+    private static final String POINT_CUT = "@annotation(com.jfeng.pan.server.common.annotation.NeedShareCode)";
 
 
     /**

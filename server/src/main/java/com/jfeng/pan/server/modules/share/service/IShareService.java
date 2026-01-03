@@ -1,11 +1,9 @@
 package com.jfeng.pan.server.modules.share.service;
 
-import com.jfeng.pan.server.modules.share.context.CancelShareContext;
-import com.jfeng.pan.server.modules.share.context.CheckShareCodeContext;
-import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
-import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
+import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 
@@ -48,4 +46,11 @@ public interface IShareService extends IService<RPanShare> {
      * @return
      */
     String checkShareCode(CheckShareCodeContext context);
+
+    /**
+     * 查询分享的详情
+     * @param context
+     * @return
+     */
+    ShareDetailVO detail(QueryShareDetailContext context);
 }

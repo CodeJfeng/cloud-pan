@@ -11,6 +11,10 @@ import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
+import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
+import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
+import com.jfeng.pan.server.modules.file.service.IUserFileService;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.share.constants.ShareConstants;
 import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
@@ -20,8 +24,12 @@ import com.jfeng.pan.server.modules.share.enums.ShareStatusEnum;
 import com.jfeng.pan.server.modules.share.service.IShareFileService;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.mapper.RPanShareMapper;
+import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
+import com.jfeng.pan.server.modules.share.vo.ShareUserInfoVO;
+import com.jfeng.pan.server.modules.user.entity.RPanUser;
+import com.jfeng.pan.server.modules.user.service.IUserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -45,6 +53,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     @Autowired
     private IShareFileService iShareFileService;
+
+    @Autowired
+    private IUserFileService iUserFileService;
+
+    @Autowired
+    private IUserService iUserService;
 
     /**
      * 创建文件分享链接
@@ -110,7 +124,105 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         return generateShareToken(context);
     }
 
-/******************************************************************* private *****************************************************************************/
+    /**
+     * 查询分享的详情
+     * 1、校验分享的状态
+     * 2、初始化分享实体
+     * 3、查询分享的主体信息
+     * 4、查询分享的文件列表
+     * 5、查询分享者的信息
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public ShareDetailVO detail(QueryShareDetailContext context) {
+        RPanShare record = checkShareStatus(context.getShareId());
+        context.setRecord(record);
+        initShareVO(context);
+        assembleMainShareInfo(context);
+        assembleShareFilesInfo(context);
+        assembleShareUserInfo(context);
+        return context.getVo();
+    }
+
+
+
+    /******************************************************************* private *****************************************************************************/
+
+    /**
+     * 查询分享者的信息
+     *
+     * @param context
+     */
+    private void assembleShareUserInfo(QueryShareDetailContext context) {
+        RPanUser record = iUserService.getById(context.getRecord().getCreateUser());
+        if(Objects.isNull(record)){
+            throw new RPanBusinessException("用户信息查询失败");
+        }
+        ShareUserInfoVO shareUserInfoVO = new ShareUserInfoVO();
+        shareUserInfoVO.setUserId(record.getUserId());
+        shareUserInfoVO.setUsername(encryptUsername(record.getUsername()));
+        context.getVo().setShareUserInfoVO(shareUserInfoVO);
+    }
+
+    /**
+     * 加密用户名称
+     *
+     * @param username
+     * @return
+     */
+    private String encryptUsername(String username) {
+        StringBuilder stringBuffer = new StringBuilder(username);
+        stringBuffer.replace(RPanConstants.TWO_INT, username.length()-RPanConstants.TWO_INT, RPanConstants.COMMON_ENCRYPT_STR);
+        return stringBuffer.toString();
+    }
+
+    /**
+     * 查询分享对应的文件列表
+     * 1、查询对应的文件ID集合
+     * 2、根据分分享ID查询文件列表信息
+     *
+     * @param context
+     */
+    private void assembleShareFilesInfo(QueryShareDetailContext context) {
+        LambdaQueryWrapper<RPanShareFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(RPanShareFile::getFileId);
+        wrapper.eq(RPanShareFile::getShareId, context.getShareId());
+        List<Long> fileIdList = iShareFileService.listObjs(wrapper, value -> (Long) value);
+
+        QueryFileListContext queryFileListContext = new QueryFileListContext();
+        queryFileListContext.setUserId(context.getRecord().getCreateUser());
+        queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
+        queryFileListContext.setFileIdList(fileIdList);
+        List<RPanUserFileVO> rPanUserFileVOList = iUserFileService.getFileList(queryFileListContext);
+        context.getVo().setRPanUserFileVOList(rPanUserFileVOList);
+    }
+
+    /**
+     * 查询分享的主体信息
+     *
+     * @param context
+     */
+    private void assembleMainShareInfo(QueryShareDetailContext context) {
+        RPanShare record = context.getRecord();
+        ShareDetailVO vo = context.getVo();
+        vo.setShareId(record.getShareId());
+        vo.setShareName(record.getShareName());
+        vo.setShareDay(record.getShareDay());
+        vo.setShareEndTime(record.getShareEndTime());
+        vo.setCreateTime(record.getCreateTime());
+    }
+
+    /**
+     * 初始化文件详情的VO实体
+     *
+     * @param context
+     */
+    private void initShareVO(QueryShareDetailContext context) {
+        ShareDetailVO vo = new ShareDetailVO();
+        context.setVo(vo);
+    }
 
     /**
      * 生成一个短期的分享token

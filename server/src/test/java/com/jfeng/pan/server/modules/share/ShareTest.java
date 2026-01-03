@@ -7,18 +7,17 @@ import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkMergeContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkUploadContext;
+import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.enums.MergeFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
-import com.jfeng.pan.server.modules.share.context.CancelShareContext;
-import com.jfeng.pan.server.modules.share.context.CheckShareCodeContext;
-import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
-import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
+import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
 import com.jfeng.pan.server.modules.share.enums.ShareTypeEnum;
 import com.jfeng.pan.server.modules.share.service.IShareService;
+import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
@@ -237,6 +236,42 @@ public class ShareTest {
         checkShareCodeContext.setShareCode(shareUrlVO.getShareCode() + "_change");
         String token = iShareService.checkShareCode(checkShareCodeContext);
         Assert.notBlank(token);
+    }
+
+
+    /**
+     * 校验查询分享详情成功
+     */
+    @Test
+    public void queryShareDetailSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 查询分享详情
+        QueryShareDetailContext queryShareDetailContext = new QueryShareDetailContext();
+        queryShareDetailContext.setShareId(shareUrlVO.getShareId());
+        ShareDetailVO shareDetailVO = iShareService.detail(queryShareDetailContext);
+        Assert.notNull(shareDetailVO);
+        System.out.println(shareDetailVO);
+
     }
 
     /************************************************************* private ****************************************************************/
