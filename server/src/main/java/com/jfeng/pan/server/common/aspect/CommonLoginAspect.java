@@ -82,7 +82,7 @@ public class CommonLoginAspect {
             String requestURI = request.getRequestURI();
             log.info("成功拦截到请求URI");
             if(!checkAndSaveUserId(request)){
-                log.error("成功检测到请求，URI为{}，检测到用户未登录，将跳转到登录界面", requestURI);
+                log.warn("成功检测到请求，URI为{}，检测到用户未登录，将跳转到登录界面", requestURI);
                 return R.fail(ResponseCode.NEED_LOGIN);
             }
             log.info("成功拦截到请求，URI为{}，请求通过", requestURI);
