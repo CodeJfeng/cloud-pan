@@ -1,9 +1,13 @@
 package com.jfeng.pan.server.modules.share.service;
 
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
+import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.baomidou.mybatisplus.extension.service.IService;
+import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
+
+import java.util.List;
 
 /**
 * @author 16837
@@ -14,8 +18,17 @@ public interface IShareService extends IService<RPanShare> {
 
     /**
      * 创建文件分享链接
+     *
      * @param context
      * @return
      */
     ShareUrlVO create(CreateShareUrlContext context);
+
+    /**
+     * 查询用户的分享列表
+     *
+     * @param shareListContext
+     * @return
+     */
+    List<ShareUrlListVO> getShares(QueryShareListContext shareListContext);
 }

@@ -3,10 +3,13 @@ package com.jfeng.pan.server.modules.share.controller;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
+import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.converter.ShareConverter;
 import com.jfeng.pan.server.modules.share.po.CreateShareUrlPO;
 import com.jfeng.pan.server.modules.share.service.IShareService;
+import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.tags.Tag;
@@ -32,7 +35,7 @@ public class ShareController {
 
     @Operation(
             summary = "创建分享链接",
-            description = "该接口提供了创建分享链接的接口"
+            description = "该接口提供了创建分享链接的功能"
     )
     @PostMapping("share")
     public R<ShareUrlVO> create(@Validated @RequestBody CreateShareUrlPO createShareUrlPO){
@@ -46,6 +49,16 @@ public class ShareController {
         return R.data(vo);
     }
 
-
+    @Operation(
+            summary = "查询分享链接列表",
+            description = "该接口提供了查询分享链接列表的功能"
+    )
+    @GetMapping("shares")
+    public R<List<ShareUrlListVO>> getShares(){
+        QueryShareListContext shareListContext = new QueryShareListContext();
+        shareListContext.setUserId(UserIdUtil.get());
+        List<ShareUrlListVO> result = iShareService.getShares(shareListContext);
+        return R.data(result);
+    }
 
 }

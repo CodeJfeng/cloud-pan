@@ -7,6 +7,7 @@ import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
+import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.context.SaveShareFilesContext;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
@@ -14,6 +15,7 @@ import com.jfeng.pan.server.modules.share.enums.ShareStatusEnum;
 import com.jfeng.pan.server.modules.share.service.IShareFileService;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.mapper.RPanShareMapper;
+import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -21,6 +23,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -54,6 +57,18 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         saveShare(context);
         saveShareFiles(context);
         return assembleShareVO(context);
+    }
+
+    /**
+     * 查询用户的分享列表
+     *
+     * @param context
+     * @return
+     */
+    @Override
+    public List<ShareUrlListVO> getShares(QueryShareListContext context) {
+
+        return baseMapper.selectShareVOListByUserId(context.getUserId());
     }
 
     /******************************************************************* private *****************************************************************************/

@@ -10,9 +10,11 @@ import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
 import com.jfeng.pan.server.modules.share.context.CreateShareUrlContext;
+import com.jfeng.pan.server.modules.share.context.QueryShareListContext;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
 import com.jfeng.pan.server.modules.share.enums.ShareTypeEnum;
 import com.jfeng.pan.server.modules.share.service.IShareService;
+import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
 import com.jfeng.pan.server.modules.user.context.UserRegisterContext;
@@ -31,6 +33,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
 import java.util.ArrayList;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.CountDownLatch;
 
@@ -84,6 +87,40 @@ public class ShareTest {
         createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
         ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
         Assert.isTrue(Objects.nonNull(shareUrlVO));
+    }
+
+
+    /**
+     * 查询分享链接成功
+     */
+    @Test
+    public void queryShareUrlListSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 查询分享链接列表
+        QueryShareListContext queryShareListContext = new QueryShareListContext();
+        queryShareListContext.setUserId(userId);
+        List<ShareUrlListVO> result = iShareService.getShares(queryShareListContext);
+        Assert.notEmpty(result);
     }
 
     /************************************************************* private ****************************************************************/
