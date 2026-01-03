@@ -55,6 +55,8 @@ public class FileTest {
 
     @Autowired
     private IFileChunkService iFileChunkService;
+
+
     /**
      * 测试用户查询文件列表
      */
@@ -633,7 +635,7 @@ public class FileTest {
         Assert.isTrue(result.size() == 2);
     }
 
-    /********************************* private ************************************/
+    /************************************************************* private ****************************************************************/
 
     /**
      * 文件分片上传器

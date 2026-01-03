@@ -24,23 +24,23 @@ public class RPanShareFile {
      * 分享id
      */
     @TableField(value = "share_id")
-    private Long share_id;
+    private Long shareId;
 
     /**
      * 文件记录ID
      */
     @TableField(value = "file_id")
-    private Long file_id;
+    private Long fileId;
 
     /**
      * 分享创建人
      */
     @TableField(value = "create_user")
-    private Long create_user;
+    private Long createUser;
 
     /**
      * 创建时间
      */
     @TableField(value = "create_time")
-    private Date create_time;
+    private Date createTime;
 }
