@@ -4,6 +4,7 @@ import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.baomidou.mybatisplus.extension.service.IService;
 import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
+import com.jfeng.pan.server.modules.share.vo.ShareSimpleDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 
@@ -53,4 +54,11 @@ public interface IShareService extends IService<RPanShare> {
      * @return
      */
     ShareDetailVO detail(QueryShareDetailContext context);
+
+    /**
+     * 查询分享的简单详情
+     * @param context
+     * @return
+     */
+    ShareSimpleDetailVO simpleDetail(QueryShareSimpleDetailContext context);
 }

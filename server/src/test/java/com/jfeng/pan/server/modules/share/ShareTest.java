@@ -18,6 +18,7 @@ import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
 import com.jfeng.pan.server.modules.share.enums.ShareTypeEnum;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
+import com.jfeng.pan.server.modules.share.vo.ShareSimpleDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import com.jfeng.pan.server.modules.user.context.UserLoginContext;
@@ -271,7 +272,40 @@ public class ShareTest {
         ShareDetailVO shareDetailVO = iShareService.detail(queryShareDetailContext);
         Assert.notNull(shareDetailVO);
         System.out.println(shareDetailVO);
+    }
 
+    /**
+     * 校验查询分享简单详情成功
+     */
+    @Test
+    public void queryShareSimpleDetailSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(fileId));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 查询分享的简单详情
+        QueryShareSimpleDetailContext queryShareSimpleDetailContext = new QueryShareSimpleDetailContext();
+        queryShareSimpleDetailContext.setShareId(shareUrlVO.getShareId());
+        ShareSimpleDetailVO shareSimpleDetailVO = iShareService.simpleDetail(queryShareSimpleDetailContext);
+        Assert.notNull(shareSimpleDetailVO);
+        System.out.println(shareSimpleDetailVO);
     }
 
     /************************************************************* private ****************************************************************/

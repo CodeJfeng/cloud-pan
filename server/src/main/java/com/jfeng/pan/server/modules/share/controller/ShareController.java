@@ -14,6 +14,7 @@ import com.jfeng.pan.server.modules.share.po.CheckShareCodePO;
 import com.jfeng.pan.server.modules.share.po.CreateShareUrlPO;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
+import com.jfeng.pan.server.modules.share.vo.ShareSimpleDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
 import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
 import io.swagger.v3.oas.annotations.Operation;
@@ -22,6 +23,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.validation.constraints.NotBlank;
 import java.util.Arrays;
 import java.util.List;
 
@@ -101,6 +103,19 @@ public class ShareController {
         QueryShareDetailContext context = new QueryShareDetailContext();
         context.setShareId(ShareIdUtil.get());
         ShareDetailVO vo = iShareService.detail(context);
+        return R.data(vo);
+    }
+
+    @Operation(
+            summary = "查询分享的简单详情",
+            description = "该接口提供了查询分享的简单详情的功能"
+    )
+    @LoginIgnore
+    @GetMapping("share/simple")
+    public R<ShareSimpleDetailVO> simpleDetail(@NotBlank(message = "分享的ID不能为空") @RequestParam(value = "shareId", required = false) String shareId){
+        QueryShareSimpleDetailContext context = new QueryShareSimpleDetailContext();
+        context.setShareId(IdUtil.decrypt(shareId));
+        ShareSimpleDetailVO vo = iShareService.simpleDetail(context);
         return R.data(vo);
     }
 

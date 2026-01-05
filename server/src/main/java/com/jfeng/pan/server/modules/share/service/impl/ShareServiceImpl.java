@@ -24,10 +24,7 @@ import com.jfeng.pan.server.modules.share.enums.ShareStatusEnum;
 import com.jfeng.pan.server.modules.share.service.IShareFileService;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.mapper.RPanShareMapper;
-import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
-import com.jfeng.pan.server.modules.share.vo.ShareUrlListVO;
-import com.jfeng.pan.server.modules.share.vo.ShareUrlVO;
-import com.jfeng.pan.server.modules.share.vo.ShareUserInfoVO;
+import com.jfeng.pan.server.modules.share.vo.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import org.apache.commons.lang3.RandomStringUtils;
@@ -146,9 +143,62 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         return context.getVo();
     }
 
+    /**
+     * 查询分享的简单详情
+     * 1、查询分享的状态
+     * 2、初始化分享实体
+     * 3、查询分享的主题信息
+     * 4、查询分享者的信息
+     * @param context
+     * @return
+     */
+    @Override
+    public ShareSimpleDetailVO simpleDetail(QueryShareSimpleDetailContext context) {
+        RPanShare record = checkShareStatus(context.getShareId());
+        context.setRecord(record);
+        initShareSimpleVO(context);
+        assembleMainShareSimpleInfo(context);
+        assembleShareSimpleUserInfo(context);
+        return context.getVo();
+    }
 
 
-    /******************************************************************* private *****************************************************************************/
+
+/******************************************************************* private *****************************************************************************/
+
+    /**
+     * 拼装简单分享详情实体信息
+     * @param context
+     */
+    private void assembleShareSimpleUserInfo(QueryShareSimpleDetailContext context) {
+        RPanUser record = iUserService.getById(context.getRecord().getCreateUser());
+        if(Objects.isNull(record)){
+            throw new RPanBusinessException("用户信息查询失败");
+        }
+        ShareUserInfoVO shareUserInfoVO = new ShareUserInfoVO();
+        shareUserInfoVO.setUserId(record.getUserId());
+        shareUserInfoVO.setUsername(encryptUsername(record.getUsername()));
+        context.getVo().setShareUserInfoVO(shareUserInfoVO);
+    }
+
+    /**
+     * 填充简单分享详情的实体信息
+     * @param context
+     */
+    private void assembleMainShareSimpleInfo(QueryShareSimpleDetailContext context) {
+        RPanShare record = context.getRecord();
+        context.getVo().setShareId(record.getShareId());
+        context.getVo().setShareName(record.getShareName());
+    }
+
+    /**
+     * 初始化简单分享详情的VO对象
+     * @param context
+     */
+    private void initShareSimpleVO(QueryShareSimpleDetailContext context) {
+        ShareSimpleDetailVO vo = new ShareSimpleDetailVO();
+        context.setVo(vo);
+    }
 
     /**
      * 查询分享者的信息
