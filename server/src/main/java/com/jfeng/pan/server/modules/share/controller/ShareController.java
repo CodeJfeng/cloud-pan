@@ -7,6 +7,7 @@ import com.jfeng.pan.server.common.annotation.LoginIgnore;
 import com.jfeng.pan.server.common.annotation.NeedShareCode;
 import com.jfeng.pan.server.common.utils.ShareIdUtil;
 import com.jfeng.pan.server.common.utils.UserIdUtil;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.converter.ShareConverter;
 import com.jfeng.pan.server.modules.share.po.CancelSharePO;
@@ -29,6 +30,7 @@ import java.util.List;
 
 @RestController
 @Tag(name = "分享接口")
+@Validated
 public class ShareController {
 
     @Autowired
@@ -117,6 +119,21 @@ public class ShareController {
         context.setShareId(IdUtil.decrypt(shareId));
         ShareSimpleDetailVO vo = iShareService.simpleDetail(context);
         return R.data(vo);
+    }
+
+    @Operation(
+            summary = "获取下一级文件列表",
+            description = "该接口提供了获取下一级文件列表的功能"
+    )
+    @LoginIgnore
+    @NeedShareCode
+    @GetMapping("share/file/list")
+    public R<List<RPanUserFileVO>> fileList(@NotBlank(message = "分享的父ID不能为空") @RequestParam(value = "parentId", required = false) String parentId){
+        QueryChildFileListContext context = new QueryChildFileListContext();
+        context.setShareId(ShareIdUtil.get());
+        context.setParentId(IdUtil.decrypt(parentId));
+        List<RPanUserFileVO> result = iShareService.fileList(context);
+        return  R.data(result);
     }
 
 }

@@ -13,6 +13,7 @@ import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.server.modules.file.service.IFileService;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
 import com.jfeng.pan.server.modules.file.vo.FileChunkUploadVO;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.enums.ShareDayTypeEnum;
 import com.jfeng.pan.server.modules.share.enums.ShareTypeEnum;
@@ -34,6 +35,7 @@ import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.util.CollectionUtils;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.nio.charset.StandardCharsets;
@@ -306,6 +308,42 @@ public class ShareTest {
         ShareSimpleDetailVO shareSimpleDetailVO = iShareService.simpleDetail(queryShareSimpleDetailContext);
         Assert.notNull(shareSimpleDetailVO);
         System.out.println(shareSimpleDetailVO);
+    }
+
+    /**
+     * 校验查询分享下一级文件列表成功
+     */
+    @Test
+    public void queryShareFileListSuccess(){
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
+        // 创建分享的URL链接
+        CreateShareUrlContext createShareUrlContext = new CreateShareUrlContext();
+        createShareUrlContext.setShareName("share-1");
+        createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        createShareUrlContext.setUserId(userId);
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(userInfoVO.getRootFiled()));
+        ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
+        Assert.isTrue(Objects.nonNull(shareUrlVO));
+
+        // 查询分享的下一级文件夹
+        QueryChildFileListContext queryChildFileListContext = new QueryChildFileListContext();
+        queryChildFileListContext.setShareId(shareUrlVO.getShareId());
+        queryChildFileListContext.setParentId(userInfoVO.getRootFiled());
+        List<RPanUserFileVO> fileVOList = iShareService.fileList(queryChildFileListContext);
+
+
+        Assert.isTrue(CollectionUtil.isNotEmpty(fileVOList));
     }
 
     /************************************************************* private ****************************************************************/

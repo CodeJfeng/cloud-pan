@@ -4,6 +4,7 @@ import com.jfeng.pan.server.modules.file.context.*;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.po.*;
 import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -55,4 +56,6 @@ public interface FileConverter {
     @Mapping(target = "id", source = "record.fileId")
     @Mapping(target = "children", expression = "java(org.assertj.core.util.Lists.newArrayList())")
     FolderTreeNodeVO rPanUserFile2FolderTreeNodeVO(RPanUserFile record);
+
+    RPanUserFileVO rPanUserFile2RPanUserFileVO2(RPanUserFile record);
 }

@@ -396,11 +396,43 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         if (folderCount == 0){
             return records;
         }
-        result.forEach(record -> doFindAllChildRecords(result, record));
+        records.forEach(record -> doFindAllChildRecords(result, record));
         return result;
     }
 
-    /****************************************************** private ***************************************************************/
+    /**
+     * 递归查询所有的子文件信息
+     *
+     * @param fileIdList
+     * @return
+     */
+    @Override
+    public List<RPanUserFile> findAllFileRecordsByFileIdList(List<Long> fileIdList) {
+        if (CollectionUtils.isEmpty(fileIdList)){
+            return Lists.newArrayList();
+        }
+        List<RPanUserFile> records = listByIds(fileIdList);
+        if (CollectionUtils.isEmpty(records)){
+            return Lists.newArrayList();
+        }
+        return findAllFileRecords(records);
+    }
+
+    /**
+     * 实体转换
+     *
+     * @param records
+     * @return
+     */
+    @Override
+    public List<RPanUserFileVO> transferVOList(List<RPanUserFile> records) {
+        if (CollectionUtils.isEmpty(records)){
+            return Lists.newArrayList();
+        }
+        return records.stream().map(fileConverter::rPanUserFile2RPanUserFileVO2).toList();
+    }
+
+/****************************************************** private ***************************************************************/
 
     /**
      * 递归查询所有的子文件列表

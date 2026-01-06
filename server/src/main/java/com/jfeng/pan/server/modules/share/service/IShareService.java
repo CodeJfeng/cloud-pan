@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.share.service;
 
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.share.context.*;
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
 import com.baomidou.mybatisplus.extension.service.IService;
@@ -61,4 +62,12 @@ public interface IShareService extends IService<RPanShare> {
      * @return
      */
     ShareSimpleDetailVO simpleDetail(QueryShareSimpleDetailContext context);
+
+    /**
+     * 获取下一级的文件列表
+     *
+     * @param context
+     * @return
+     */
+    List<RPanUserFileVO> fileList(QueryChildFileListContext context);
 }

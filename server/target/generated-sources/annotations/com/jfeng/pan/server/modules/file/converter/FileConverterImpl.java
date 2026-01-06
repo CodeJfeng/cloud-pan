@@ -21,13 +21,14 @@ import com.jfeng.pan.server.modules.file.po.QueryUploadedChunksPO;
 import com.jfeng.pan.server.modules.file.po.SecUploadPO;
 import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
 import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
+import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-01-03T10:14:10+0800",
+    date = "2026-01-06T10:22:38+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -255,5 +256,23 @@ public class FileConverterImpl implements FileConverter {
         folderTreeNodeVO.setChildren( org.assertj.core.util.Lists.newArrayList() );
 
         return folderTreeNodeVO;
+    }
+
+    @Override
+    public RPanUserFileVO rPanUserFile2RPanUserFileVO2(RPanUserFile record) {
+        if ( record == null ) {
+            return null;
+        }
+
+        RPanUserFileVO rPanUserFileVO = new RPanUserFileVO();
+
+        rPanUserFileVO.setFileId( record.getFileId() );
+        rPanUserFileVO.setParentId( record.getParentId() );
+        rPanUserFileVO.setFileSizeDesc( record.getFileSizeDesc() );
+        rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
+        rPanUserFileVO.setFileType( record.getFileType() );
+        rPanUserFileVO.setUpdateTime( record.getUpdateTime() );
+
+        return rPanUserFileVO;
     }
 }

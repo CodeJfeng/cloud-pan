@@ -1,11 +1,9 @@
 package com.jfeng.pan.server.modules.share.context;
 
 import com.jfeng.pan.server.modules.share.entity.RPanShare;
-import io.swagger.v3.oas.annotations.media.Schema;
 import lombok.Data;
 
-import javax.validation.constraints.NotBlank;
-import javax.validation.constraints.NotNull;
+
 import java.io.Serial;
 import java.io.Serializable;
 import java.util.List;
