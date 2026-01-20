@@ -13,6 +13,7 @@ import com.jfeng.pan.server.modules.share.converter.ShareConverter;
 import com.jfeng.pan.server.modules.share.po.CancelSharePO;
 import com.jfeng.pan.server.modules.share.po.CheckShareCodePO;
 import com.jfeng.pan.server.modules.share.po.CreateShareUrlPO;
+import com.jfeng.pan.server.modules.share.po.ShareSavePO;
 import com.jfeng.pan.server.modules.share.service.IShareService;
 import com.jfeng.pan.server.modules.share.vo.ShareDetailVO;
 import com.jfeng.pan.server.modules.share.vo.ShareSimpleDetailVO;
@@ -136,4 +137,19 @@ public class ShareController {
         return  R.data(result);
     }
 
+    @Operation(
+            summary = "保存至我的网盘",
+            description = "该接口提供了将文件集合保存到我的网盘的功能"
+    )
+    @NeedShareCode
+    @PostMapping("share/save")
+    public R saveFiles(@Validated @RequestBody ShareSavePO shareSavePO){
+        ShareSaveContext context = new ShareSaveContext();
+        context.setFileIdList(IdUtil.decryptIdList(shareSavePO.getFileIds()));
+        context.setParentId(IdUtil.decrypt(shareSavePO.getTargetParentId()));
+        context.setUserId(UserIdUtil.get());
+        context.setShareId(ShareIdUtil.get());
+        iShareService.saveFiles(context);
+        return R.success();
+    }
 }

@@ -11,6 +11,7 @@ import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
+import com.jfeng.pan.server.modules.file.context.CopyFileContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
@@ -188,7 +189,46 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         return rPanUserFileVOList;
     }
 
-/******************************************************************* private *****************************************************************************/
+    /**
+     * 转存至我的网盘
+     * 1、校验分享状态
+     * 2、校验文件传过来的文件ID是否合法
+     * 3、委托文件模块对文件拷贝操作
+     * @param context
+     */
+    @Override
+    public void saveFiles(ShareSaveContext context) {
+        checkShareStatus(context.getShareId());
+        checkFileIdIsOnShareStatus(context.getShareId(), context.getFileIdList());
+        doSaveFiles(context);
+
+    }
+
+    /******************************************************************* private *****************************************************************************/
+
+    /**
+     * 将分享文件集合保存到父文件夹下
+     * @param context
+     */
+    private void doSaveFiles(ShareSaveContext context) {
+        CopyFileContext copyFileContext = new CopyFileContext();
+        copyFileContext.setFileIdList(context.getFileIdList());
+        copyFileContext.setTargetParentId(context.getParentId());
+        copyFileContext.setUserId(context.getUserId());
+        iUserFileService.copy(copyFileContext);
+    }
+
+
+    /**
+     * 校验分享的文件ID是否属于某一分享
+     *
+     * @param shareId
+     * @param fileIdList
+     */
+    private void checkFileIdIsOnShareStatus(Long shareId, List<Long> fileIdList) {
+        checkFileIdIsOnShareStatusAndGetAllShareUserFiles(shareId, fileIdList);
+    }
+
 
     /**
      * 校验文件是否处于分享状态，返回该分享的所有文件列表

@@ -70,4 +70,11 @@ public interface IShareService extends IService<RPanShare> {
      * @return
      */
     List<RPanUserFileVO> fileList(QueryChildFileListContext context);
+
+    /**
+     * 转存至我的网盘
+     *
+     * @param context
+     */
+    void saveFiles(ShareSaveContext context);
 }
