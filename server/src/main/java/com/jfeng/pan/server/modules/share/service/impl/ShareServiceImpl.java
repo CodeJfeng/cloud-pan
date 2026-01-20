@@ -12,6 +12,7 @@ import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
 import com.jfeng.pan.server.modules.file.context.CopyFileContext;
+import com.jfeng.pan.server.modules.file.context.FileDownloadContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
@@ -204,10 +205,39 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     }
 
-    /******************************************************************* private *****************************************************************************/
+    /**
+     * 分享文件下载
+     * 1、校验分享的状态
+     * 2、校验文件ID的合法性
+     * 3、执行文件下载的动作
+     *
+     * @param context
+     */
+    @Override
+    public void download(ShareFileDownloadContext context) {
+        checkShareStatus(context.getShareId());
+        checkFileIdIsOnShareStatus(context.getShareId(), Lists.newArrayList(context.getFileId()));
+        doDownload(context);
+    }
+
+
+/******************************************************************* private *****************************************************************************/
 
     /**
-     * 将分享文件集合保存到父文件夹下
+     * 执行分享文件下载的动作
+     * @param context
+     */
+    private void doDownload(ShareFileDownloadContext context) {
+        FileDownloadContext fileDownloadContext = new FileDownloadContext();
+        fileDownloadContext.setFileId(context.getFileId());
+        fileDownloadContext.setUserId(context.getUserId());
+        fileDownloadContext.setResponse(context.getResponse());
+        iUserFileService.downloadWithoutCheckUser(fileDownloadContext);
+    }
+
+    /**
+     * 执行将分享文件集合保存到父文件夹下
+     * 委托文件模块进行转存
      * @param context
      */
     private void doSaveFiles(ShareSaveContext context) {

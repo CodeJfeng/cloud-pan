@@ -25,6 +25,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.validation.annotation.Validated;
 import org.springframework.web.bind.annotation.*;
 
+import javax.servlet.http.HttpServletResponse;
 import javax.validation.constraints.NotBlank;
 import java.util.Arrays;
 import java.util.List;
@@ -151,5 +152,22 @@ public class ShareController {
         context.setShareId(ShareIdUtil.get());
         iShareService.saveFiles(context);
         return R.success();
+    }
+
+    @Operation(
+            summary = "文件下载功能",
+            description = "该接口提供了分享文件下载的功能"
+    )
+    @NeedShareCode
+    @PostMapping("share/file/download")
+    public R download(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId,
+                      HttpServletResponse response){
+       ShareFileDownloadContext context = new ShareFileDownloadContext();
+       context.setFileId(IdUtil.decrypt(fileId));
+       context.setUserId(UserIdUtil.get());
+       context.setShareId(ShareIdUtil.get());
+       context.setResponse(response);
+       iShareService.download(context);
+       return R.data(response);
     }
 }
