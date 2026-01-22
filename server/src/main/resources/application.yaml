@@ -49,7 +49,9 @@ springdoc:
   # 分组配置
   group-configs:
     - group: SpringDoc项目模块接口文档
-      packages-to-scan: com.jfeng.pan
+      packages-to-scan: com.jfeng.pan、
+
+
 
 #com:
 #  jfeng:

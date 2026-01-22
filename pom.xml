@@ -47,6 +47,7 @@
         <jjwt-api.version>0.12.6</jjwt-api.version>
         <jjwt-impl.version>0.13.0</jjwt-impl.version>
         <jjwt-jackson.version>0.13.0</jjwt-jackson.version>
+        <slf4j.version>2.0.17</slf4j.version>
 
         <!--    web    -->
         <spring-boot-starter-web.version>2.7.17</spring-boot-starter-web.version>
@@ -158,6 +159,11 @@
                 <version>${springdoc.version}</version>
             </dependency>
 
+            <dependency>
+                <groupId>org.slf4j</groupId>
+                <artifactId>slf4j-reload4j</artifactId>
+                <version>${slf4j.version}</version>
+            </dependency>
 
             <!--serve-->
             <dependency>

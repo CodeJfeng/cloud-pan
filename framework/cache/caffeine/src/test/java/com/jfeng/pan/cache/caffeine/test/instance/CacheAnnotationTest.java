@@ -8,8 +8,8 @@ import org.springframework.stereotype.Component;
 /**
  * Cache 测试注解实体
  */
-@Component
 @Slf4j
+@Component
 public class CacheAnnotationTest {
 
     /**

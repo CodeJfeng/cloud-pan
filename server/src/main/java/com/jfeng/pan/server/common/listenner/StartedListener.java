@@ -12,8 +12,8 @@ import org.springframework.stereotype.Component;
 /**
  * 项目启动成功日志打印监听器
  */
-@Component
 @Slf4j
+@Component
 public class StartedListener implements ApplicationListener<ApplicationReadyEvent> {
 
     /**
