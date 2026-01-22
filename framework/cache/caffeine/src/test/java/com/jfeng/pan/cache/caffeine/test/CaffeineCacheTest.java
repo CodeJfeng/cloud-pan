@@ -15,7 +15,7 @@ import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
 /**
  * Caffeine缓存单元测试
  */
-@RunWith( SpringJUnit4ClassRunner.class)
+@RunWith(SpringJUnit4ClassRunner.class)
 @ContextConfiguration(classes= CaffeineCacheConfig.class)
 public class CaffeineCacheTest {
 

@@ -13,7 +13,6 @@ import com.jfeng.pan.storage.engine.core.context.*;
 import com.jfeng.pan.storage.engine.oss.config.OssStorageEngineConfig;
 import lombok.*;
 import org.apache.commons.lang3.StringUtils;
-import org.assertj.core.util.Lists;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Component;
 import org.springframework.util.CollectionUtils;
@@ -21,10 +20,7 @@ import org.springframework.util.CollectionUtils;
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
-import java.util.Arrays;
-import java.util.List;
-import java.util.Map;
-import java.util.Objects;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Component
@@ -212,7 +208,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
        }
 
        List<String> chunkPaths = context.getRealPathList();
-       List<PartETag> partETags = Lists.newArrayList();
+       List<PartETag> partETags = new ArrayList<>();
        if (!CollectionUtils.isEmpty(chunkPaths)){
            partETags = chunkPaths.stream()
                    .filter(StringUtils::isNotBlank)
@@ -326,7 +322,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         }
         StringBuilder urlStringBuffer = new StringBuilder(baseUrl);
         urlStringBuffer.append(RPanConstants.QUESTION_MARK_STR);
-        List<String> paramsList = Lists.newArrayList();
+        List<String> paramsList = new ArrayList<>();
         StringBuilder urlParamsStringBuffer = new StringBuilder();
         for (Map.Entry<String, Object> entry : params.entrySet()) {
             String key = entry.getKey();

@@ -60,13 +60,15 @@
         <spring-boot-devtools.version>2.7.17</spring-boot-devtools.version>
         <mapstruct.version>1.3.0.Final</mapstruct.version>
         <lombok-mapstruct-binding.version>0.2.0</lombok-mapstruct-binding.version>
+        <assertj.verson>3.27.6</assertj.verson>
+
         <!-- orm framework -->
         <mysql-connector.version>8.0.11</mysql-connector.version>
         <mybatis-plus.version>3.5.3</mybatis-plus.version>
         <velocity.version>2.3</velocity.version>
 
         <aliyun-oss.version>3.18.3</aliyun-oss.version>
-
+        <junit.version>4.13.2</junit.version>
     </properties>
 
     <dependencyManagement>
@@ -125,8 +127,16 @@
                 <version>${jjwt-jackson.version}</version>
                 <scope>runtime</scope>
             </dependency>
-
-
+            <dependency>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-starter-test</artifactId>
+                <version>2.7.17</version>
+            </dependency>
+            <dependency>
+                <groupId>org.assertj</groupId>
+                <artifactId>assertj-core</artifactId>
+                <version>${assertj.version}</version>
+            </dependency>
             <!--     web    -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
@@ -165,11 +175,23 @@
                 <artifactId>mapstruct-processor</artifactId>
                 <version>${mapstruct.version}</version>
             </dependency>
-                <!-- 热部署 -->
+            <!-- 热部署 -->
             <dependency>
                 <groupId>org.springframework.boot</groupId>
                 <artifactId>spring-boot-devtools</artifactId>
                 <version>${spring-boot-devtools.version}</version>
+            </dependency>
+
+            <!--test-->
+            <dependency>
+                <groupId>org.springframework</groupId>
+                <artifactId>spring-test</artifactId>
+                <version>${spring-context.version}</version>
+            </dependency>
+            <dependency>
+                <groupId>junit</groupId>
+                <artifactId>junit</artifactId>
+                <version>${junit.version}</version>
             </dependency>
 
             <!-- orm framework-->
@@ -205,5 +227,57 @@
         </dependencies>
     </dependencyManagement>
 
-
+    <build>
+        <plugins>
+            <!-- Spring Boot Maven 插件, 用于打包和运行 -->
+            <plugin>
+                <groupId>org.springframework.boot</groupId>
+                <artifactId>spring-boot-maven-plugin</artifactId>
+            </plugin>
+<!--            <plugin>-->
+<!--                <groupId>org.apache.maven.plugins</groupId>-->
+<!--                <artifactId>maven-surefire-plugin</artifactId>-->
+<!--                <version>3.2.5</version>-->
+<!--                <configuration>-->
+<!--                    <reuseForks>false</reuseForks>-->
+<!--                    <forkCount>1</forkCount>-->
+<!--                </configuration>-->
+<!--            </plugin>-->
+            <!-- 编译插件 -->
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-compiler-plugin</artifactId>
+                <!-- 版本已由 spring-boot-starter-parent 管理 -->
+                <configuration>
+                    <source>${java.version}</source>
+                    <target>${java.version}</target>
+                    <encoding>${project.build.sourceEncoding}</encoding>
+                    <skip>false</skip>
+                    <!--
+                        关键配置：为 Lombok 和 MapStruct 配置注解处理器。
+                        这是现代化的标准做法，比在pom中配置依赖更优。
+                    -->
+                    <annotationProcessorPaths>
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok</artifactId>
+                            <version>${lombok.version}</version>
+                            <!-- ${lombok.version} 从spring-boot-parent继承 -->
+                        </path>
+                        <path>
+                            <groupId>org.mapstruct</groupId>
+                            <artifactId>mapstruct-processor</artifactId>
+                            <version>${mapstruct.version}</version>
+                        </path>
+                        <!-- 可选：让Lombok和MapStruct更好地协作 -->
+                        <path>
+                            <groupId>org.projectlombok</groupId>
+                            <artifactId>lombok-mapstruct-binding</artifactId>
+                            <version>${lombok-mapstruct-binding.version}</version>
+                        </path>
+                    </annotationProcessorPaths>
+                </configuration>
+            </plugin>
+        </plugins>
+    </build>
 </project>

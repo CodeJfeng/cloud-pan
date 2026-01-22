@@ -10,11 +10,11 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
-import org.springframework.test.context.junit4.SpringJUnit4ClassRunner;
+import org.springframework.test.context.junit4.SpringRunner;
 
 @SpringBootTest(classes = {RedisCacheTest.class})
 @SpringBootApplication
-@RunWith(value = SpringJUnit4ClassRunner.class)
+@RunWith(value = SpringRunner.class)
 public class RedisCacheTest {
     @Autowired
     private CacheManager cacheManager;

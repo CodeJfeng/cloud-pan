@@ -77,16 +77,6 @@
             <artifactId>spring-core</artifactId>
         </dependency>
 
-        <!--  单元测试类      -->
-        <dependency>
-            <groupId>org.springframework.boot</groupId>
-            <artifactId>spring-boot-starter-test</artifactId>
-        </dependency>
-        <dependency>
-            <groupId>junit</groupId>
-            <artifactId>junit</artifactId>
-        </dependency>
-
 
 
     </dependencies>

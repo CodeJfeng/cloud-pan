@@ -10,7 +10,7 @@ import java.util.List;
  * 文件还原事件实体
  */
 
-@EqualsAndHashCode
+@EqualsAndHashCode(callSuper = false)
 @ToString
 @Getter
 @Setter
