@@ -1,7 +1,6 @@
 package com.jfeng.pan.server.modules.user.service.impl;
 
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
-import com.baomidou.mybatisplus.core.toolkit.Wrappers;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.cache.core.constants.CacheConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
@@ -9,6 +8,7 @@ import com.jfeng.pan.core.response.ResponseCode;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.PasswordUtil;
+import com.jfeng.pan.server.common.cache.AnnotationCacheService;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
@@ -22,12 +22,16 @@ import com.jfeng.pan.server.modules.user.mapper.RPanUserMapper;
 import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
+import java.io.Serializable;
+import java.util.Collection;
 import java.util.Date;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -46,6 +50,10 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     @Autowired
     private CacheManager cacheManager;
+
+    @Autowired
+    @Qualifier(value = "userAnnotationCacheService")
+    private AnnotationCacheService<RPanUser> cacheService;
 
     /**
      * 用户注册业务的实现
@@ -189,6 +197,77 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         return userConverter.assembleUserInfoVO(entity, rPanUserFile);
     }
 
+    /**
+     * 根据ID查询
+     * @param id 序列化ID
+     * @return
+     */
+    @Override
+    public RPanUser getById(Serializable id) {
+        return cacheService.getById(id);
+//        return super.getById(id);
+    }
+
+    /**
+     * 根据ID更新
+     *
+     * @param entity
+     * @return
+     */
+    @Override
+    public boolean updateById(RPanUser entity) {
+        return cacheService.updateById(entity.getUserId(),entity);
+//        return super.updateById(entity);
+    }
+
+    /**
+     * 根据ID删除并清空cache信息
+     * 委托注入的UserChacheService的mapper进行deleteById
+     *
+     * @param entity 实体信息
+     * @return
+     */
+    @Override
+    public boolean removeById(RPanUser entity) {
+        return cacheService.removeById(entity.getUserId());
+//        return super.removeById(entity);
+    }
+
+    /**
+     * 根据ID批量查询
+     *
+     * @param idList 序列化ID列表
+     * @return
+     */
+    @Override
+    public List<RPanUser> listByIds(Collection<? extends Serializable> idList) {
+        throw new RPanBusinessException("请更换手动缓存处理");
+//        return super.listByIds(idList);
+    }
+
+    /**
+     * 根据ID批量更新
+     * @param entityList 更新的实体信息
+     * @return
+     */
+    @Override
+    public boolean updateBatchById(Collection<RPanUser> entityList) {
+        throw new RPanBusinessException("请更换手动缓存处理");
+//        return super.updateBatchById(entityList);
+    }
+
+    /**
+     * UserID批量删除
+     * 清空cache信息，但使用注解开发不支持该操作
+     *
+     * @param list 主键ID列表
+     * @return
+     */
+    @Override
+    public boolean removeByIds(Collection<?> list) {
+        throw new RPanBusinessException("请更换手动缓存处理");
+//        return super.removeByIds(list, useFill);
+    }
 
     /****************************************************** private ***************************************************************/
 

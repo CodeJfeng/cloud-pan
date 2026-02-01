@@ -2,6 +2,8 @@ package com.jfeng.pan.server.modules.share.service.impl;
 
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
+import com.alibaba.fastjson.JSON;
+import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.constants.RPanConstants;
@@ -10,11 +12,13 @@ import com.jfeng.pan.core.response.ResponseCode;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
+import com.jfeng.pan.server.common.cache.ManualCacheService;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
+import com.jfeng.pan.server.common.event.log.ErrorLogEvent;
+import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CopyFileContext;
 import com.jfeng.pan.server.modules.file.context.FileDownloadContext;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
-import com.jfeng.pan.server.modules.file.converter.FileConverter;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
 import com.jfeng.pan.server.modules.file.service.IUserFileService;
@@ -33,13 +37,18 @@ import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.util.Lists;
+import org.assertj.core.util.Sets;
+import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.context.ApplicationContext;
+import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
+import java.io.Serializable;
 import java.util.*;
-import java.util.stream.Collector;
 import java.util.stream.Collectors;
 
 /**
@@ -49,7 +58,7 @@ import java.util.stream.Collectors;
 */
 @Service
 public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
-    implements IShareService {
+    implements IShareService, ApplicationContextAware {
 
     @Autowired
     private RPanServerConfig config;
@@ -62,6 +71,18 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     @Autowired
     private IUserService iUserService;
+
+
+    private ApplicationContext applicationContext;
+
+    @Override
+    public void setApplicationContext(@NonNull ApplicationContext applicationContext)  {
+        this.applicationContext = applicationContext;
+    }
+
+    @Autowired
+    @Qualifier(value = "shareManualCacheService")
+    private ManualCacheService<RPanShare> cacheService;
 
     /**
      * 创建文件分享链接
@@ -80,6 +101,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         saveShareFiles(context);
         return assembleShareVO(context);
     }
+    // TODO 缺少实现分享状态刷新处理器、异步机制优化所有的监听器
 
     /**
      * 查询用户的分享列表
@@ -220,8 +242,183 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         doDownload(context);
     }
 
+    /**
+     * <p>
+     *  <h3>刷新受影响的对应的分享的状态</h3>
+     *  通过文件ID将分享链接进行状态修改
+     *  当发生文件删除或还原时，执行刷新分享列表的操作
+     *
+     *  <li>1、查询所有受影响的分享的ID集合</li>
+     *  <li>2、去判断每一个分享对应的文件以及所有的父文件信息均为正常，该种情况，把分享的状态变为正常</li>
+     *  <li>3、如果有分享的文件或者是父文件信息被删除，变更该分享的状态为有文件被删除</li>
+     * </p>
+     *
+     * @param allAvailableFileIdList
+     */
+    @Override
+    public void refreshShareStatus(List<Long> allAvailableFileIdList) {
+        List<Long> shareIdList = getShareIdListByFileIdList(allAvailableFileIdList);
+        if (CollectionUtils.isEmpty(shareIdList)) {
+            return;
+        }
+        Set<Long> shareIdSet = Sets.newHashSet(shareIdList);
+        shareIdSet.forEach(this::refreshOneShareStatus);
+    }
 
-/******************************************************************* private *****************************************************************************/
+    /**
+     * 根据ID查询数据库和缓存
+     * @param id 序列化ID
+     * @return
+     */
+    @Override
+    public RPanShare getById(Serializable id) {
+        return cacheService.getById(id);
+//        return super.getById(id);
+    }
+
+    /**
+     * 根据ID更新数据库和缓存
+     * @param entity 实体信息
+     * @return
+     */
+    @Override
+    public boolean updateById(RPanShare entity) {
+        return cacheService.updateById(entity.getShareId(), entity);
+//        return super.updateById(entity);
+    }
+
+    /**
+     * 根据ID删除实体和缓存
+     * @param entity 实体信息
+     * @return
+     */
+    @Override
+    public boolean removeById(RPanShare entity) {
+        return cacheService.removeById(entity.getShareId());
+//        return super.removeById(entity);
+    }
+
+    /**
+     * 根据ID列表 批量查询
+     * @param idList ID列表
+     * @return
+     */
+    @Override
+    public List<RPanShare> listByIds(Collection<? extends Serializable> idList) {
+        return cacheService.getByIds(idList);
+//        return super.listByIds(idList);
+    }
+
+    /**
+     * 根据enetiy列表 批量更新数据库和缓存
+     * @param entityList entity列表
+     * @return
+     */
+    @Override
+    public boolean updateBatchById(Collection<RPanShare> entityList) {
+        if(CollectionUtils.isEmpty(entityList)){
+            return true;
+        }
+        Map<Long, RPanShare> entityMap = entityList.stream().collect(Collectors.toMap(RPanShare::getShareId, entity -> entity));
+        return cacheService.updateByIds(entityMap);
+//        return super.updateBatchById(entityList);
+    }
+
+    @Override
+    public boolean removeBatchByIds(Collection<?> list) {
+        return cacheService.removeByIds((Collection<? extends Serializable>) list);
+//        return super.removeBatchByIds(list);
+    }
+
+    /******************************************************************* private *****************************************************************************/
+
+    /**
+     * 刷新一个分享ID的分享状态
+     * 1、查询对应的分享信息是否有效
+     * 2、判断分享对应的文件以及所有的父文件信息是否正常，这种情况把分享状态变成正常
+     * 3、如果分享文件
+     * @param shareId 分享ID
+     */
+    private void refreshOneShareStatus(Long shareId) {
+        RPanShare record = getById(shareId);
+        if(Objects.isNull(record)){
+            return;
+        }
+        ShareStatusEnum shareStatus = ShareStatusEnum.NORMAL;
+        if (!checkShareFileAvailable(shareId)) {
+            shareStatus = ShareStatusEnum.FILE_DELETE;
+        }
+
+        if(Objects.equals(record.getShareStatus(), shareStatus.getCode())){
+            return;
+        }
+        doChangeShareStatus(record, shareStatus);
+    }
+
+    /**
+     * 执行修改分享ID的状态信息
+     *
+     * @param record
+     * @param shareStatus
+     */
+    private void doChangeShareStatus(RPanShare record, ShareStatusEnum shareStatus) {
+        record.setShareStatus(shareStatus.getCode());
+        if(!updateById(record)){
+            applicationContext.publishEvent(
+                    new ErrorLogEvent( this,
+                            "更新分享状态失败，请手动更改状态，分享ID为：" + record.getShareId() + ", 分享" +
+                                    "状态改为：" + shareStatus.getCode(),
+                            RPanConstants.ZERO_LONG));
+        }
+    }
+
+    /**
+     * 检查分享ID内所有文件及其父文件是否是可用的
+     *
+     * @param shareId
+     * @return
+     */
+    private boolean checkShareFileAvailable(Long shareId) {
+        List<Long> shareFileIdList = getShareFileIdList(shareId);
+        for (Long fileId : shareFileIdList) {
+            if(!checkUpFileAvailable(fileId)){
+                return false;
+            }
+        }
+        return true;
+    }
+
+    /**
+     * 检查文件及其所有父文件信息均为正常
+     *
+     * @param fileId
+     * @return
+     */
+    private boolean checkUpFileAvailable(Long fileId) {
+        RPanUserFile record = iUserFileService.getById(fileId);
+        if(Objects.isNull(record)){
+            return false;
+        }
+        if(Objects.equals(DelFlagEnum.YES.getCode(), record.getDelFlag())){
+            return false;
+        }
+        if(Objects.equals(record.getParentId(), FileConstants.TOP_PARENT_ID)){
+            return true;
+        }
+        return checkUpFileAvailable(record.getParentId());
+    }
+
+    /**
+     * 通过文件ID获取分享ID集合
+     * @param allAvailableFileIdList
+     * @return
+     */
+    private List<Long> getShareIdListByFileIdList(List<Long> allAvailableFileIdList) {
+        LambdaQueryWrapper<RPanShareFile> wrapper = new LambdaQueryWrapper<>();
+        wrapper.select(RPanShareFile::getShareId);
+        wrapper.in(RPanShareFile::getFileId, allAvailableFileIdList);
+        return iShareFileService.listObjs(wrapper, value->(Long) value);
+    }
 
     /**
      * 执行分享文件下载的动作
@@ -586,6 +783,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         return sharePrefix+ shareId;
 
     }
+
 }
 
 

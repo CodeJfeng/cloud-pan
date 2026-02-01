@@ -70,6 +70,9 @@
 
         <aliyun-oss.version>3.18.3</aliyun-oss.version>
         <junit.version>4.13.2</junit.version>
+
+        <spring-cloud.version>Hoxton.SR3</spring-cloud.version>
+
     </properties>
 
     <dependencyManagement>
