@@ -21,7 +21,6 @@ import org.springframework.cache.CacheManager;
 import org.springframework.stereotype.Component;
 import org.springframework.web.context.request.RequestContextHolder;
 import org.springframework.web.context.request.ServletRequestAttributes;
-import org.springframework.web.servlet.mvc.condition.RequestConditionHolder;
 
 import javax.servlet.http.HttpServletRequest;
 import java.lang.reflect.Method;
@@ -75,7 +74,7 @@ public class CommonLoginAspect {
      */
     @Around("loginAuth()")
     public Object loginAuthAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        if(cheakNeedCheckLoginInfo(joinPoint)){
+        if(checkNeedCheckLoginInfo(joinPoint)){
             // 登录信息校验流程
             ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
             HttpServletRequest request = servletRequestAttributes.getRequest();
@@ -110,13 +109,15 @@ public class CommonLoginAspect {
         }
         Cache cache = cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
         assert cache != null;
-        Object redisAccessToken = cache.get(UserConstants.USER_LOGIN_PREFIX + userId);
-        if(Objects.isNull(redisAccessToken)){
+        Cache.ValueWrapper wrapper = cache.get(UserConstants.USER_LOGIN_PREFIX + userId);
+        if(Objects.isNull(wrapper) || Objects.isNull(wrapper.get())){
             return false;
         }
-        if(Objects.equals(accessToken,redisAccessToken)) {
-            saveUserId(userId);
-            return true;
+        if(wrapper.get() instanceof String redisAccessToken) {
+            if (accessToken.equals(redisAccessToken)){
+                saveUserId(userId);
+                return true;
+            }
         }
         return false;
     }
@@ -136,7 +137,7 @@ public class CommonLoginAspect {
      * @param joinPoint
      * @return
      */
-    private boolean cheakNeedCheckLoginInfo(ProceedingJoinPoint joinPoint) {
+    private boolean checkNeedCheckLoginInfo(ProceedingJoinPoint joinPoint) {
         Signature signature = joinPoint.getSignature();
         MethodSignature methodSignature = (MethodSignature) signature;
         Method method = methodSignature.getMethod();

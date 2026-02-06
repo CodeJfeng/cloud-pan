@@ -35,8 +35,7 @@ public class RecycleController {
     private IRecycleService iRecycleService;
 
     @Operation(summary  = "获取回收站文件列表",
-        description = "该接口提供了获取回收站列表的功能",
-        tags = {"回收站管理"}
+        description = "该接口提供了获取回收站列表的功能"
     )
     @GetMapping("recycles")
     public R<List<RPanUserFileVO>> recycles(){
@@ -47,8 +46,7 @@ public class RecycleController {
     }
 
     @Operation(summary  = "回收站文件批量还原",
-            description = "该接口提供了回收站文件批量还原的功能",
-            tags = {"回收站管理"}
+            description = "该接口提供了回收站文件批量还原的功能"
     )
     @PutMapping("recycle/restore")
     public R restore(@Validated @RequestBody RestorePO restorePO){
@@ -61,8 +59,7 @@ public class RecycleController {
     }
 
     @Operation(summary  = "回收站文件批量彻底删除",
-            description = "该接口提供了回收站文件批量彻底删除的功能",
-            tags = {"回收站管理"}
+            description = "该接口提供了回收站文件批量彻底删除的功能"
     )
     @DeleteMapping("recycle")
     public R delete(@Validated @RequestBody DeletePO deletePO){
