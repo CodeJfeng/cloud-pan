@@ -48,6 +48,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
 
 import java.io.Serializable;
+import java.net.URLEncoder;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -780,8 +781,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         if (RPanConstants.SLASH_STR.equals(sharePrefix.charAt(sharePrefix.length() - 1))){
             sharePrefix += RPanConstants.SLASH_STR;
         }
-        return sharePrefix+ shareId;
-
+        return sharePrefix + URLEncoder.encode(IdUtil.encrypt(shareId));
     }
 
 }

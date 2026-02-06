@@ -6,6 +6,8 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.context.properties.ConfigurationProperties;
 import org.springframework.stereotype.Component;
 
+import javax.annotation.PostConstruct;
+
 @Component
 @ConfigurationProperties(prefix = "com.imooc.pan.server")
 @Data
@@ -22,5 +24,14 @@ public class RPanServerConfig {
     /**
      * 分享链接的前缀
      */
-    private String sharePrefix = "http://127.0.0.1:" + serverPort + "/share/";
+    private String sharePrefix;
+
+    /**
+     * 根据Spring bean的生命周期进行注入
+     */
+    @PostConstruct
+    public void init() {
+        this.sharePrefix = "http://127.0.0.1:" + this.serverPort + "/share/";
+    }
+
 }
