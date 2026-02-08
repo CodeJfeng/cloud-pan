@@ -1,0 +1,10 @@
+{
+  "properties": [
+    {
+      "name": "com.jfeng.pan.bloom.filter.local.items",
+      "type": "java.util.List",
+      "description": "要使用的布隆过滤器集合",
+      "defaultValue": null
+    }
+  ]
+}
