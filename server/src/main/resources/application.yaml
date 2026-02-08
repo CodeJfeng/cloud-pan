@@ -53,9 +53,11 @@ springdoc:
 
 
 
-#com:
-#  jfeng:
-#    pan:
+com:
+  jfeng:
+    pan:
+      server:
+        share-prefix: http://127.0.0.1:5173/
 #      storage:
 #        engine:
 #          oss:

@@ -50,7 +50,7 @@ import java.util.concurrent.CountDownLatch;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-@Transactional
+//@Transactional
 public class ShareTest {
 
     @Autowired
@@ -344,6 +344,20 @@ public class ShareTest {
 
 
         Assert.isTrue(CollectionUtil.isNotEmpty(fileVOList));
+    }
+
+
+    @Test
+    public void init(){
+        CreateShareUrlContext context = new CreateShareUrlContext();
+        context.setUserId(2019781914771701760L);
+        context.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
+        context.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
+        context.setShareFileIdList(Lists.newArrayList(2019791281575280640L));
+        for (int i = 0; i < 2; i++){
+            context.setShareName("测试分享"+ i);
+            iShareService.create(context);
+        }
     }
 
     /************************************************************* private ****************************************************************/

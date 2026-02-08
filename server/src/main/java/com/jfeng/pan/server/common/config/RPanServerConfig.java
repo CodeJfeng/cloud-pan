@@ -9,7 +9,7 @@ import org.springframework.stereotype.Component;
 import javax.annotation.PostConstruct;
 
 @Component
-@ConfigurationProperties(prefix = "com.imooc.pan.server")
+@ConfigurationProperties(prefix = "com.jfeng.pan.server")
 @Data
 public class RPanServerConfig {
 
@@ -29,9 +29,9 @@ public class RPanServerConfig {
     /**
      * 根据Spring bean的生命周期进行注入
      */
-    @PostConstruct
-    public void init() {
-        this.sharePrefix = "http://127.0.0.1:" + this.serverPort + "/share/";
-    }
+//    @PostConstruct
+//    public void init() {
+//        this.sharePrefix = "http://127.0.0.1:" + this.serverPort + "/share/";
+//    }
 
 }

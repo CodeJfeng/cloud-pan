@@ -23,5 +23,5 @@ public class CreateFolderPO implements Serializable {
 
     @Schema(description = "文件夹名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "文件夹名称不能为空")
-    private String fileName;
+    private String folderName;
 }

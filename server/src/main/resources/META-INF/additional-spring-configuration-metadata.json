@@ -11,6 +11,12 @@
       "type": "java.lang.String",
       "description": "分片上传的前缀",
       "defaultValue": "http://127.0.0.1:serverPort/share/"
+    },
+    {
+      "name": "com.jfeng.pan.server.share-prefix",
+      "type": "java.lang.String",
+      "description": "创建分享链接的项目前缀.",
+      "defaultValue": "http://127.0.0.1:5173/"
     }
   ]
 }
