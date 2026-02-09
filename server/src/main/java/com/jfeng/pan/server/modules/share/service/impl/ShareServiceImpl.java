@@ -6,6 +6,8 @@ import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.Wrapper;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
+import com.jfeng.pan.bloom.filter.core.BloomFilter;
+import com.jfeng.pan.bloom.filter.core.BloomFilterManager;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.response.ResponseCode;
@@ -35,6 +37,7 @@ import com.jfeng.pan.server.modules.share.mapper.RPanShareMapper;
 import com.jfeng.pan.server.modules.share.vo.*;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
+import lombok.extern.slf4j.Slf4j;
 import org.apache.commons.lang3.RandomStringUtils;
 import org.assertj.core.util.Lists;
 import org.assertj.core.util.Sets;
@@ -58,6 +61,7 @@ import java.util.stream.Collectors;
 * @createDate 2025-11-06 19:24:38
 */
 @Service
+@Slf4j
 public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     implements IShareService, ApplicationContextAware {
 
@@ -73,6 +77,10 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     @Autowired
     private IUserService iUserService;
 
+    @Autowired
+    private BloomFilterManager bloomFilterManager;
+
+    private static final String BLOOM_FILTER_NAME = "SHARE_SIMPLE_DETAIL";
 
     private ApplicationContext applicationContext;
 
@@ -100,8 +108,11 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     public ShareUrlVO create(CreateShareUrlContext context) {
         saveShare(context);
         saveShareFiles(context);
-        return assembleShareVO(context);
+        ShareUrlVO vo = assembleShareVO(context);
+        afterCreate(context, vo);
+        return vo;
     }
+
     // TODO 缺少实现分享状态刷新处理器、异步机制优化所有的监听器
 
     /**
@@ -267,6 +278,18 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     }
 
     /**
+     * 滚动查询已存在的分享ID
+     *
+     * @param startId
+     * @param limit
+     * @return
+     */
+    @Override
+    public List<Long> rollingQueryShareId(long startId, long limit) {
+        return baseMapper.rollingQueryShareId(startId, limit);
+    }
+
+    /**
      * 根据ID查询数据库和缓存
      * @param id 序列化ID
      * @return
@@ -332,6 +355,20 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     }
 
     /******************************************************************* private *****************************************************************************/
+
+    /**
+     * 创建分享链接后置处理
+     *
+     * @param context
+     * @param vo
+     */
+    private void afterCreate(CreateShareUrlContext context, ShareUrlVO vo) {
+        BloomFilter<Long> bloomFilter = bloomFilterManager.getFilter(BLOOM_FILTER_NAME);
+        if(Objects.nonNull(bloomFilter)){
+            bloomFilter.put(context.getRecord().getShareId());
+            log.info("create share, add share id to bloom filter, share id is {}", context.getRecord().getShareId());
+        }
+    }
 
     /**
      * 刷新一个分享ID的分享状态

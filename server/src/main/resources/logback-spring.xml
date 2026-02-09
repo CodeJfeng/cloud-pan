@@ -9,7 +9,7 @@
     </appender>
 
     <!-- 项目包日志级别 -->
-    <logger name="com.jfeng.pan" level="DEBUG" additivity="false">
+    <logger name="com.jfeng.pan" level="INFO" additivity="false">
         <appender-ref ref="CONSOLE"/>
     </logger>
 
