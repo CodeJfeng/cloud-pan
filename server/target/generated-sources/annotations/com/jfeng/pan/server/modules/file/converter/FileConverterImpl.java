@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-02-01T21:21:07+0800",
+    date = "2026-02-08T14:36:42+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -41,6 +41,8 @@ public class FileConverterImpl implements FileConverter {
         }
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
+
+        createFolderContext.setFolderName( createFolderPO.getFolderName() );
 
         createFolderContext.setParentId( com.jfeng.pan.core.utils.IdUtil.decrypt(createFolderPO.getParentId()) );
         createFolderContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
