@@ -19,6 +19,7 @@ public class LocalLockConfig {
      */
     @Bean
     public LockRegistry localLockRegistry(){
+        // TODO 对DefaultLockRegistry本地锁进行生产环境的升级
         LockRegistry lockRegistry = new DefaultLockRegistry();
         log.info("the local lock is loaded successfully!");
         return lockRegistry;
