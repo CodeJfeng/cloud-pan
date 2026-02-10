@@ -5,20 +5,24 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jfeng.pan</groupId>
-        <artifactId>cloud-drive-framework</artifactId>
+        <artifactId>cloud-drive-lock</artifactId>
         <version>1.0</version>
     </parent>
 
-    <artifactId>cloud-drive-lock</artifactId>
-    <packaging>pom</packaging>
-    <modules>
-        <module>lock-core</module>
-        <module>lock-local</module>
-    </modules>
+    <artifactId>cloud-drive-lock-local</artifactId>
+
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-lock-core</artifactId>
+            <version>1.0</version>
+        </dependency>
+    </dependencies>
 
 </project>

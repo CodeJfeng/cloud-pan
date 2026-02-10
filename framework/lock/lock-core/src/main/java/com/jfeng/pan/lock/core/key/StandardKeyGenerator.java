@@ -5,6 +5,7 @@ import com.google.common.base.Joiner;
 import com.google.common.collect.Lists;
 import com.jfeng.pan.lock.core.LockContext;
 import org.apache.commons.lang3.ArrayUtils;
+import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
 import java.util.Collection;
@@ -14,6 +15,7 @@ import java.util.Map;
 /**
  * 标准的Key生成器
  */
+@Component
 public class StandardKeyGenerator extends AbstractKeyGenerator{
 
     /**
