@@ -1,0 +1,7 @@
+com:
+  jfeng:
+    pan:
+      lock:
+        zookeeper:
+          host: 127.0.0.1:2181
+          root-path: /r-pan-lock

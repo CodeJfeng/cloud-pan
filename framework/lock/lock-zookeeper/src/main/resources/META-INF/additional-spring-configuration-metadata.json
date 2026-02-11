@@ -1,0 +1,16 @@
+{
+  "properties": [
+    {
+      "name": "com.jfeng.pan.lock.zookeeper.host",
+      "type": "java.lang.String",
+      "description": "ZooKeeper的链接地址，多个使用逗号隔开",
+      "defaultValue": "127.0.0.1:2181"
+    },
+    {
+      "name": "com.jfeng.pan.lock.zookeeper.root-path",
+      "type": "java.lang.String",
+      "description": "ZooKeeper的分布式锁路径",
+      "defaultValue": "/r-pan-lock"
+    }
+  ]
+}
