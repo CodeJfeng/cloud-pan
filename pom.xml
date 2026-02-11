@@ -71,9 +71,10 @@
 
         <aliyun-oss.version>3.18.3</aliyun-oss.version>
         <junit.version>4.13.2</junit.version>
-
-        <spring-cloud.version>Hoxton.SR3</spring-cloud.version>
         <guava.version>33.5.0-jre</guava.version>
+
+        <spring-cloud.version>2021.0.9</spring-cloud.version>
+        <spring-cloud-alibaba.version>2021.0.6.0</spring-cloud-alibaba.version>
     </properties>
 
     <dependencyManagement>
@@ -254,6 +255,22 @@
                 <groupId>org.springframework.integration</groupId>
                 <artifactId>spring-integration-zookeeper</artifactId>
                 <version>${spring-integration.version}</version>
+            </dependency>
+
+            <!--    spring cloud        -->
+            <dependency>
+                <groupId>org.springframework.cloud</groupId>
+                <artifactId>spring-cloud-dependencies</artifactId>
+                <version>${spring-cloud.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
+            </dependency>
+            <dependency>
+                <groupId>com.alibaba.cloud</groupId>
+                <artifactId>spring-cloud-alibaba</artifactId>
+                <version>${spring-cloud-alibaba.version}</version>
+                <type>pom</type>
+                <scope>import</scope>
             </dependency>
         </dependencies>
     </dependencyManagement>

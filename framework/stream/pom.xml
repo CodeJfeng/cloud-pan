@@ -5,25 +5,16 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jfeng.pan</groupId>
-        <artifactId>cloud-drive-parent</artifactId>
+        <artifactId>cloud-drive-framework</artifactId>
         <version>1.0</version>
     </parent>
 
-    <artifactId>cloud-drive-framework</artifactId>
+    <artifactId>cloud-drive-stream</artifactId>
+
     <packaging>pom</packaging>
     <modules>
-        <module>core</module>
-        <module>web</module>
-        <module>swagger2</module>
-        <module>orm</module>
-        <module>cache</module>
-        <module>schedule</module>
-        <module>storage-engine</module>
-        <module>bloom-filter</module>
-        <module>lock</module>
-        <module>stream</module>
+        <module>stream-core</module>
     </modules>
-
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
