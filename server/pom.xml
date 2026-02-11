@@ -82,6 +82,12 @@
             <artifactId>cloud-drive-storage-engine-local</artifactId>
             <version>1.0</version>
         </dependency>
+<!--        <dependency>-->
+<!--            <groupId>com.jfeng.pan</groupId>-->
+<!--            <artifactId>cloud-drive-storage-engine-oss</artifactId>-->
+<!--            <version>1.0</version>-->
+<!--        </dependency>-->
+
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>
@@ -105,6 +111,14 @@
             <artifactId>spring-boot-test</artifactId>
             <scope>test</scope>
         </dependency>
+
+        <!--    Lock Moudel    -->
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-lock-redis</artifactId>
+            <version>1.0</version>
+        </dependency>
+
     </dependencies>
 
     <build>

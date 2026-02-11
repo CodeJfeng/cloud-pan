@@ -5,6 +5,7 @@ import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.lock.core.annotation.Lock;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
 import com.jfeng.pan.server.modules.file.context.FileChunkSaveContext;
 import com.jfeng.pan.server.modules.file.converter.FileConverter;
@@ -43,8 +44,9 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
      *
      * @param context
      */
+    @Lock(name = "saveChunkFileLock", keys = {"#context.userId", "#context.identifier"}, expireSecond = 10L)
     @Override
-    public synchronized void saveChunkFile(FileChunkSaveContext context) {
+    public void saveChunkFile(FileChunkSaveContext context) {
         doSaveChunkFile(context);
         doJudgeMergeFile(context);
     }

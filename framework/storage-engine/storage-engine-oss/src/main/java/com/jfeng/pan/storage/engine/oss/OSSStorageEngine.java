@@ -8,6 +8,7 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
+import com.jfeng.pan.lock.core.annotation.Lock;
 import com.jfeng.pan.storage.engine.core.AbstractStorageEngine;
 import com.jfeng.pan.storage.engine.core.context.*;
 import com.jfeng.pan.storage.engine.oss.config.OssStorageEngineConfig;
@@ -136,8 +137,9 @@ public class OSSStorageEngine extends AbstractStorageEngine {
      * @throws IOException 文件读写异常或OSS通信异常
      * @throws IllegalArgumentException 分片数量超过限制或参数无效
      */
+    @Lock(name = "OssDoStoreChunkLock", keys = {"#context.userId", "#context.identifier"}, expireSecond = 10L)
     @Override
-    protected synchronized void doStoreChunk(StoreFileChunkContext context) throws IOException {
+    protected void doStoreChunk(StoreFileChunkContext context) throws IOException {
         if(context.getTotalChunks() > TEN_THOUSAND_INT){
             throw new RPanBusinessException("分片数超过了限制，分片数不得大于：" + TEN_THOUSAND_INT);
         }
@@ -409,7 +411,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
      * @param cacheKey
      * @return
      */
-    private synchronized ChunkUploadEntity initChunkUpload(String filename, String cacheKey) {
+    private ChunkUploadEntity initChunkUpload(String filename, String cacheKey) {
         String filePath = getFilePath(filename);
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(config.getBucketName(), filePath);
         InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
