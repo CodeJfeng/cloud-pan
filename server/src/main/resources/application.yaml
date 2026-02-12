@@ -25,11 +25,16 @@ spring:
         binder:
           name-server: localhost:9876
       bindings:
-        testInput:
+        # 生产者 send发送的第一个参数
+        produceTest-out-0:
+          destination: testTopic
+        # 消费者 # 固定格式：函数名 + -in-0
+        consumeTest-in-0:
           destination: testTopic
           group: testTopicGroup
-        testOutput:
-          destination: testTopic
+          # 2. 声明函数定义（告诉 Stream 哪些 Bean 是绑定目标）
+      function:
+          definition: consumeTest # # 多个用 ; 分隔，对应 @Bean 方法名
 
 mybatis-plus:
   mapper-locations: classpath:/mappers/**/*.xml
