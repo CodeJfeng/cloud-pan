@@ -15,12 +15,11 @@ import com.jfeng.pan.storage.engine.core.StorageEngine;
 import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
 import io.swagger.v3.core.util.Json;
 import org.springframework.beans.BeansException;
-import org.springframework.beans.factory.BeanInitializationException;
-import org.springframework.beans.factory.InitializingBean;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.context.event.EventListener;
+import org.springframework.scheduling.annotation.Async;
 import org.springframework.stereotype.Component;
 
 import java.io.IOException;
@@ -59,6 +58,7 @@ public class FilePhysicalDeleteEventListener implements ApplicationContextAware 
      * @param event
      */
     @EventListener(classes = FilePhysicalDeleteEvent.class)
+    @Async(value = "eventListenerTaskExecutor")
     public void physicalDeleteFile(FilePhysicalDeleteEvent event){
         List<RPanUserFile> allRecords = event.getAllRecords();
         if(CollectionUtil.isEmpty(allRecords)){
