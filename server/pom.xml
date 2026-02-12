@@ -88,6 +88,13 @@
 <!--            <version>1.0</version>-->
 <!--        </dependency>-->
 
+        <!--   Stream moduel RocketMQ    -->
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-stream-rocketmq</artifactId>
+            <version>1.0</version>
+        </dependency>
+
         <dependency>
             <groupId>org.assertj</groupId>
             <artifactId>assertj-core</artifactId>

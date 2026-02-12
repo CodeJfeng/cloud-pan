@@ -19,6 +19,17 @@ spring:
   redis:
     database: 1
     host: 127.0.0.1
+  cloud:
+    stream:
+      RocketMQ:
+        binder:
+          name-server: localhost:9876
+      bindings:
+        testInput:
+          destination: testTopic
+          group: testTopicGroup
+        testOutput:
+          destination: testTopic
 
 mybatis-plus:
   mapper-locations: classpath:/mappers/**/*.xml
@@ -66,11 +77,11 @@ com:
                 funnel-type-name: LONG
                 expected-insertions: 5000000
                 fpp: 0.01
-      storage:
-        engine:
-          oss:
-            endpoint: oss-cn-shenzhen.aliyuncs.com
-            access-key-id:
-            access-key-secret:
-            bucket-name: pan-jfeng-test
+#      storage:
+#        engine:
+#          oss:
+#            endpoint: oss-cn-shenzhen.aliyuncs.com
+#            access-key-id:
+#            access-key-secret:
+#            bucket-name: pan-jfeng-test
 

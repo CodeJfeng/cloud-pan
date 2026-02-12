@@ -5,21 +5,29 @@
     <modelVersion>4.0.0</modelVersion>
     <parent>
         <groupId>com.jfeng.pan</groupId>
-        <artifactId>cloud-drive-framework</artifactId>
+        <artifactId>cloud-drive-stream</artifactId>
         <version>1.0</version>
     </parent>
 
-    <artifactId>cloud-drive-stream</artifactId>
+    <artifactId>cloud-drive-stream-rocketmq</artifactId>
 
-    <packaging>pom</packaging>
-    <modules>
-        <module>stream-core</module>
-        <module>stream-rocketmq</module>
-    </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>
         <maven.compiler.target>21</maven.compiler.target>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
     </properties>
+
+    <dependencies>
+        <dependency>
+            <groupId>com.jfeng.pan</groupId>
+            <artifactId>cloud-drive-stream-core</artifactId>
+            <version>1.0</version>
+        </dependency>
+
+        <dependency>
+            <groupId>com.alibaba.cloud</groupId>
+            <artifactId>spring-cloud-starter-stream-rocketmq</artifactId>
+        </dependency>
+    </dependencies>
 
 </project>
