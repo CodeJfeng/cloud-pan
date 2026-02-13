@@ -1,6 +1,6 @@
 package com.jfeng.pan.server.common.stream.consumer;
 
-import com.jfeng.pan.server.common.stream.event.TestEvent;
+import com.jfeng.pan.server.common.stream.event.test.TestEvent;
 import com.jfeng.pan.stream.core.AbstractConsumer;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.context.annotation.Bean;

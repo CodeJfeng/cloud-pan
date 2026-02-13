@@ -52,7 +52,7 @@ public class TestController implements ApplicationContextAware {
     @GetMapping("stream/test")
     @LoginIgnore
     public R streamTest(String name) {
-        com.jfeng.pan.server.common.stream.event.TestEvent testEvent = new com.jfeng.pan.server.common.stream.event.TestEvent();
+        com.jfeng.pan.server.common.stream.event.test.TestEvent testEvent = new com.jfeng.pan.server.common.stream.event.test.TestEvent();
         testEvent.setName(name);
         streamBridge.send("produceTest-out-0", testEvent);
         return R.success();

@@ -5,7 +5,8 @@ import com.alibaba.fastjson.JSON;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.schedule.ScheduleTask;
-import com.jfeng.pan.server.common.event.log.ErrorLogEvent;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.log.ErrorLogEvent;
 import com.jfeng.pan.server.modules.file.entity.RPanFileChunk;
 import com.jfeng.pan.server.modules.file.service.IFileChunkService;
 import com.jfeng.pan.storage.engine.core.StorageEngine;
@@ -13,6 +14,7 @@ import com.jfeng.pan.storage.engine.core.context.DeleteFileContext;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Component;
@@ -27,7 +29,7 @@ import java.util.List;
  */
 @Component
 @Slf4j
-public class CleanExpireChunkFileTask implements ScheduleTask, ApplicationContextAware {
+public class CleanExpireChunkFileTask implements ScheduleTask {
 
     private static final Long BATCH_SIZE = 500L;
 
@@ -37,12 +39,9 @@ public class CleanExpireChunkFileTask implements ScheduleTask, ApplicationContex
     @Autowired
     private StorageEngine storageEngine;
 
-    private ApplicationContext applicationContext;
+    @Autowired
+    private StreamBridge streamBridge;
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
     /**
      * 获取定时任务的名称
      */
@@ -114,8 +113,8 @@ public class CleanExpireChunkFileTask implements ScheduleTask, ApplicationContex
      * @param realPathList
      */
     private void saveErrorLog(List<String> realPathList) {
-        ErrorLogEvent event = new ErrorLogEvent(this, "文件物理删除失败，请手动执行文件删除！文件路径为：" + JSON.toJSONString(realPathList), RPanConstants.ZERO_LONG);
-        applicationContext.publishEvent(event);
+        ErrorLogEvent event = new ErrorLogEvent("文件物理删除失败，请手动执行文件删除！文件路径为：" + JSON.toJSONString(realPathList), RPanConstants.ZERO_LONG);
+        streamBridge.send(PanChannel.ERROR_LOG_OUT, event);
     }
 
 

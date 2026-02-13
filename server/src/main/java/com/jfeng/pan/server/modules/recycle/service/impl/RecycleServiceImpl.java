@@ -3,8 +3,9 @@ package com.jfeng.pan.server.modules.recycle.service.impl;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
-import com.jfeng.pan.server.common.event.file.FilePhysicalDeleteEvent;
-import com.jfeng.pan.server.common.event.file.FileRestoreEvent;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.file.FilePhysicalDeleteEvent;
+import com.jfeng.pan.server.common.stream.event.file.FileRestoreEvent;
 import com.jfeng.pan.server.modules.file.context.QueryFileListContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
 import com.jfeng.pan.server.modules.file.enums.DelFlagEnum;
@@ -16,6 +17,7 @@ import com.jfeng.pan.server.modules.recycle.context.RestoreContext;
 import com.jfeng.pan.server.modules.recycle.service.IRecycleService;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
@@ -30,18 +32,13 @@ import java.util.stream.Collectors;
  * 回收站模块业务处理类
  */
 @Service
-public class RecycleServiceImpl implements IRecycleService, ApplicationContextAware {
+public class RecycleServiceImpl implements IRecycleService {
 
     @Autowired
     private IUserFileService iUserFileService;
 
-    private ApplicationContext applicationContext;
-
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
-
+    @Autowired
+    private StreamBridge streamBridge;
 
     /**
      * 查询用户的回收站文件列表
@@ -101,8 +98,8 @@ public class RecycleServiceImpl implements IRecycleService, ApplicationContextAw
      * 1、发送一个文件彻底删除的事件
      */
     private void afterDelete(DeleteContext context) {
-        FilePhysicalDeleteEvent event = new FilePhysicalDeleteEvent(this, context.getAllRecords());
-        applicationContext.publishEvent(event);
+        FilePhysicalDeleteEvent event = new FilePhysicalDeleteEvent(context.getAllRecords());
+        streamBridge.send(PanChannel.Physical_Delete_File_OUT, event);
     }
 
     /**
@@ -150,8 +147,8 @@ public class RecycleServiceImpl implements IRecycleService, ApplicationContextAw
      * @param context
      */
     private void afterRestore(RestoreContext context) {
-        FileRestoreEvent event = new FileRestoreEvent(this, context.getFileIdList());
-        applicationContext.publishEvent(event);
+        FileRestoreEvent event = new FileRestoreEvent(context.getFileIdList());
+        streamBridge.send(PanChannel.FILE_RESTORE_OUT, event);
     }
 
     /**

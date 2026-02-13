@@ -8,8 +8,9 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.IdUtil;
-import com.jfeng.pan.server.common.event.file.DeleteFileEvent;
-import com.jfeng.pan.server.common.event.search.UserSearchEvent;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.file.DeleteFileEvent;
+import com.jfeng.pan.server.common.stream.event.search.UserSearchEvent;
 import com.jfeng.pan.server.common.utils.HttpUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
@@ -30,6 +31,7 @@ import com.jfeng.pan.storage.engine.core.context.ReadFileContext;
 import org.assertj.core.util.Lists;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.http.MediaType;
@@ -49,10 +51,7 @@ import java.util.stream.Collectors;
 * @createDate 2025-11-06 19:22:58
 */
 @Service
-public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService, ApplicationContextAware {
-
-    private  ApplicationContext applicationContext;
-
+public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService {
     @Autowired
     private IFileService iFileService;
 
@@ -62,10 +61,8 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
     @Autowired
     private FileConverter fileConverter;
 
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) throws BeansException {
-        this.applicationContext = applicationContext;
-    }
+    @Autowired
+    private StreamBridge streamBridge;
 
     /**
      * 创建文件夹信息
@@ -495,9 +492,8 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param context
      */
     private void afterSearch(FileSearchContext context) {
-        UserSearchEvent event = new UserSearchEvent(this, context.getKeyword(), context.getUserId() );
-        applicationContext.publishEvent(event);
-
+        UserSearchEvent event = new UserSearchEvent(context.getKeyword(), context.getUserId() );
+        streamBridge.send(PanChannel.User_Search_OUT, event);
     }
 
     /**
@@ -888,8 +884,8 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param deleteFileContext
      */
     private void afterFileDelete(DeleteFileContext deleteFileContext) {
-        DeleteFileEvent deleteFileEvent = new DeleteFileEvent(this, deleteFileContext.getFileIdList());
-        applicationContext.publishEvent(deleteFileEvent);
+        DeleteFileEvent deleteFileEvent = new DeleteFileEvent(deleteFileContext.getFileIdList());
+        streamBridge.send(PanChannel.DELETE_FILE_OUT, deleteFileEvent);
     }
 
     /**

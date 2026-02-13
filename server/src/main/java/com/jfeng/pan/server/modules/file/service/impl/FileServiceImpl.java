@@ -5,7 +5,8 @@ import com.baomidou.mybatisplus.extension.service.impl.ServiceImpl;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
 import com.jfeng.pan.core.utils.IdUtil;
-import com.jfeng.pan.server.common.event.log.ErrorLogEvent;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.log.ErrorLogEvent;
 import com.jfeng.pan.server.modules.file.context.FileChunkMergeAndSaveContext;
 import com.jfeng.pan.server.modules.file.context.FileSaveContext;
 import com.jfeng.pan.server.modules.file.entity.RPanFile;
@@ -20,6 +21,7 @@ import com.jfeng.pan.storage.engine.core.context.StoreFileContext;
 import org.assertj.core.util.Lists;
 import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
@@ -36,27 +38,16 @@ import java.util.List;
 * @createDate 2025-11-06 19:22:58
 */
 @Service(value = "userFileService")
-public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> implements IFileService, ApplicationContextAware {
+public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> implements IFileService {
 
     @Autowired
     private StorageEngine storageEngine;
 
-    private ApplicationContext applicationContext;
-
     @Autowired
     private IFileChunkService iFileChunkService;
 
-
-    /**
-     * 广播机器出错的事件
-     * @param applicationContext the ApplicationContext object to be used by this object
-     * @throws BeansException
-     */
-    @Override
-    public void setApplicationContext(ApplicationContext applicationContext) {
-        this.applicationContext =  applicationContext;
-    }
-
+    @Autowired
+    private StreamBridge streamBridge;
 
     /**
      * 上传单文件并保存实体记录
@@ -157,9 +148,8 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
                 storageEngine.delete(deleteFileContext);
             } catch (IOException e) {
                 e.printStackTrace();
-                ErrorLogEvent errorLogEvent = new ErrorLogEvent(this, "文件物理删除失败，请执行手动删除！文件路径："+realPath, userId);
-                applicationContext.publishEvent(errorLogEvent);
-
+                ErrorLogEvent errorLogEvent = new ErrorLogEvent( "文件物理删除失败，请执行手动删除！文件路径："+realPath, userId);
+                streamBridge.send(PanChannel.ERROR_LOG_OUT, errorLogEvent);
             }
         }
         return recode;

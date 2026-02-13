@@ -1,4 +1,4 @@
-package com.jfeng.pan.server.common.stream.event;
+package com.jfeng.pan.server.common.stream.event.test;
 
 import lombok.Data;
 

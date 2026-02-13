@@ -7,18 +7,23 @@ import lombok.Setter;
 import lombok.ToString;
 import org.springframework.context.ApplicationEvent;
 
+import java.io.Serial;
+import java.io.Serializable;
+
 @Getter
 @Setter
 @EqualsAndHashCode(callSuper = false)
 @ToString
-public class UserSearchEvent extends ApplicationEvent {
+public class UserSearchEvent implements Serializable {
+
+    @Serial
+    private static final long serialVersionUID = -349463272365L;
 
     private String keyword;
 
     private Long userId;
 
-    public UserSearchEvent(Object source, String keyword, Long userId) {
-        super(source);
+    public UserSearchEvent(String keyword, Long userId) {
         this.keyword = keyword;
         this.userId = userId;
     }

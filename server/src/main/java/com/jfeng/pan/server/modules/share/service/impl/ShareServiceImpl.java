@@ -16,7 +16,8 @@ import com.jfeng.pan.core.utils.JwtUtil;
 import com.jfeng.pan.core.utils.UUIDUtil;
 import com.jfeng.pan.server.common.cache.ManualCacheService;
 import com.jfeng.pan.server.common.config.RPanServerConfig;
-import com.jfeng.pan.server.common.event.log.ErrorLogEvent;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.log.ErrorLogEvent;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.CopyFileContext;
 import com.jfeng.pan.server.modules.file.context.FileDownloadContext;
@@ -44,6 +45,7 @@ import org.assertj.core.util.Sets;
 import org.checkerframework.checker.nullness.qual.NonNull;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
@@ -63,7 +65,9 @@ import java.util.stream.Collectors;
 @Service
 @Slf4j
 public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
-    implements IShareService, ApplicationContextAware {
+    implements IShareService {
+
+    private static final String BLOOM_FILTER_NAME = "SHARE_SIMPLE_DETAIL";
 
     @Autowired
     private RPanServerConfig config;
@@ -80,14 +84,9 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     @Autowired
     private BloomFilterManager bloomFilterManager;
 
-    private static final String BLOOM_FILTER_NAME = "SHARE_SIMPLE_DETAIL";
+    @Autowired
+    private StreamBridge streamBridge;
 
-    private ApplicationContext applicationContext;
-
-    @Override
-    public void setApplicationContext(@NonNull ApplicationContext applicationContext)  {
-        this.applicationContext = applicationContext;
-    }
 
     @Autowired
     @Qualifier(value = "shareManualCacheService")
@@ -113,7 +112,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         return vo;
     }
 
-    // TODO 缺少实现分享状态刷新处理器、异步机制优化所有的监听器
+    // TODO 缺少实现分享状态刷新处理器
 
     /**
      * 查询用户的分享列表
@@ -402,11 +401,11 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     private void doChangeShareStatus(RPanShare record, ShareStatusEnum shareStatus) {
         record.setShareStatus(shareStatus.getCode());
         if(!updateById(record)){
-            applicationContext.publishEvent(
-                    new ErrorLogEvent( this,
-                            "更新分享状态失败，请手动更改状态，分享ID为：" + record.getShareId() + ", 分享" +
-                                    "状态改为：" + shareStatus.getCode(),
-                            RPanConstants.ZERO_LONG));
+            ErrorLogEvent event = new ErrorLogEvent("更新分享状态失败，请手动更改状态，分享ID为：" +
+                    record.getShareId() + ", 分享" +
+                    "状态改为：" + shareStatus.getCode(),
+                    RPanConstants.ZERO_LONG);
+            streamBridge.send(PanChannel.ERROR_LOG_OUT, event);
         }
     }
 

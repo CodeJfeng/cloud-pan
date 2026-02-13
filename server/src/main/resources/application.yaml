@@ -28,13 +28,40 @@ spring:
         # 生产者 send发送的第一个参数
         produceTest-out-0:
           destination: testTopic
+        errorLog-out-0:
+          destination: errorLog
+        deleteFile-out-0:
+          destination: deleteFile
+        fileRestore-out-0:
+          destination: fileRestore
+        physicalDeleteFile-out-0:
+          destination: physicalDeleteFile
+        userSearch-out-0:
+          destination: userSearch
+
         # 消费者 # 固定格式：函数名 + -in-0
         consumeTest-in-0:
           destination: testTopic
           group: testTopicGroup
-          # 2. 声明函数定义（告诉 Stream 哪些 Bean 是绑定目标）
+        consumeErrorLog-in-0:
+          destination: errorLog
+          group: errorLogGroup
+        consumeDeleteFile-in-0:
+          destination: deleteFile
+          group: deleteFileGroup
+        consumeFileRestore-in-0:
+          destination: fileRestore
+          group: fileRestoreGroup
+        consumerPhysicalDeleteFile-in-0:
+          destination: physicalDeleteFile
+          group: physicalDeleteFileGroup
+        consumeUserSearch-in-0:
+          destination: userSearch
+          group: userSearchGroup
+
+        # 2. 声明函数定义（告诉 Stream 哪些 Bean 是绑定目标）
       function:
-          definition: consumeTest # # 多个用 ; 分隔，对应 @Bean 方法名
+          definition: consumeTest;consumeErrorLog;consumeDeleteFile;consumeFileRestore;consumeUserSearch;consumerPhysicalDeleteFile # # 多个用 ; 分隔，对应 @Bean 方法名
 
 mybatis-plus:
   mapper-locations: classpath:/mappers/**/*.xml
