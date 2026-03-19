@@ -90,7 +90,7 @@ public class ShareController {
     @PostMapping("share/code/check")
     public R<String> checkShareCode(@Validated @RequestBody CheckShareCodePO checkShareCodePO){
         CheckShareCodeContext context = new CheckShareCodeContext();
-        context.setShareId(IdUtil.decrypt(checkShareCodePO.getShareCode()));
+        context.setShareId(IdUtil.decrypt(checkShareCodePO.getShareId()));
         context.setShareCode(checkShareCodePO.getShareCode());
         String token = iShareService.checkShareCode(context);
         return R.data(token);
@@ -159,7 +159,7 @@ public class ShareController {
             description = "该接口提供了分享文件下载的功能"
     )
     @NeedShareCode
-    @PostMapping("share/file/download")
+    @GetMapping("share/file/download")
     public R download(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId,
                       HttpServletResponse response){
        ShareFileDownloadContext context = new ShareFileDownloadContext();

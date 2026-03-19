@@ -18,6 +18,7 @@ public interface FileConverter {
 
     @Mapping(target = "fileId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(updateFilenamePO.getFileId()))")
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    @Mapping(target = "newFilename", source ="updateFilenamePO.newFilename")
     UpdateFilenameContext updateFilenamePO2UpdateFilenameContext(UpdateFilenamePO updateFilenamePO);
 
 

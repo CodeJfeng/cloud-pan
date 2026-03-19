@@ -23,6 +23,6 @@ public class UpdateFilenamePO implements Serializable {
 
     @Schema(description = "更新的文件名称", requiredMode = Schema.RequiredMode.REQUIRED)
     @NotBlank(message = "更新的文件名称不能为空")
-    private String newFileName;
+    private String newFilename;
 
 }

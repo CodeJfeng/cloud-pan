@@ -45,7 +45,10 @@ public class FileController {
     @GetMapping("files")
     public R<List<RPanUserFileVO>> list(@NotBlank(message = "父文件夹ID不能为空") @RequestParam (value = "parentId", required = false) String parentId,
                                         @RequestParam (value = "fileTypes", required = false, defaultValue = FileConstants.ALL_FILE_TYPE) String fileType ){
-        Long realParentId = IdUtil.decrypt(parentId);
+        Long realParentId = -1L;
+        if(!FileConstants.ALL_FILE_TYPE.equals(parentId)){
+            realParentId = IdUtil.decrypt(parentId);
+        }
         List<Integer> fileTypeArray = null;
 
         if(!Objects.equals(FileConstants.ALL_FILE_TYPE, fileType)){
@@ -83,7 +86,7 @@ public class FileController {
 
     @Operation(summary = "批量删除文件",
             description = "该接口提 供了文件批量删除的功能")
-    @PostMapping("file")
+    @DeleteMapping("file")
     public R delete(@Validated @RequestBody DeleteFilePO deleteFilePO){
         DeleteFileContext deleteFileContext = fileConverter.deleteFilePO2DeleteFileContext(deleteFilePO);
         String fileIds = deleteFilePO.getFileIds();
@@ -135,7 +138,7 @@ public class FileController {
 
     @Operation(summary = "文件分片合并",
             description = "该接口提供了文件分片合并的的功能")
-    @GetMapping("file/merge")
+    @PostMapping("file/merge")
     public R mergeFile(@Validated @RequestBody FileChunkMergePO fileChunkMergePO){
         FileChunkMergeContext context = fileConverter.fileChunkMergePO2FileChunkMergeContext(fileChunkMergePO);
         iUserFileService.mergeFile(context);
@@ -215,7 +218,7 @@ public class FileController {
     public R<List<FileSearchResultVO>> search(@Validated FileSearchPO fileSearchPO){
         FileSearchContext context = new FileSearchContext();
         context.setKeyword(fileSearchPO.getKeyword());
-        context.setUserId(IdUtil.get());
+        context.setUserId(UserIdUtil.get());
 
         String fileTypes = fileSearchPO.getFileTypes();
         if(StringUtils.isNotBlank(fileTypes) && !Objects.equals(FileConstants.ALL_FILE_TYPE, fileTypes) ){
@@ -229,11 +232,11 @@ public class FileController {
 
     @Operation(summary = "查询面包屑列表",
             description = "该文件提供了查询面包屑列表的功能")
-    @GetMapping("file/Breadcrumbs")
+    @GetMapping("file/breadcrumbs")
     public R<List<BreadcrumbVO>> getBreadcrumbs(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = true) String fileId){
         QueryBreadcrumbContext context = new QueryBreadcrumbContext();
         context.setFileId(IdUtil.decrypt(fileId));
-        context.setUserId(IdUtil.get());
+        context.setUserId(UserIdUtil.get());
         List<BreadcrumbVO> result = iUserFileService.getBreadcrumbs(context);
         return R.data(result);
     }

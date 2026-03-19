@@ -3,6 +3,7 @@ package com.jfeng.pan.server.modules.recycle.controller;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.server.modules.recycle.context.DeleteContext;
 import com.jfeng.pan.server.modules.recycle.context.QueryRecycleFileListContext;
@@ -15,10 +16,7 @@ import io.swagger.v3.oas.annotations.tags.Tag;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Controller;
 import org.springframework.validation.annotation.Validated;
-import org.springframework.web.bind.annotation.DeleteMapping;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PutMapping;
-import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.*;
 
 import java.util.Arrays;
 import java.util.List;
@@ -26,9 +24,9 @@ import java.util.List;
 /**
  * 回收站模块控制器
  */
-@Controller
 @Tag(name = "回收站模块")
 @Validated
+@RestController
 public class RecycleController {
 
     @Autowired
@@ -40,7 +38,7 @@ public class RecycleController {
     @GetMapping("recycles")
     public R<List<RPanUserFileVO>> recycles(){
         QueryRecycleFileListContext queryRecycleFileListContext = new QueryRecycleFileListContext();
-        queryRecycleFileListContext.setUserId(IdUtil.get());
+        queryRecycleFileListContext.setUserId(UserIdUtil.get());
         List<RPanUserFileVO> result = iRecycleService.recycles(queryRecycleFileListContext);
         return R.data(result);
     }
@@ -51,7 +49,7 @@ public class RecycleController {
     @PutMapping("recycle/restore")
     public R restore(@Validated @RequestBody RestorePO restorePO){
         RestoreContext context = new RestoreContext();
-        context.setUserId(IdUtil.get());
+        context.setUserId(UserIdUtil.get());
         List<Long> fileIds = Arrays.stream(restorePO.getFileIds().split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
         context.setFileIdList(fileIds);
         iRecycleService.restore(context);
@@ -64,7 +62,7 @@ public class RecycleController {
     @DeleteMapping("recycle")
     public R delete(@Validated @RequestBody DeletePO deletePO){
         DeleteContext context = new DeleteContext();
-        context.setUserId(IdUtil.get());
+        context.setUserId(UserIdUtil.get());
         List<Long> fileIds = Arrays.stream(deletePO.getFileIds().split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
         context.setFileIdList(fileIds);
         iRecycleService.delete(context);

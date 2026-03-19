@@ -5,6 +5,7 @@ import com.jfeng.pan.core.constants.RPanConstants;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.util.CollectionUtils;
 
+import javax.activation.MimetypesFileTypeMap;
 import java.io.*;
 import java.nio.channels.Channels;
 import java.nio.channels.FileChannel;
@@ -245,5 +246,27 @@ public class FileUtil {
        outputStream.flush();
        inputStream.close();
        outputStream.close();
+    }
+
+    /**
+     * 获取文件的content-type
+     *
+     * @param filePath
+     * @return
+     */
+    public static String getContentType(String filePath) {
+        //利用nio提供的类判断文件ContentType
+        File file = new File(filePath);
+        String contentType = null;
+        try {
+            contentType = Files.probeContentType(file.toPath());
+        } catch (IOException e) {
+            e.printStackTrace();
+        }
+        //若失败则调用另一个方法进行判断
+        if (StringUtils.isBlank(contentType)) {
+            contentType = new MimetypesFileTypeMap().getContentType(file);
+        }
+        return contentType;
     }
 }

@@ -28,7 +28,7 @@ public class UpdateFilenameContext implements Serializable {
     /**
      * 新的文件名称
      */
-    private String newFileName;
+    private String newFilename;
 
     /**
      * 当前需要更新的用户实体

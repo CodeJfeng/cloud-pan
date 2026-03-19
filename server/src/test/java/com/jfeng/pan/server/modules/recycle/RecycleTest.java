@@ -58,7 +58,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -90,7 +90,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -121,7 +121,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -152,7 +152,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -187,7 +187,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -228,7 +228,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -259,7 +259,7 @@ public class RecycleTest {
         // 创建一个文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);

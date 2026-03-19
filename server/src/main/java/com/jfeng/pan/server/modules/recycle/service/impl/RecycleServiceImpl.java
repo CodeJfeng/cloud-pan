@@ -108,8 +108,9 @@ public class RecycleServiceImpl implements IRecycleService {
      * @param context
      */
     private void doDelete(DeleteContext context) {
-        List<Long> findIdList = context.getFileIdList();
-        if(!iUserFileService.removeByIds(findIdList)){
+        List<RPanUserFile> allRecords = context.getAllRecords();
+        List<Long> fileIdList = allRecords.stream().map(RPanUserFile::getFileId).toList();
+        if(!iUserFileService.removeByIds(fileIdList)){
             throw new RPanBusinessException("文件删除失败");
         }
     }
@@ -138,6 +139,7 @@ public class RecycleServiceImpl implements IRecycleService {
         if (CollectionUtils.isEmpty(records) || records.size() != context.getFileIdList().size()){
             throw new RPanBusinessException("您无权删除该文件");
         }
+        context.setRecords(records);
     }
 
     /**

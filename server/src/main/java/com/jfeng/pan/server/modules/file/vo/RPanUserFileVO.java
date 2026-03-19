@@ -26,7 +26,7 @@ public class RPanUserFileVO implements Serializable {
     private Long parentId;
 
     @Schema(description = "文件名称")
-    private String fileName;
+    private String filename;
 
     @Schema(description = "文件大小描述")
     private String fileSizeDesc;

@@ -80,7 +80,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -108,7 +108,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -141,7 +141,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -184,7 +184,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -218,7 +218,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -253,7 +253,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -287,7 +287,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -321,7 +321,7 @@ public class ShareTest {
         // 创建文件夹
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -332,14 +332,14 @@ public class ShareTest {
         createShareUrlContext.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
         createShareUrlContext.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
         createShareUrlContext.setUserId(userId);
-        createShareUrlContext.setShareFileIdList(Lists.newArrayList(userInfoVO.getRootFiled()));
+        createShareUrlContext.setShareFileIdList(Lists.newArrayList(userInfoVO.getRootFileId()));
         ShareUrlVO shareUrlVO = iShareService.create(createShareUrlContext);
         Assert.isTrue(Objects.nonNull(shareUrlVO));
 
         // 查询分享的下一级文件夹
         QueryChildFileListContext queryChildFileListContext = new QueryChildFileListContext();
         queryChildFileListContext.setShareId(shareUrlVO.getShareId());
-        queryChildFileListContext.setParentId(userInfoVO.getRootFiled());
+        queryChildFileListContext.setParentId(userInfoVO.getRootFileId());
         List<RPanUserFileVO> fileVOList = iShareService.fileList(queryChildFileListContext);
 
 

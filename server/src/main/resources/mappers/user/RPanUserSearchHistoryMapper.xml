@@ -6,13 +6,26 @@
 
     <resultMap id="BaseResultMap" type="com.jfeng.pan.server.modules.user.entity.RPanUserSearchHistory">
             <id property="id" column="id" />
-            <result property="user_id" column="user_id" />
-            <result property="search_content" column="search_content" />
-            <result property="create_time" column="create_time" />
-            <result property="update_time" column="update_time" />
+            <result property="userId" column="user_id" />
+            <result property="searchContent" column="search_content" />
+            <result property="createTime" column="create_time" />
+            <result property="updateTime" column="update_time" />
     </resultMap>
 
     <sql id="Base_Column_List">
         id,user_id,search_content,create_time,update_time
     </sql>
+
+    <select id="selectUserSearchHistories"
+            resultType="com.jfeng.pan.server.modules.user.vo.UserSearchHistoryVO">
+        SELECT
+            search_content AS `value`
+        FROM  `r_pan_user_search_history`
+        WHERE `user_id` = #{param.userId}
+        ORDER BY
+            `update_time`
+        DESC
+        LIMIT
+            10
+    </select>
 </mapper>

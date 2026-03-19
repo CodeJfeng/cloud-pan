@@ -196,7 +196,8 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         record.setFileSize(String.valueOf(totalSize));
         record.setIdentifier(identifier);
         record.setFileSizeDesc(FileUtil.byteCountToDisplaySize(totalSize));
-        record.setIdentifier(identifier);
+        record.setFilePreviewContentType(FileUtil.getContentType(realPath));
+        record.setFileSuffix(FileUtil.getFileSuffix(filename));
         record.setCreateUser(userId);
         record.setCreateTime(new Date());
         return record;

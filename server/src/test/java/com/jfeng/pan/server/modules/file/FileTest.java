@@ -67,7 +67,7 @@ public class FileTest {
 
         QueryFileListContext context = new QueryFileListContext();
         context.setUserId(userId);
-        context.setParentId(userInfoVO.getRootFiled());
+        context.setParentId(userInfoVO.getRootFileId());
         context.setDelFlag(DelFlagEnum.NO.getCode());
         context.setFileTypeArray(null);
         List<RPanUserFileVO> result = iUserFileService.getFileList(context);
@@ -85,7 +85,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -101,7 +101,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -109,7 +109,7 @@ public class FileTest {
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId);
         updateFilenameContext.setFileId(fileId);
-        updateFilenameContext.setNewFileName("new-folder-name");
+        updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
     /**
@@ -122,7 +122,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -130,7 +130,7 @@ public class FileTest {
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId);
         updateFilenameContext.setFileId(fileId+1);
-        updateFilenameContext.setNewFileName("new-folder-name");
+        updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
 
@@ -144,7 +144,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -152,7 +152,7 @@ public class FileTest {
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId+1);
         updateFilenameContext.setFileId(fileId);
-        updateFilenameContext.setNewFileName("new-folder-name");
+        updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
 
@@ -166,7 +166,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -174,7 +174,7 @@ public class FileTest {
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId);
         updateFilenameContext.setFileId(fileId);
-        updateFilenameContext.setNewFileName("folder-name");
+        updateFilenameContext.setNewFilename("folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
 
@@ -188,13 +188,13 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
 
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-2");
         fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -202,7 +202,7 @@ public class FileTest {
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId);
         updateFilenameContext.setFileId(fileId);
-        updateFilenameContext.setNewFileName("folder-name-2");
+        updateFilenameContext.setNewFilename("folder-name-2");
         iUserFileService.updateFilename(updateFilenameContext);
     }
 
@@ -217,7 +217,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -242,7 +242,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -266,7 +266,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -309,7 +309,7 @@ public class FileTest {
         context.setFilename("filename");
         context.setIdentifier(identifier);
         context.setUserId(userId);
-        context.setParentId(userInfoVO.getRootFiled());
+        context.setParentId(userInfoVO.getRootFileId());
 
         boolean success = iUserFileService.SecUpload(context);
         Assert.isTrue(success);
@@ -329,7 +329,7 @@ public class FileTest {
         context.setFilename("filename");
         context.setIdentifier(identifier);
         context.setUserId(userId);
-        context.setParentId(userInfoVO.getRootFiled());
+        context.setParentId(userInfoVO.getRootFileId());
 
         boolean success = iUserFileService.SecUpload(context);
         Assert.isFalse(success);
@@ -347,7 +347,7 @@ public class FileTest {
         MultipartFile file = generateMultipartFile();
         context.setFile(file);
         context.setFilename(file.getName());
-        context.setParentId(userInfoVO.getRootFiled());
+        context.setParentId(userInfoVO.getRootFileId());
         context.setUserId(userId);
         context.setIdentifier("12345678");
         context.setTotalSize(file.getSize());
@@ -356,7 +356,7 @@ public class FileTest {
         QueryFileListContext queryFileListContext = new QueryFileListContext();
         queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
         queryFileListContext.setUserId(userId);
-        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        queryFileListContext.setParentId(userInfoVO.getRootFileId());
         List<RPanUserFileVO> fileList = iUserFileService.getFileList(queryFileListContext);
         Assert.notEmpty(fileList);
         Assert.isTrue(fileList.size() == 1);
@@ -402,7 +402,7 @@ public class FileTest {
 
         CountDownLatch countDownLatch = new CountDownLatch(10);
         for (int i = 0; i < 10 ; i++){
-            new ChunkUpload(countDownLatch, i+1, 10, iUserFileService, userId, userInfoVO.getRootFiled()).start();
+            new ChunkUpload(countDownLatch, i+1, 10, iUserFileService, userId, userInfoVO.getRootFileId()).start();
         }
         countDownLatch.await();
     }
@@ -417,7 +417,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
         Long fileId = iUserFileService.createFolder(createFolderContext);
         Assert.notNull(fileId);
@@ -449,7 +449,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);
@@ -469,7 +469,7 @@ public class FileTest {
         QueryFileListContext queryFileListContext = new QueryFileListContext();
         queryFileListContext.setUserId(userId);
         queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
-        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        queryFileListContext.setParentId(userInfoVO.getRootFileId());
         List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
         Assert.notNull(records);
     }
@@ -486,7 +486,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);
@@ -507,7 +507,7 @@ public class FileTest {
         QueryFileListContext queryFileListContext = new QueryFileListContext();
         queryFileListContext.setUserId(userId);
         queryFileListContext.setDelFlag(DelFlagEnum.NO.getCode());
-        queryFileListContext.setParentId(userInfoVO.getRootFiled());
+        queryFileListContext.setParentId(userInfoVO.getRootFileId());
         List<RPanUserFileVO> records = iUserFileService.getFileList(queryFileListContext);
         Assert.notNull(records);
     }
@@ -522,7 +522,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);
@@ -557,7 +557,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);
@@ -592,7 +592,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);
@@ -620,7 +620,7 @@ public class FileTest {
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
-        createFolderContext.setParentId(userInfoVO.getRootFiled());
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
         createFolderContext.setFolderName("folder-name-1");
 
         Long folder1 = iUserFileService.createFolder(createFolderContext);

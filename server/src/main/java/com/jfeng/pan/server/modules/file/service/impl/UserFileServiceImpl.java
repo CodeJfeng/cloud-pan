@@ -28,12 +28,10 @@ import com.jfeng.pan.server.modules.file.mapper.RPanUserFileMapper;
 import com.jfeng.pan.server.modules.file.vo.*;
 import com.jfeng.pan.storage.engine.core.StorageEngine;
 import com.jfeng.pan.storage.engine.core.context.ReadFileContext;
+import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
-import org.springframework.beans.BeansException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
-import org.springframework.context.ApplicationContext;
-import org.springframework.context.ApplicationContextAware;
 import org.springframework.http.MediaType;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -345,6 +343,9 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         if(!CollectionUtils.isEmpty(prepareRecords)){
            List<RPanUserFile> allRecord = Lists.newArrayList();
            prepareRecords.forEach(record -> assembleCopyChildRecord(allRecord, record, context.getTargetParentId(), context.getUserId()));
+            if (!saveBatch(allRecord)) {
+                throw new RPanBusinessException("文件复制失败");
+            }
         }
     }
 
@@ -540,6 +541,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
         record.setCreateTime(new Date());
         record.setUpdateUser(userId);
         record.setUpdateTime(new Date());
+        handleDuplicateFilename(record);
 
         allRecord.add(record);
         if(checkIsFolder(record)){
@@ -728,8 +730,8 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param response
      */
     private void doPreview(RPanUserFile record, HttpServletResponse response) {
-        RPanFile realFileRecord = iFileService.getById(record.getFileId());
-        if(Objects.isNull(realFileRecord)){
+        RPanFile realFileRecord = iFileService.getById(record.getRealFileId());
+        if (Objects.isNull(realFileRecord)) {
             throw new RPanBusinessException("当前的文件记录不存在");
         }
         addCommonResponseHeader(response, realFileRecord.getFilePreviewContentType());
@@ -746,7 +748,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param response
      */
     private void doDownload(RPanUserFile record, HttpServletResponse response) {
-        RPanFile realFileRecord = iFileService.getById(record.getFileId());
+        RPanFile realFileRecord = iFileService.getById(record.getRealFileId());
         if(Objects.isNull(realFileRecord)){
             throw new RPanBusinessException("当前的文件记录不存在");
         }
@@ -943,7 +945,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      */
     private void doUpdateFilename(UpdateFilenameContext context) {
         RPanUserFile entity = context.getEntity();
-        entity.setFilename(context.getNewFileName());
+        entity.setFilename(context.getNewFilename());
         entity.setUpdateUser(context.getUserId());
         entity.setUpdateTime(new Date());
 
@@ -972,13 +974,13 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
             throw new RPanBusinessException("当前用户没有修改该文件名称的权限");
         }
 
-        if (Objects.equals(entity.getFilename(), context.getNewFileName())){
+        if (Objects.equals(entity.getFilename(), context.getNewFilename())){
             throw new RPanBusinessException("不能与当前文件夹名称一致");
         }
 
         LambdaQueryWrapper<RPanUserFile> wrapper = new LambdaQueryWrapper<>();
         wrapper.eq(RPanUserFile::getParentId, fileId)
-                .eq(RPanUserFile::getFilename, context.getNewFileName());
+                .eq(RPanUserFile::getFilename, context.getNewFilename());
         long count = count(wrapper);
         if(count > 0){
             throw new RPanBusinessException("当前文件名称已被使用");
@@ -1068,13 +1070,24 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
             newFileNameSuffix =RPanConstants.EMPTY_STR;
         }else{
             newFilenameWithoutSuffix = filename.substring(0, newFilenamePointPosition);
-            newFileNameSuffix = filename.substring(newFilenamePointPosition);
+            newFileNameSuffix = filename.replace(newFilenameWithoutSuffix, StringUtils.EMPTY);
         }
-        long count = getDuplicateFilename(entity, newFilenameWithoutSuffix);
-        if(count == 0){
+        List<RPanUserFile> existRecords = getDuplicateFilename(entity, newFilenameWithoutSuffix);
+        if(CollectionUtils.isEmpty(existRecords)){
             return;
         }
-        String newFilename= assmebleNewFilename(newFilenameWithoutSuffix, count, newFileNameSuffix);
+
+        List<String> existFilenames = existRecords.stream().map(RPanUserFile::getFilename).toList();
+
+        int count = 1;
+        String newFilename;
+
+        do {
+            newFilename = assembleNewFilename(newFilenameWithoutSuffix, count, newFileNameSuffix);
+            count++;
+        } while (existFilenames.contains(newFilename));
+
+        entity.setFilename(newFilename);
     }
 
     /**
@@ -1085,7 +1098,7 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      * @param newFileNameSuffix
      * @return
      */
-    private String assmebleNewFilename(String newFilenameWithoutSuffix, long count, String newFileNameSuffix) {
+    private String assembleNewFilename(String newFilenameWithoutSuffix, long count, String newFileNameSuffix) {
         return newFilenameWithoutSuffix +
                 FileConstants.LEFT_PARENTHESIS_STR +
                 count +
@@ -1094,19 +1107,19 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
     }
 
     /**
-     * 查找统一父文件夹下的同名文件数量
+     * 查找统一父文件夹下的同名文件
      * @param entity
      * @param newFilenameWithoutSuffix
      * @return
      */
-    private long getDuplicateFilename(RPanUserFile entity, String newFilenameWithoutSuffix) {
+    private  List<RPanUserFile> getDuplicateFilename(RPanUserFile entity, String newFilenameWithoutSuffix) {
         LambdaQueryWrapper<RPanUserFile> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(RPanUserFile::getParentId, entity.getParentId())
                 .eq(RPanUserFile::getFolderFlag, entity.getFolderFlag())
                 .eq(RPanUserFile::getUserId, entity.getUserId())
                 .eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode())
-                .likeLeft(RPanUserFile::getFilename, newFilenameWithoutSuffix);
-        return count(queryWrapper);
+                .likeRight(RPanUserFile::getFilename, newFilenameWithoutSuffix);
+        return list(queryWrapper);
     }
 }
 

@@ -20,7 +20,7 @@ public class UserInfoVO implements Serializable {
 
     @Schema(description = "用户根目录的加密ID")
     @JsonSerialize(using = IdEncryptSerializer.class)
-    private Long rootFiled;
+    private Long rootFileId;
 
     @Schema(description = "用户根目录名称")
     private String rootFilename;

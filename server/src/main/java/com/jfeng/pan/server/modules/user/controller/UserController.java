@@ -98,6 +98,7 @@ public class UserController {
      *
      * @return 返回用户名校验信息，以及后续的密保问题
      */
+    @LoginIgnore
     @Operation(summary ="用户校验密码--校验用户名称",
             description = "该接口提供了用户在忘记密码时，验证用户名是否存在"
     )
@@ -116,10 +117,11 @@ public class UserController {
      *
      * @return 返回密保答案校验结果
      */
+    @LoginIgnore
     @Operation(summary ="用户忘记密码--校验密保答案",
             description = "该接口提供了用户在忘记密码时，验证校验密保答案是否正确"
     )
-    @PostMapping("question/check")
+    @PostMapping("answer/check")
     public R checkAnswer(@Validated @RequestBody CheckAnswerPO checkAnswerPO){
         CheckAnswerContext checkAnswerContext = userConverter.checkAnswerPO2CheckAnswerContext(checkAnswerPO);
         String token = iuserService.checkAnswer(checkAnswerContext);
@@ -134,6 +136,7 @@ public class UserController {
      *
      * @return
      */
+    @LoginIgnore
     @Operation(summary ="用户忘记密码--更新密码",
             description = "该接口提供了用户在忘记密码时，通过token去更新密码信息"
     )
