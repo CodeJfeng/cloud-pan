@@ -20,7 +20,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-02-12T19:27:25+0800",
+    date = "2026-03-20T19:18:26+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -140,7 +140,7 @@ public class UserConverterImpl implements UserConverter {
             userInfoVO.setUsername( rPanUser.getUsername() );
         }
         if ( rPanUserFile != null ) {
-            userInfoVO.setRootFiled( rPanUserFile.getFileId() );
+            userInfoVO.setRootFileId( rPanUserFile.getFileId() );
             userInfoVO.setRootFilename( rPanUserFile.getFilename() );
         }
 

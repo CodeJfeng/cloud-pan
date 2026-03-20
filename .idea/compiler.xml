@@ -34,28 +34,45 @@
         <module name="cloud-drive-web" />
         <module name="cloud-drive-schedule" />
         <module name="cloud-drive-cache-core" />
+        <module name="cloud-drive-bloom-filter-core" />
         <module name="cloud-drive-mybatis-plus" />
+        <module name="cloud-drive-lock-zookeeper" />
+        <module name="cloud-drive-stream-core" />
         <module name="cloud-drive-storage-engine-fastdfs" />
+        <module name="cloud-drive-stream-rocketmq" />
+        <module name="cloud-drive-lock-core" />
         <module name="cloud-drive-storage-engine-local" />
         <module name="cloud-drive-storage-engine-oss" />
+        <module name="cloud-drive-lock-local" />
         <module name="cloud-drive-storage-engine-core" />
         <module name="cloud-drive-swagger2" />
+        <module name="cloud-drive-bloom-filter-local" />
+        <module name="cloud-drive-lock-redis" />
         <module name="cloud-drive-core" />
         <module name="cloud-drive-redis" />
       </profile>
     </annotationProcessing>
     <bytecodeTargetLevel>
+      <module name="lock-locak" target="21" />
       <module name="r-panredis" target="20" />
     </bytecodeTargetLevel>
   </component>
   <component name="JavacSettings">
     <option name="ADDITIONAL_OPTIONS_OVERRIDE">
+      <module name="cloud-drive-bloom-filter" options="-parameters" />
+      <module name="cloud-drive-bloom-filter-core" options="-parameters" />
+      <module name="cloud-drive-bloom-filter-local" options="-parameters" />
       <module name="cloud-drive-cache" options="-parameters" />
       <module name="cloud-drive-cache-core" options="-parameters" />
       <module name="cloud-drive-caffeine" options="-parameters" />
       <module name="cloud-drive-core" options="-parameters" />
       <module name="cloud-drive-distribution" options="-parameters" />
       <module name="cloud-drive-framework" options="-parameters" />
+      <module name="cloud-drive-lock" options="-parameters" />
+      <module name="cloud-drive-lock-core" options="-parameters" />
+      <module name="cloud-drive-lock-local" options="-parameters" />
+      <module name="cloud-drive-lock-redis" options="-parameters" />
+      <module name="cloud-drive-lock-zookeeper" options="-parameters" />
       <module name="cloud-drive-mybatis-plus" options="-parameters" />
       <module name="cloud-drive-orm" options="-parameters" />
       <module name="cloud-drive-parent" options="-parameters" />
@@ -67,8 +84,12 @@
       <module name="cloud-drive-storage-engine-fastdfs" options="-parameters" />
       <module name="cloud-drive-storage-engine-local" options="-parameters" />
       <module name="cloud-drive-storage-engine-oss" options="-parameters" />
+      <module name="cloud-drive-stream" options="-parameters" />
+      <module name="cloud-drive-stream-core" options="-parameters" />
+      <module name="cloud-drive-stream-rocketmq" options="-parameters" />
       <module name="cloud-drive-swagger2" options="-parameters" />
       <module name="cloud-drive-web" options="-parameters" />
+      <module name="lock-locak" options="-parameters" />
       <module name="r-panredis" options="-parameters" />
     </option>
   </component>

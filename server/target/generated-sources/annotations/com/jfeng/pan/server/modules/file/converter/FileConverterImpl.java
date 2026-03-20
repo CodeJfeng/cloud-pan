@@ -28,7 +28,7 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-02-12T19:27:24+0800",
+    date = "2026-03-20T19:18:26+0800",
     comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
 )
 @Component
@@ -58,7 +58,7 @@ public class FileConverterImpl implements FileConverter {
 
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
 
-        updateFilenameContext.setNewFileName( updateFilenamePO.getNewFileName() );
+        updateFilenameContext.setNewFilename( updateFilenamePO.getNewFilename() );
 
         updateFilenameContext.setFileId( com.jfeng.pan.core.utils.IdUtil.decrypt(updateFilenamePO.getFileId()) );
         updateFilenameContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
@@ -270,6 +270,7 @@ public class FileConverterImpl implements FileConverter {
 
         rPanUserFileVO.setFileId( record.getFileId() );
         rPanUserFileVO.setParentId( record.getParentId() );
+        rPanUserFileVO.setFilename( record.getFilename() );
         rPanUserFileVO.setFileSizeDesc( record.getFileSizeDesc() );
         rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
         rPanUserFileVO.setFileType( record.getFileType() );
