@@ -283,11 +283,6 @@
 
     <build>
         <plugins>
-            <!-- Spring Boot Maven 插件, 用于打包和运行 -->
-            <plugin>
-                <groupId>org.springframework.boot</groupId>
-                <artifactId>spring-boot-maven-plugin</artifactId>
-            </plugin>
 <!--            <plugin>-->
 <!--                <groupId>org.apache.maven.plugins</groupId>-->
 <!--                <artifactId>maven-surefire-plugin</artifactId>-->

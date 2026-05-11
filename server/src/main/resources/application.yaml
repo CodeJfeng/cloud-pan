@@ -19,6 +19,7 @@ spring:
   redis:
     database: 1
     host: 127.0.0.1
+    password: 123456
   cloud:
     stream:
       RocketMQ:
@@ -67,7 +68,7 @@ mybatis-plus:
   mapper-locations: classpath:/mappers/**/*.xml
 
 server:
-  port: 8080
+  port: 10000
 
 management:
   endpoints:

@@ -12,7 +12,7 @@ spring:
       max-file-size: 3072MB
       max-request-size: 3072MB
 server:
-  port: 8080
+  port: 10000
 
 management:
   endpoints:
@@ -40,6 +40,7 @@ springdoc:
       packages-to-scan: com.jfeng.pan
 
 logging:
-  file: ${user.home}/logs/${spring.application.name}/${spring.application.name}.log
+  file:
+    name: $ {user.home}/logs/${spring.application.name}/${spring.application.name}.log
   level:
     root: INFO
