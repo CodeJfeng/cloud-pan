@@ -40,8 +40,6 @@ public class FilePhysicalDeleteConsumer extends AbstractConsumer {
     @Autowired
     private StreamBridge streamBridge;
 
-
-
     /**
      * 监听文件物理删除事件执行器
      * 该执行器时一个资源释放器，释放被物理删除的文件列表中关联记录
@@ -52,28 +50,27 @@ public class FilePhysicalDeleteConsumer extends AbstractConsumer {
      * @return
      */
     @Bean
-    public Consumer<FilePhysicalDeleteEvent> consumerPhysicalDeleteFile(){
-        return event ->{
-            // TODO 缺少统一的判空逻辑
-            if(Objects.isNull(event) || CollectionUtil.isEmpty(event.getAllRecords())){
+    public Consumer<FilePhysicalDeleteEvent> consumerPhysicalDeleteFile() {
+        return event -> {
+            if (Objects.isNull(event) || CollectionUtil.isEmpty(event.getAllRecords())) {
                 return;
             }
 
             List<RPanUserFile> allRecords = event.getAllRecords();
-            if(CollectionUtil.isEmpty(allRecords)){
+            if (CollectionUtil.isEmpty(allRecords)) {
                 return;
             }
             List<Long> realFileIdList = findAllUnusedRealFileIdList(allRecords);
-            if(CollectionUtil.isEmpty(realFileIdList)){
+            if (CollectionUtil.isEmpty(realFileIdList)) {
                 return;
             }
             List<RPanFile> realFileRecords = iFileService.listByIds(realFileIdList);
-            if (CollectionUtil.isEmpty(realFileRecords)){
+            if (CollectionUtil.isEmpty(realFileRecords)) {
                 return;
             }
-            if(!iFileService.removeByIds(realFileIdList)){
+            if (!iFileService.removeByIds(realFileIdList)) {
                 streamBridge.send(PanChannel.ERROR_LOG_OUT,
-                        new ErrorLogEvent("实体文件记录："+ JSON.toJSONString(realFileIdList) + ". 物理删除失败，请执行手动删除",
+                        new ErrorLogEvent("实体文件记录：" + JSON.toJSONString(realFileIdList) + ". 物理删除失败，请执行手动删除",
                                 RPanConstants.ZERO_LONG));
                 return;
             }
@@ -81,9 +78,12 @@ public class FilePhysicalDeleteConsumer extends AbstractConsumer {
         };
     }
 
-    /******************************************* private **********************************************************/
+    /*******************************************
+     * private
+     **********************************************************/
     /**
      * 委托文件存储引擎执行物理文件的删除
+     * 
      * @param realFileRecords
      */
     private void physicalDeleteByStoreEngine(List<RPanFile> realFileRecords) {
@@ -95,13 +95,14 @@ public class FilePhysicalDeleteConsumer extends AbstractConsumer {
             storageEngine.delete(deleteFileContext);
         } catch (IOException e) {
             streamBridge.send(PanChannel.ERROR_LOG_OUT,
-                    new ErrorLogEvent( "实体文件："+ JSON.toJSONString(realPathList) + ". 物理删除失败，请执行手动删除",
+                    new ErrorLogEvent("实体文件：" + JSON.toJSONString(realPathList) + ". 物理删除失败，请执行手动删除",
                             RPanConstants.ZERO_LONG));
         }
     }
 
     /**
      * 查找所有没有被引用的文件集合
+     * 
      * @param allRecords
      * @return
      */
@@ -120,7 +121,6 @@ public class FilePhysicalDeleteConsumer extends AbstractConsumer {
      * @return
      */
     private boolean isUnused(RPanUserFile record) {
-        // TODO 这里是否存在N+1的问题？
         LambdaQueryWrapper<RPanUserFile> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.eq(RPanUserFile::getRealFileId, record.getRealFileId());
         return iUserFileService.count(queryWrapper) == RPanConstants.ZERO_LONG;

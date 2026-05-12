@@ -88,10 +88,9 @@ public class RecycleServiceImpl implements IRecycleService {
         afterDelete(context);
     }
 
-
-
-
-    /*************************************************** private ******************************************************/
+    /***************************************************
+     * private
+     ******************************************************/
 
     /**
      * 文件彻底删除之后的后置函数
@@ -110,7 +109,7 @@ public class RecycleServiceImpl implements IRecycleService {
     private void doDelete(DeleteContext context) {
         List<RPanUserFile> allRecords = context.getAllRecords();
         List<Long> fileIdList = allRecords.stream().map(RPanUserFile::getFileId).toList();
-        if(!iUserFileService.removeByIds(fileIdList)){
+        if (!iUserFileService.removeByIds(fileIdList)) {
             throw new RPanBusinessException("文件删除失败");
         }
     }
@@ -136,7 +135,7 @@ public class RecycleServiceImpl implements IRecycleService {
         queryWrapper.eq(RPanUserFile::getUserId, context.getUserId());
         queryWrapper.in(RPanUserFile::getFileId, context.getFileIdList());
         List<RPanUserFile> records = iUserFileService.list(queryWrapper);
-        if (CollectionUtils.isEmpty(records) || records.size() != context.getFileIdList().size()){
+        if (CollectionUtils.isEmpty(records) || records.size() != context.getFileIdList().size()) {
             throw new RPanBusinessException("您无权删除该文件");
         }
         context.setRecords(records);
@@ -146,6 +145,7 @@ public class RecycleServiceImpl implements IRecycleService {
      * 文件还原的后置操作
      * 1、发布文件还原事件
      * 2、
+     * 
      * @param context
      */
     private void afterRestore(RestoreContext context) {
@@ -154,21 +154,21 @@ public class RecycleServiceImpl implements IRecycleService {
     }
 
     /**
-     *  执行文件还原的动作
+     * 执行文件还原的动作
      *
      * @param context
      */
     private void doRestore(RestoreContext context) {
         List<RPanUserFile> records = context.getRecords();
-        records.forEach(record ->{
+        records.forEach(record -> {
             record.setDelFlag(DelFlagEnum.NO.getCode());
             record.setCreateUser(context.getUserId());
             record.setUpdateTime(new Date());
-                });
-            boolean updateFlag = iUserFileService.updateBatchById(records);
-            if(!updateFlag){
-                throw new RPanBusinessException("文件还原失败");
-            }
+        });
+        boolean updateFlag = iUserFileService.updateBatchById(records);
+        if (!updateFlag) {
+            throw new RPanBusinessException("文件还原失败");
+        }
     }
 
     /**
@@ -181,44 +181,46 @@ public class RecycleServiceImpl implements IRecycleService {
     private void checkRestoreFilename(RestoreContext context) {
         List<RPanUserFile> records = context.getRecords();
 
-        Set<String> filenameSet = records.stream().map(record -> record.getFilename() + RPanConstants.COMMON_SEPARATOR + record.getParentId()).collect(Collectors.toSet());
-        if (filenameSet.size() != records.size()){
+        Set<String> filenameSet = records.stream()
+                .map(record -> record.getFilename() + RPanConstants.COMMON_SEPARATOR + record.getParentId())
+                .collect(Collectors.toSet());
+        if (filenameSet.size() != records.size()) {
             throw new RPanBusinessException("文件还原失败，该还原文件中存在同名文件，请逐个还原并重命名");
         }
-        // TODO 这里存在N+1问题
-        for(RPanUserFile record : records){
+        for (RPanUserFile record : records) {
             LambdaQueryWrapper<RPanUserFile> queryWrapper = new LambdaQueryWrapper<>();
             queryWrapper.eq(RPanUserFile::getUserId, context.getUserId());
             queryWrapper.eq(RPanUserFile::getParentId, record.getParentId());
             queryWrapper.eq(RPanUserFile::getFilename, record.getFilename());
             queryWrapper.eq(RPanUserFile::getDelFlag, DelFlagEnum.NO.getCode());
-            if(iUserFileService.count(queryWrapper) > 0){
-                throw new RPanBusinessException("文件："+ record.getFilename() + "还原失败，该文件夹下面已经存在了相同的文件或文件夹，请重命名之后再执行文件还原");
+            if (iUserFileService.count(queryWrapper) > 0) {
+                throw new RPanBusinessException(
+                        "文件：" + record.getFilename() + "还原失败，该文件夹下面已经存在了相同的文件或文件夹，请重命名之后再执行文件还原");
             }
         }
     }
 
     /**
      * 检查文件操作权限
+     * 
      * @param context
      */
     private void checkRestorePermission(RestoreContext context) {
         List<Long> fileIdList = context.getFileIdList();
 
         List<RPanUserFile> records = iUserFileService.listByIds(fileIdList);
-        if(CollectionUtils.isEmpty(records)){
+        if (CollectionUtils.isEmpty(records)) {
             throw new RPanBusinessException("文件还原失败");
         }
         Set<Long> userIdSet = records.stream().map(RPanUserFile::getUserId).collect(Collectors.toSet());
-        if (userIdSet.size() > 1){
+        if (userIdSet.size() > 1) {
             throw new RPanBusinessException("您无权执行文件还原");
         }
-        if (!userIdSet.contains(context.getUserId())){
+        if (!userIdSet.contains(context.getUserId())) {
             throw new RPanBusinessException("您无权执行文件还原");
         }
 
         context.setRecords(records);
     }
-
 
 }

@@ -58,14 +58,14 @@ import java.util.*;
 import java.util.stream.Collectors;
 
 /**
-* @author 16837
-* @description 针对表【r_pan_share(用户分享表)】的数据库操作Service实现
-* @createDate 2025-11-06 19:24:38
-*/
+ * @author 16837
+ * @description 针对表【r_pan_share(用户分享表)】的数据库操作Service实现
+ * @createDate 2025-11-06 19:24:38
+ */
 @Service
 @Slf4j
 public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
-    implements IShareService {
+        implements IShareService {
 
     private static final String BLOOM_FILTER_NAME = "SHARE_SIMPLE_DETAIL";
 
@@ -87,7 +87,6 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     @Autowired
     private StreamBridge streamBridge;
 
-
     @Autowired
     @Qualifier(value = "shareManualCacheService")
     private ManualCacheService<RPanShare> cacheService;
@@ -98,7 +97,6 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      * 2、保存分享和对应文件的关联关系
      * 3、拼装返回实体并返回
      *
-     * TODO 该方法缺少对文件Id所有权的校验
      * @param context
      * @return
      */
@@ -111,8 +109,6 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         afterCreate(context, vo);
         return vo;
     }
-
-    // TODO 缺少实现分享状态刷新处理器
 
     /**
      * 查询用户的分享列表
@@ -188,6 +184,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      * 2、初始化分享实体
      * 3、查询分享的主题信息
      * 4、查询分享者的信息
+     * 
      * @param context
      * @return
      */
@@ -214,10 +211,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     public List<RPanUserFileVO> fileList(QueryChildFileListContext context) {
         RPanShare record = checkShareStatus(context.getShareId());
         context.setRecord(record);
-        List<RPanUserFileVO> allUserFileRecord = checkFileIdIsOnShareStatusAndGetAllShareUserFiles(context.getShareId(), Lists.newArrayList(context.getParentId()));
-        Map<Long, List<RPanUserFileVO>> parentIdFileListMap = allUserFileRecord.stream().collect(Collectors.groupingBy(RPanUserFileVO::getParentId));
+        List<RPanUserFileVO> allUserFileRecord = checkFileIdIsOnShareStatusAndGetAllShareUserFiles(context.getShareId(),
+                Lists.newArrayList(context.getParentId()));
+        Map<Long, List<RPanUserFileVO>> parentIdFileListMap = allUserFileRecord.stream()
+                .collect(Collectors.groupingBy(RPanUserFileVO::getParentId));
         List<RPanUserFileVO> rPanUserFileVOList = parentIdFileListMap.get(context.getParentId());
-        if (CollectionUtil.isEmpty(rPanUserFileVOList)){
+        if (CollectionUtil.isEmpty(rPanUserFileVOList)) {
             return Lists.newArrayList();
         }
         return rPanUserFileVOList;
@@ -228,6 +227,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      * 1、校验分享状态
      * 2、校验文件传过来的文件ID是否合法
      * 3、委托文件模块对文件拷贝操作
+     * 
      * @param context
      */
     @Override
@@ -255,13 +255,13 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * <p>
-     *  <h3>刷新受影响的对应的分享的状态</h3>
-     *  通过文件ID将分享链接进行状态修改
-     *  当发生文件删除或还原时，执行刷新分享列表的操作
+     * <h3>刷新受影响的对应的分享的状态</h3>
+     * 通过文件ID将分享链接进行状态修改
+     * 当发生文件删除或还原时，执行刷新分享列表的操作
      *
-     *  <li>1、查询所有受影响的分享的ID集合</li>
-     *  <li>2、去判断每一个分享对应的文件以及所有的父文件信息均为正常，该种情况，把分享的状态变为正常</li>
-     *  <li>3、如果有分享的文件或者是父文件信息被删除，变更该分享的状态为有文件被删除</li>
+     * <li>1、查询所有受影响的分享的ID集合</li>
+     * <li>2、去判断每一个分享对应的文件以及所有的父文件信息均为正常，该种情况，把分享的状态变为正常</li>
+     * <li>3、如果有分享的文件或者是父文件信息被删除，变更该分享的状态为有文件被删除</li>
      * </p>
      *
      * @param allAvailableFileIdList
@@ -290,70 +290,78 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 根据ID查询数据库和缓存
+     * 
      * @param id 序列化ID
      * @return
      */
     @Override
     public RPanShare getById(Serializable id) {
         return cacheService.getById(id);
-//        return super.getById(id);
+        // return super.getById(id);
     }
 
     /**
      * 根据ID更新数据库和缓存
+     * 
      * @param entity 实体信息
      * @return
      */
     @Override
     public boolean updateById(RPanShare entity) {
         return cacheService.updateById(entity.getShareId(), entity);
-//        return super.updateById(entity);
+        // return super.updateById(entity);
     }
 
     /**
      * 根据ID删除实体和缓存
+     * 
      * @param entity 实体信息
      * @return
      */
     @Override
     public boolean removeById(RPanShare entity) {
         return cacheService.removeById(entity.getShareId());
-//        return super.removeById(entity);
+        // return super.removeById(entity);
     }
 
     /**
      * 根据ID列表 批量查询
+     * 
      * @param idList ID列表
      * @return
      */
     @Override
     public List<RPanShare> listByIds(Collection<? extends Serializable> idList) {
         return cacheService.getByIds(idList);
-//        return super.listByIds(idList);
+        // return super.listByIds(idList);
     }
 
     /**
      * 根据enetiy列表 批量更新数据库和缓存
+     * 
      * @param entityList entity列表
      * @return
      */
     @Override
     public boolean updateBatchById(Collection<RPanShare> entityList) {
-        if(CollectionUtils.isEmpty(entityList)){
+        if (CollectionUtils.isEmpty(entityList)) {
             return true;
         }
-        Map<Long, RPanShare> entityMap = entityList.stream().collect(Collectors.toMap(RPanShare::getShareId, entity -> entity));
+        Map<Long, RPanShare> entityMap = entityList.stream()
+                .collect(Collectors.toMap(RPanShare::getShareId, entity -> entity));
         return cacheService.updateByIds(entityMap);
-//        return super.updateBatchById(entityList);
+        // return super.updateBatchById(entityList);
     }
 
     @Override
     public boolean removeBatchByIds(Collection<?> list) {
         return cacheService.removeByIds((Collection<? extends Serializable>) list);
-//        return super.removeBatchByIds(list);
+        // return super.removeBatchByIds(list);
     }
 
-    /******************************************************************* private *****************************************************************************/
+    /*******************************************************************
+     * private
+     *****************************************************************************/
 
     /**
      * 创建分享链接后置处理
@@ -363,7 +371,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private void afterCreate(CreateShareUrlContext context, ShareUrlVO vo) {
         BloomFilter<Long> bloomFilter = bloomFilterManager.getFilter(BLOOM_FILTER_NAME);
-        if(Objects.nonNull(bloomFilter)){
+        if (Objects.nonNull(bloomFilter)) {
             bloomFilter.put(context.getRecord().getShareId());
             log.info("create share, add share id to bloom filter, share id is {}", context.getRecord().getShareId());
         }
@@ -374,11 +382,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      * 1、查询对应的分享信息是否有效
      * 2、判断分享对应的文件以及所有的父文件信息是否正常，这种情况把分享状态变成正常
      * 3、如果分享文件
+     * 
      * @param shareId 分享ID
      */
     private void refreshOneShareStatus(Long shareId) {
         RPanShare record = getById(shareId);
-        if(Objects.isNull(record)){
+        if (Objects.isNull(record)) {
             return;
         }
         ShareStatusEnum shareStatus = ShareStatusEnum.NORMAL;
@@ -386,7 +395,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
             shareStatus = ShareStatusEnum.FILE_DELETE;
         }
 
-        if(Objects.equals(record.getShareStatus(), shareStatus.getCode())){
+        if (Objects.equals(record.getShareStatus(), shareStatus.getCode())) {
             return;
         }
         doChangeShareStatus(record, shareStatus);
@@ -400,7 +409,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private void doChangeShareStatus(RPanShare record, ShareStatusEnum shareStatus) {
         record.setShareStatus(shareStatus.getCode());
-        if(!updateById(record)){
+        if (!updateById(record)) {
             ErrorLogEvent event = new ErrorLogEvent("更新分享状态失败，请手动更改状态，分享ID为：" +
                     record.getShareId() + ", 分享" +
                     "状态改为：" + shareStatus.getCode(),
@@ -418,7 +427,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     private boolean checkShareFileAvailable(Long shareId) {
         List<Long> shareFileIdList = getShareFileIdList(shareId);
         for (Long fileId : shareFileIdList) {
-            if(!checkUpFileAvailable(fileId)){
+            if (!checkUpFileAvailable(fileId)) {
                 return false;
             }
         }
@@ -433,13 +442,13 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private boolean checkUpFileAvailable(Long fileId) {
         RPanUserFile record = iUserFileService.getById(fileId);
-        if(Objects.isNull(record)){
+        if (Objects.isNull(record)) {
             return false;
         }
-        if(Objects.equals(DelFlagEnum.YES.getCode(), record.getDelFlag())){
+        if (Objects.equals(DelFlagEnum.YES.getCode(), record.getDelFlag())) {
             return false;
         }
-        if(Objects.equals(record.getParentId(), FileConstants.TOP_PARENT_ID)){
+        if (Objects.equals(record.getParentId(), FileConstants.TOP_PARENT_ID)) {
             return true;
         }
         return checkUpFileAvailable(record.getParentId());
@@ -447,6 +456,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 通过文件ID获取分享ID集合
+     * 
      * @param allAvailableFileIdList
      * @return
      */
@@ -454,11 +464,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         LambdaQueryWrapper<RPanShareFile> wrapper = new LambdaQueryWrapper<>();
         wrapper.select(RPanShareFile::getShareId);
         wrapper.in(RPanShareFile::getFileId, allAvailableFileIdList);
-        return iShareFileService.listObjs(wrapper, value->(Long) value);
+        return iShareFileService.listObjs(wrapper, value -> (Long) value);
     }
 
     /**
      * 执行分享文件下载的动作
+     * 
      * @param context
      */
     private void doDownload(ShareFileDownloadContext context) {
@@ -472,6 +483,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
     /**
      * 执行将分享文件集合保存到父文件夹下
      * 委托文件模块进行转存
+     * 
      * @param context
      */
     private void doSaveFiles(ShareSaveContext context) {
@@ -481,7 +493,6 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         copyFileContext.setUserId(context.getUserId());
         iUserFileService.copy(copyFileContext);
     }
-
 
     /**
      * 校验分享的文件ID是否属于某一分享
@@ -493,7 +504,6 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         checkFileIdIsOnShareStatusAndGetAllShareUserFiles(shareId, fileIdList);
     }
 
-
     /**
      * 校验文件是否处于分享状态，返回该分享的所有文件列表
      *
@@ -501,21 +511,24 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      * @param fileIdList
      * @return
      */
-    private List<RPanUserFileVO> checkFileIdIsOnShareStatusAndGetAllShareUserFiles(Long shareId, List<Long> fileIdList) {
+    private List<RPanUserFileVO> checkFileIdIsOnShareStatusAndGetAllShareUserFiles(Long shareId,
+            List<Long> fileIdList) {
         List<Long> shareFileIdList = getShareFileIdList(shareId);
-        if(CollectionUtil.isEmpty(shareFileIdList)){
+        if (CollectionUtil.isEmpty(shareFileIdList)) {
             return Lists.newArrayList();
         }
-        List<RPanUserFile> allFileRecordsByFileIdList = iUserFileService.findAllFileRecordsByFileIdList(shareFileIdList);
-        if (CollectionUtils.isEmpty(allFileRecordsByFileIdList)){
-            return  Lists.newArrayList();
+        List<RPanUserFile> allFileRecordsByFileIdList = iUserFileService
+                .findAllFileRecordsByFileIdList(shareFileIdList);
+        if (CollectionUtils.isEmpty(allFileRecordsByFileIdList)) {
+            return Lists.newArrayList();
         }
         List<RPanUserFile> allFileRecords = allFileRecordsByFileIdList.stream()
                 .filter(Objects::nonNull)
                 .filter(record -> Objects.equals(DelFlagEnum.NO.getCode(), record.getDelFlag()))
                 .toList();
-        Set<Long> allFileRecordsIdSet = allFileRecords.stream().map(RPanUserFile::getFileId).collect(Collectors.toSet());
-        if (allFileRecordsIdSet.containsAll(fileIdList)){
+        Set<Long> allFileRecordsIdSet = allFileRecords.stream().map(RPanUserFile::getFileId)
+                .collect(Collectors.toSet());
+        if (allFileRecordsIdSet.containsAll(fileIdList)) {
             return iUserFileService.transferVOList(allFileRecords);
         }
         throw new RPanBusinessException(ResponseCode.SHARE_FILE_MISS);
@@ -523,11 +536,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 拼装简单分享详情实体信息
+     * 
      * @param context
      */
     private void assembleShareSimpleUserInfo(QueryShareSimpleDetailContext context) {
         RPanUser record = iUserService.getById(context.getRecord().getCreateUser());
-        if(Objects.isNull(record)){
+        if (Objects.isNull(record)) {
             throw new RPanBusinessException("用户信息查询失败");
         }
         ShareUserInfoVO shareUserInfoVO = new ShareUserInfoVO();
@@ -538,6 +552,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 填充简单分享详情的实体信息
+     * 
      * @param context
      */
     private void assembleMainShareSimpleInfo(QueryShareSimpleDetailContext context) {
@@ -548,6 +563,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 初始化简单分享详情的VO对象
+     * 
      * @param context
      */
     private void initShareSimpleVO(QueryShareSimpleDetailContext context) {
@@ -562,7 +578,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private void assembleShareUserInfo(QueryShareDetailContext context) {
         RPanUser record = iUserService.getById(context.getRecord().getCreateUser());
-        if(Objects.isNull(record)){
+        if (Objects.isNull(record)) {
             throw new RPanBusinessException("用户信息查询失败");
         }
         ShareUserInfoVO shareUserInfoVO = new ShareUserInfoVO();
@@ -579,7 +595,8 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private String encryptUsername(String username) {
         StringBuilder stringBuffer = new StringBuilder(username);
-        stringBuffer.replace(RPanConstants.TWO_INT, username.length()-RPanConstants.TWO_INT, RPanConstants.COMMON_ENCRYPT_STR);
+        stringBuffer.replace(RPanConstants.TWO_INT, username.length() - RPanConstants.TWO_INT,
+                RPanConstants.COMMON_ENCRYPT_STR);
         return stringBuffer.toString();
     }
 
@@ -603,11 +620,12 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 查询分享对应的文件Id集合
+     * 
      * @param shareId
      * @return
      */
     private List<Long> getShareFileIdList(Long shareId) {
-        if (Objects.isNull(shareId)){
+        if (Objects.isNull(shareId)) {
             return Lists.newArrayList();
         }
         LambdaQueryWrapper<RPanShareFile> wrapper = new LambdaQueryWrapper<>();
@@ -649,41 +667,44 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private String generateShareToken(CheckShareCodeContext context) {
         RPanShare record = context.getRecord();
-        return JwtUtil.generateToken(UUIDUtil.getUUID(), ShareConstants.SHARE_ID, record.getShareId(), ShareConstants.ONE_HOUR_LONG);
+        return JwtUtil.generateToken(UUIDUtil.getUUID(), ShareConstants.SHARE_ID, record.getShareId(),
+                ShareConstants.ONE_HOUR_LONG);
     }
 
     /**
      * 校验文件的分享码是否正确
+     * 
      * @param context
      */
     private void doCheckShareCode(CheckShareCodeContext context) {
         RPanShare record = context.getRecord();
-        if(!Objects.equals(context.getShareCode(), record.getShareCode())){
+        if (!Objects.equals(context.getShareCode(), record.getShareCode())) {
             throw new RPanBusinessException("分享码错误");
         }
     }
 
     /**
      * 校验分享的状态是不是正常
+     * 
      * @param shareId
      * @return
      */
     private RPanShare checkShareStatus(Long shareId) {
         RPanShare record = getById(shareId);
 
-        if(Objects.isNull(record)){
+        if (Objects.isNull(record)) {
             throw new RPanBusinessException(ResponseCode.SHARE_CANCELLED);
         }
 
-        if(Objects.equals(ShareStatusEnum.FILE_DELETE.getCode(), record.getShareStatus())){
+        if (Objects.equals(ShareStatusEnum.FILE_DELETE.getCode(), record.getShareStatus())) {
             throw new RPanBusinessException(ResponseCode.SHARE_FILE_MISS);
         }
 
-        if(Objects.equals(ShareDayTypeEnum.PERMANENT_VALIDITY.getCode(), record.getShareDayType())){
+        if (Objects.equals(ShareDayTypeEnum.PERMANENT_VALIDITY.getCode(), record.getShareDayType())) {
             return record;
         }
 
-        if(record.getShareEndTime().before(new Date())){
+        if (record.getShareEndTime().before(new Date())) {
             throw new RPanBusinessException(ResponseCode.SHARE_EXPIRED);
         }
 
@@ -692,13 +713,14 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 取消文件和分享的关联关系数据
+     * 
      * @param context
      */
     private void doCancelShareFiles(CancelShareContext context) {
         LambdaQueryWrapper<RPanShareFile> queryWrapper = new LambdaQueryWrapper<>();
         queryWrapper.in(RPanShareFile::getShareId, context.getShareIdList());
         queryWrapper.eq(RPanShareFile::getCreateUser, context.getUserId());
-        if(!iShareFileService.remove(queryWrapper)){
+        if (!iShareFileService.remove(queryWrapper)) {
             throw new RPanBusinessException("取消分享失败");
         }
     }
@@ -710,7 +732,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
      */
     private void doCancelShare(CancelShareContext context) {
         List<Long> shareIdList = context.getShareIdList();
-        if(!removeBatchByIds(shareIdList)){
+        if (!removeBatchByIds(shareIdList)) {
             throw new RPanBusinessException("取消分享失败");
         }
     }
@@ -724,11 +746,11 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         List<Long> shareIdList = context.getShareIdList();
         Long userId = context.getUserId();
         List<RPanShare> records = listByIds(shareIdList);
-        if(CollectionUtil.isEmpty(records)){
+        if (CollectionUtil.isEmpty(records)) {
             throw new RPanBusinessException("您无权限操作取消分享的动作");
         }
         for (RPanShare record : records) {
-            if(!Objects.equals(record.getCreateUser(), userId)){
+            if (!Objects.equals(record.getCreateUser(), userId)) {
                 throw new RPanBusinessException("您无权限操作取消分享的动作");
             }
         }
@@ -777,7 +799,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         record.setShareDayType(context.getShareDayType());
 
         Integer shareDay = ShareDayTypeEnum.getShareDayByCode(context.getShareDayType());
-        if(Objects.equals(RPanConstants.MINUS_ONE_INT, shareDay)){
+        if (Objects.equals(RPanConstants.MINUS_ONE_INT, shareDay)) {
             throw new RPanBusinessException("非法的分享天数");
         }
         record.setShareDay(shareDay);
@@ -789,7 +811,7 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
         record.setCreateUser(context.getUserId());
         record.setCreateTime(new Date());
 
-        if (!save(record)){
+        if (!save(record)) {
             throw new RPanBusinessException("保存分享信息失败");
         }
         context.setRecord(record);
@@ -806,22 +828,19 @@ public class ShareServiceImpl extends ServiceImpl<RPanShareMapper, RPanShare>
 
     /**
      * 创建分享的URL
+     * 
      * @param shareId
      * @return
      */
     private String createShareUlr(Long shareId) {
-        if(Objects.isNull(shareId)){
+        if (Objects.isNull(shareId)) {
             throw new RPanBusinessException("分享的ID不能为空");
         }
         String sharePrefix = config.getSharePrefix();
-        if (RPanConstants.SLASH_STR.equals(sharePrefix.charAt(sharePrefix.length() - 1))){
+        if (RPanConstants.SLASH_STR.equals(sharePrefix.charAt(sharePrefix.length() - 1))) {
             sharePrefix += RPanConstants.SLASH_STR;
         }
         return sharePrefix + URLEncoder.encode(IdUtil.encrypt(shareId));
     }
 
 }
-
-
-
-

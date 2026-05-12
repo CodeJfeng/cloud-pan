@@ -12,7 +12,6 @@ import java.util.concurrent.ThreadPoolExecutor;
 @SpringBootConfiguration
 public class TreadPoolConfig {
 
-    // TODO 对该配置类的参数在配置文件中显示
     @Bean(name = "eventListenerTaskExecutor")
     public ThreadPoolTaskExecutor eventListenerTaskExecutor() {
         ThreadPoolTaskExecutor taskExecutor = new ThreadPoolTaskExecutor();

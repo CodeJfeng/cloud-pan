@@ -109,7 +109,6 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         List<String> realPathList = chunkRecordList.stream()
                 .sorted(Comparator.comparing(RPanFileChunk::getChunkNumber))
                 .map(RPanFileChunk::getRealPath).toList();
-        // TODO 委托存储引擎去合并文件分片
         try {
 
             MergeFileContext mergeFileContext = new MergeFileContext();
@@ -129,7 +128,6 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         List<Long> fileChunkRecordIdList = chunkRecordList.stream().map(RPanFileChunk::getId).toList();
         iFileChunkService.removeByIds(fileChunkRecordIdList);
 
-        // TODO 封装实体文件的真实存储路径
     }
 
     /******************************************************
@@ -148,7 +146,6 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
     private RPanFile doSaveFile(String filename, String realPath, Long totalSize, String identifier, Long userId) {
         RPanFile recode = asembleRPanFile(filename, realPath, totalSize, identifier, userId);
         if (!save(recode)) {
-            // TODO 删除已经删除的物理文件
             try {
                 DeleteFileContext deleteFileContext = new DeleteFileContext();
                 deleteFileContext.setRealPathList(Lists.newArrayList(realPath));
