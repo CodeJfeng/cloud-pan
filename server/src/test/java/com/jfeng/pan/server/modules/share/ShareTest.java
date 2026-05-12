@@ -33,6 +33,7 @@ import org.junit.runner.RunWith;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.mock.web.MockMultipartFile;
+import org.springframework.test.annotation.Rollback;
 import org.springframework.test.context.junit4.SpringRunner;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.util.CollectionUtils;
@@ -50,7 +51,8 @@ import java.util.concurrent.CountDownLatch;
  */
 @RunWith(SpringRunner.class)
 @SpringBootTest
-//@Transactional
+@Transactional
+@Rollback(true)
 public class ShareTest {
 
     @Autowired
@@ -58,7 +60,6 @@ public class ShareTest {
 
     @Autowired
     private IUserService iUserService;
-
 
     @Autowired
     private IFileService iFileService;
@@ -73,7 +74,7 @@ public class ShareTest {
      * 创建分享链接成功
      */
     @Test
-    public void createShareUrlSuccess(){
+    public void createShareUrlSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -96,12 +97,11 @@ public class ShareTest {
         Assert.isTrue(Objects.nonNull(shareUrlVO));
     }
 
-
     /**
      * 查询分享链接列表成功
      */
     @Test
-    public void queryShareUrlListSuccess(){
+    public void queryShareUrlListSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -134,7 +134,7 @@ public class ShareTest {
      * 取消分享链接成功
      */
     @Test
-    public void cancelShareUrlSuccess(){
+    public void cancelShareUrlSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -177,7 +177,7 @@ public class ShareTest {
      * 校验分享码成功
      */
     @Test
-    public void checkShareCodeSuccess(){
+    public void checkShareCodeSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -211,7 +211,7 @@ public class ShareTest {
      * 校验分享码失败——分享码错误
      */
     @Test(expected = RPanBusinessException.class)
-    public void checkShareCodeFail(){
+    public void checkShareCodeFail() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -241,12 +241,11 @@ public class ShareTest {
         Assert.notBlank(token);
     }
 
-
     /**
      * 校验查询分享详情成功
      */
     @Test
-    public void queryShareDetailSuccess(){
+    public void queryShareDetailSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -280,7 +279,7 @@ public class ShareTest {
      * 校验查询分享简单详情成功
      */
     @Test
-    public void queryShareSimpleDetailSuccess(){
+    public void queryShareSimpleDetailSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -314,7 +313,7 @@ public class ShareTest {
      * 校验查询分享下一级文件列表成功
      */
     @Test
-    public void queryShareFileListSuccess(){
+    public void queryShareFileListSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -342,51 +341,63 @@ public class ShareTest {
         queryChildFileListContext.setParentId(userInfoVO.getRootFileId());
         List<RPanUserFileVO> fileVOList = iShareService.fileList(queryChildFileListContext);
 
-
         Assert.isTrue(CollectionUtil.isNotEmpty(fileVOList));
     }
 
-
     @Test
-    public void init(){
+    public void init() {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        // 创建文件夹
+        CreateFolderContext createFolderContext = new CreateFolderContext();
+        createFolderContext.setUserId(userId);
+        createFolderContext.setParentId(userInfoVO.getRootFileId());
+        createFolderContext.setFolderName("folder-name");
+        Long fileId = iUserFileService.createFolder(createFolderContext);
+        Assert.notNull(fileId);
+
         CreateShareUrlContext context = new CreateShareUrlContext();
-        context.setUserId(2019781914771701760L);
+        context.setUserId(userId);
         context.setShareType(ShareTypeEnum.NEED_SHARE_CODE.getCode());
         context.setShareDayType(ShareDayTypeEnum.SEVEN_DAY_VALIDITY.getCode());
-        context.setShareFileIdList(Lists.newArrayList(2019791281575280640L));
-        for (int i = 0; i < 2; i++){
-            context.setShareName("测试分享"+ i);
+        context.setShareFileIdList(Lists.newArrayList(fileId));
+        for (int i = 0; i < 2; i++) {
+            context.setShareName("测试分享" + i);
             iShareService.create(context);
         }
     }
 
-    /************************************************************* private ****************************************************************/
-
+    /*************************************************************
+     * private
+     ****************************************************************/
 
     /**
      * 生成的网络文件实体
+     * 
      * @return
      */
     private static MultipartFile generateMultipartFile() {
         MultipartFile file = null;
         try {
             StringBuffer sb = new StringBuffer();
-            for(int i = 0; i < 1024 * 1024; i++ ){
+            for (int i = 0; i < 1024 * 1024; i++) {
                 sb.append("A");
             }
-            file = new MockMultipartFile("file", "test.txt", "multipart/form-data", sb.toString().getBytes(StandardCharsets.UTF_8));
-        }catch (Exception e){
+            file = new MockMultipartFile("file", "test.txt", "multipart/form-data",
+                    sb.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return file;
     }
 
-
     /**
      * 用户注册方法
+     * 
      * @return 新用户Id
      */
-    private Long register(){
+    private Long register() {
         UserRegisterContext context = createRegisterContext();
         Long register = iUserService.register(context);
         Assert.isTrue(register > 0L);
@@ -395,23 +406,23 @@ public class ShareTest {
 
     /**
      * 查询登录用户的基本信息
+     * 
      * @return 返回用户的相应信息
      */
-    private UserInfoVO info(Long userId){
+    private UserInfoVO info(Long userId) {
         UserInfoVO userInfoVO = iUserService.info(userId);
         Assert.notNull(userInfoVO);
         return userInfoVO;
     }
-
 
     private final String USERNAME = "Jfeng";
     private final String PASSWORD = "12345678";
     private final String QUESTION = "Question123";
     private final String ANSWER = "Answer123";
 
-
     /**
      * 注册用户上下文信息
+     * 
      * @return
      */
     private UserRegisterContext createRegisterContext() {
@@ -422,8 +433,10 @@ public class ShareTest {
         context.setAnswer(ANSWER);
         return context;
     }
+
     /**
      * 构建用户登录上下文信息
+     * 
      * @return
      */
     private UserLoginContext createLoginContext() {
