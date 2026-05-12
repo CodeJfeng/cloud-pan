@@ -26,17 +26,20 @@ import org.springframework.context.ApplicationContext;
 import org.springframework.context.ApplicationContextAware;
 import org.springframework.stereotype.Service;
 import org.springframework.util.CollectionUtils;
+import lombok.extern.slf4j.Slf4j;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Comparator;
 import java.util.Date;
 import java.util.List;
 
 /**
-* @author 16837
-* @description 针对表【r_pan_file(物理文件信息表)】的数据库操作Service实现
-* @createDate 2025-11-06 19:22:58
-*/
+ * @author 16837
+ * @description 针对表【r_pan_file(物理文件信息表)】的数据库操作Service实现
+ * @createDate 2025-11-06 19:22:58
+ */
+@Slf4j
 @Service(value = "userFileService")
 public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> implements IFileService {
 
@@ -71,12 +74,14 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
      * 合并物理文件并保存文件记录
      * 1、委托物理存储引擎合并文件分片
      * 2、保存物理文件记录
+     * 
      * @param context
      */
     @Override
     public void mergeFileChunkAndSaveFile(FileChunkMergeAndSaveContext context) {
         doMergeFileChunk(context);
-        RPanFile record = doSaveFile(context.getFilename(), context.getRealPath(), context.getTotalSize(), context.getIdentifier(), context.getUserId());
+        RPanFile record = doSaveFile(context.getFilename(), context.getRealPath(), context.getTotalSize(),
+                context.getIdentifier(), context.getUserId());
         context.setRecord(record);
 
     }
@@ -97,7 +102,7 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         queryWrapper.gt(RPanFileChunk::getExpirationTime, new Date());
         List<RPanFileChunk> chunkRecordList = iFileChunkService.list(queryWrapper);
 
-        if(CollectionUtils.isEmpty(chunkRecordList)){
+        if (CollectionUtils.isEmpty(chunkRecordList)) {
             throw new RPanBusinessException("该文件未找到分片记录");
         }
 
@@ -105,7 +110,7 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
                 .sorted(Comparator.comparing(RPanFileChunk::getChunkNumber))
                 .map(RPanFileChunk::getRealPath).toList();
         // TODO 委托存储引擎去合并文件分片
-        try{
+        try {
 
             MergeFileContext mergeFileContext = new MergeFileContext();
             mergeFileContext.setFilename(context.getFilename());
@@ -116,11 +121,10 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
 
             context.setRealPath(mergeFileContext.getRealPath());
 
-        }catch (IOException e){
+        } catch (IOException e) {
             e.printStackTrace();
             throw new RPanBusinessException("文件分片合并失败");
         }
-
 
         List<Long> fileChunkRecordIdList = chunkRecordList.stream().map(RPanFileChunk::getId).toList();
         iFileChunkService.removeByIds(fileChunkRecordIdList);
@@ -128,10 +132,13 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         // TODO 封装实体文件的真实存储路径
     }
 
-    /****************************************************** private ***************************************************************/
+    /******************************************************
+     * private
+     ***************************************************************/
 
     /**
      * 保存文件实体记录
+     * 
      * @param filename
      * @param realPath
      * @param totalSize
@@ -139,8 +146,8 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
      * @param userId
      */
     private RPanFile doSaveFile(String filename, String realPath, Long totalSize, String identifier, Long userId) {
-        RPanFile recode = asembleRPanFile(filename,realPath,totalSize,identifier,userId);
-        if(!save(recode)){
+        RPanFile recode = asembleRPanFile(filename, realPath, totalSize, identifier, userId);
+        if (!save(recode)) {
             // TODO 删除已经删除的物理文件
             try {
                 DeleteFileContext deleteFileContext = new DeleteFileContext();
@@ -148,7 +155,7 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
                 storageEngine.delete(deleteFileContext);
             } catch (IOException e) {
                 e.printStackTrace();
-                ErrorLogEvent errorLogEvent = new ErrorLogEvent( "文件物理删除失败，请执行手动删除！文件路径："+realPath, userId);
+                ErrorLogEvent errorLogEvent = new ErrorLogEvent("文件物理删除失败，请执行手动删除！文件路径：" + realPath, userId);
                 streamBridge.send(PanChannel.ERROR_LOG_OUT, errorLogEvent);
             }
         }
@@ -163,18 +170,28 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
      * @param context
      */
     private void storeMultipartFile(FileSaveContext context) {
+        InputStream inputStream = null;
         try {
             StoreFileContext storeFileContext = new StoreFileContext();
-            storeFileContext.setInputStream(context.getFile().getInputStream());
+            inputStream = context.getFile().getInputStream();
+            storeFileContext.setInputStream(inputStream);
             storeFileContext.setFilename(context.getFilename());
             storeFileContext.setTotalSize(context.getTotalSize());
 
             storageEngine.store(storeFileContext);
             context.setRealPath(storeFileContext.getRealPath());
 
-        }catch (IOException e){
-            e.printStackTrace();
-            throw new RPanBusinessException("文件上传失败");
+        } catch (IOException e) {
+            log.error("文件上传失败，文件名：{}，错误信息：{}", context.getFilename(), e.getMessage());
+            throw new RPanBusinessException("文件上传失败：" + e.getMessage());
+        } finally {
+            if (inputStream != null) {
+                try {
+                    inputStream.close();
+                } catch (IOException e) {
+                    log.warn("关闭文件输入流失败");
+                }
+            }
         }
     }
 
@@ -203,9 +220,4 @@ public class FileServiceImpl extends ServiceImpl<RPanFileMapper, RPanFile> imple
         return record;
     }
 
-
 }
-
-
-
-

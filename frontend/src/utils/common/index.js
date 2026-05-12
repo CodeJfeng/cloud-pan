@@ -140,7 +140,7 @@ let panUtil = {
     },
     getChunkSize() {
         if (this.getChunkUploadSwitch()) {
-            return 1024 * 1024 * 1
+            return 1024 * 1024 * 5
         }
         return this.getMaxFileSize()
     },

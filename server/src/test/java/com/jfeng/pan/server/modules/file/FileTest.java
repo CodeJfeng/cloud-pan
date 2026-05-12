@@ -49,19 +49,17 @@ public class FileTest {
     @Autowired
     private IUserService iUserService;
 
-
     @Autowired
     private IFileService iFileService;
 
     @Autowired
     private IFileChunkService iFileChunkService;
 
-
     /**
      * 测试用户查询文件列表
      */
     @Test
-    public void testQueryUserFileListSuccess(){
+    public void testQueryUserFileListSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -74,12 +72,11 @@ public class FileTest {
         Assert.isTrue(CollectionUtil.isEmpty(result));
     }
 
-
     /**
      * 测试创建文件夹成功
      */
     @Test
-    public void testCreateFolderSuccess(){
+    public void testCreateFolderSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -95,7 +92,7 @@ public class FileTest {
      * 更新文件名称成功
      */
     @Test
-    public void testUpdateFilenameSuccess(){
+    public void testUpdateFilenameSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -112,11 +109,12 @@ public class FileTest {
         updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
+
     /**
      * 更新文件名称失败--文件ID无效
      */
     @Test(expected = RPanBusinessException.class)
-    public void testUpdateFilenameFailByWrongFileId(){
+    public void testUpdateFilenameFailByWrongFileId() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -129,7 +127,7 @@ public class FileTest {
 
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
         updateFilenameContext.setUserId(userId);
-        updateFilenameContext.setFileId(fileId+1);
+        updateFilenameContext.setFileId(fileId + 1);
         updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
     }
@@ -138,7 +136,7 @@ public class FileTest {
      * 更新文件名称失败--当前用户没有修改该文件名称的权限
      */
     @Test(expected = RPanBusinessException.class)
-    public void testUpdateFilenameFailByWrongUserId(){
+    public void testUpdateFilenameFailByWrongUserId() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -150,7 +148,7 @@ public class FileTest {
         Assert.notNull(fileId);
 
         UpdateFilenameContext updateFilenameContext = new UpdateFilenameContext();
-        updateFilenameContext.setUserId(userId+1);
+        updateFilenameContext.setUserId(userId + 1);
         updateFilenameContext.setFileId(fileId);
         updateFilenameContext.setNewFilename("new-folder-name");
         iUserFileService.updateFilename(updateFilenameContext);
@@ -160,7 +158,7 @@ public class FileTest {
      * 更新文件名称失败--不能与当前文件夹名称一致
      */
     @Test(expected = RPanBusinessException.class)
-    public void testUpdateFilenameFailByWrongFileName(){
+    public void testUpdateFilenameFailByWrongFileName() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -182,7 +180,7 @@ public class FileTest {
      * 更新文件名称失败--当前文件名称已被使用
      */
     @Test(expected = RPanBusinessException.class)
-    public void testUpdateFilenameFailByWrongUsedFileName(){
+    public void testUpdateFilenameFailByWrongUsedFileName() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -210,10 +208,9 @@ public class FileTest {
      * 校验文件删除失败——非法的文件ID
      */
     @Test(expected = RPanBusinessException.class)
-    public void tesDeleteFileFailByWrongFileId(){
+    public void tesDeleteFileFailByWrongFileId() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
-
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
@@ -224,7 +221,7 @@ public class FileTest {
 
         DeleteFileContext deleteFileContext = new DeleteFileContext();
         List<Long> fileIdList = new ArrayList<>();
-        fileIdList.add(fileId+1L);
+        fileIdList.add(fileId + 1L);
         deleteFileContext.setFileIdList(fileIdList);
         deleteFileContext.setUserId(userId);
 
@@ -235,10 +232,9 @@ public class FileTest {
      * 校验文件删除失败——非法的用户ID
      */
     @Test(expected = RPanBusinessException.class)
-    public void tesDeleteFileFailByWrongUserId(){
+    public void tesDeleteFileFailByWrongUserId() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
-
 
         CreateFolderContext createFolderContext = new CreateFolderContext();
         createFolderContext.setUserId(userId);
@@ -251,7 +247,7 @@ public class FileTest {
         List<Long> fileIdList = new ArrayList<>();
         fileIdList.add(fileId);
         deleteFileContext.setFileIdList(fileIdList);
-        deleteFileContext.setUserId(userId+1L);
+        deleteFileContext.setUserId(userId + 1L);
 
         iUserFileService.deleteFile(deleteFileContext);
     }
@@ -260,7 +256,7 @@ public class FileTest {
      * 校验用户删除文件成功
      */
     @Test
-    public void tesDeleteFileSuccess(){
+    public void tesDeleteFileSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -284,7 +280,7 @@ public class FileTest {
      * 测试秒传功能成功
      */
     @Test
-    public void testSecUploadSuccess(){
+    public void testSecUploadSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -319,7 +315,7 @@ public class FileTest {
      * 测试秒传功能失败
      */
     @Test
-    public void testSecUploadFail(){
+    public void testSecUploadFail() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -339,7 +335,7 @@ public class FileTest {
      * 测试单文件上传成功
      */
     @Test
-    public void testUploadSuccess(){
+    public void testUploadSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -361,11 +357,12 @@ public class FileTest {
         Assert.notEmpty(fileList);
         Assert.isTrue(fileList.size() == 1);
     }
+
     /**
      * 测试查询用户已上传分片信息成功
      */
     @Test
-    public void  testQueryUploadedChunksSuccess(){
+    public void testQueryUploadedChunksSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -386,7 +383,7 @@ public class FileTest {
         context.setUserId(userId);
         context.setIdentifier(identifier);
 
-        UploadedChunksVO uploadedChunksVO  = iUserFileService.getUploadedChunks(context);
+        UploadedChunksVO uploadedChunksVO = iUserFileService.getUploadedChunks(context);
         Assert.notNull(uploadedChunksVO);
         Assert.notEmpty(uploadedChunksVO.getUploadedChunks());
     }
@@ -401,8 +398,8 @@ public class FileTest {
         UserInfoVO userInfoVO = info(userId);
 
         CountDownLatch countDownLatch = new CountDownLatch(10);
-        for (int i = 0; i < 10 ; i++){
-            new ChunkUpload(countDownLatch, i+1, 10, iUserFileService, userId, userInfoVO.getRootFileId()).start();
+        for (int i = 0; i < 10; i++) {
+            new ChunkUpload(countDownLatch, i + 1, 10, iUserFileService, userId, userInfoVO.getRootFileId()).start();
         }
         countDownLatch.await();
     }
@@ -411,7 +408,7 @@ public class FileTest {
      * 测试文件夹树查询
      */
     @Test
-    public void getFolderTreeNodeVOListTest(){
+    public void getFolderTreeNodeVOListTest() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -443,7 +440,7 @@ public class FileTest {
      * 测试文件转移成功
      */
     @Test
-    public void testTransferFileSuccess(){
+    public void testTransferFileSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -474,13 +471,11 @@ public class FileTest {
         Assert.notNull(records);
     }
 
-
-
     /**
      * 测试文件转移失败——目标文件夹是要转移的文件列表中的文件夹或者其子文件夹
      */
     @Test(expected = RPanBusinessException.class)
-    public void testTransferFileFail(){
+    public void testTransferFileFail() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -516,7 +511,7 @@ public class FileTest {
      * 测试文件复制成功
      */
     @Test
-    public void testCopyFileSuccess(){
+    public void testCopyFileSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -551,7 +546,7 @@ public class FileTest {
      * 测试文件复制失败——目标文件夹是要转移的文件列表中的文件夹或者其子文件夹
      */
     @Test(expected = RPanBusinessException.class)
-    public void testCopyFileFail(){
+    public void testCopyFileFail() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -586,7 +581,7 @@ public class FileTest {
      * 测试文件搜索成功
      */
     @Test
-    public void testSearchSuccess(){
+    public void testSearchSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -614,7 +609,7 @@ public class FileTest {
      * 测试查询文件面包屑导航列表成功过
      */
     @Test
-    public void testGetBreadcrumbsSuccess(){
+    public void testGetBreadcrumbsSuccess() {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -635,20 +630,21 @@ public class FileTest {
         Assert.isTrue(result.size() == 2);
     }
 
-    /************************************************************* private ****************************************************************/
+    /*************************************************************
+     * private
+     ****************************************************************/
 
     /**
      * 文件分片上传器
      */
     @AllArgsConstructor
-    private static class ChunkUpload extends Thread{
+    private static class ChunkUpload extends Thread {
         private CountDownLatch countDownLatch;
         private Integer chunk;
         private Integer chunks;
         private IUserFileService iUserFileService;
         private Long userId;
         private Long parentId;
-
 
         /**
          * 1、上传文件分片
@@ -673,7 +669,7 @@ public class FileTest {
             context.setUserId(userId);
 
             FileChunkUploadVO vo = iUserFileService.chunkUpload(context);
-            if(vo.getMergeFlag().equals(MergeFlagEnum.READY.getCode())){
+            if (vo.getMergeFlag().equals(MergeFlagEnum.READY.getCode())) {
                 System.out.println("分片" + chunk + "检测到可以合并分片");
 
                 FileChunkMergeContext mergeContext = new FileChunkMergeContext();
@@ -685,7 +681,7 @@ public class FileTest {
 
                 iUserFileService.mergeFile(mergeContext);
                 countDownLatch.countDown();
-            }else{
+            } else {
                 countDownLatch.countDown();
             }
         }
@@ -693,28 +689,30 @@ public class FileTest {
 
     /**
      * 生成的网络文件实体
+     * 
      * @return
      */
     private static MultipartFile generateMultipartFile() {
         MultipartFile file = null;
         try {
             StringBuffer sb = new StringBuffer();
-            for(int i = 0; i < 1024 * 1024; i++ ){
+            for (int i = 0; i < 1024 * 1024 * 5; i++) {
                 sb.append("A");
             }
-            file = new MockMultipartFile("file", "test.txt", "multipart/form-data", sb.toString().getBytes(StandardCharsets.UTF_8));
-        }catch (Exception e){
+            file = new MockMultipartFile("file", "test.txt", "multipart/form-data",
+                    sb.toString().getBytes(StandardCharsets.UTF_8));
+        } catch (Exception e) {
             e.printStackTrace();
         }
         return file;
     }
 
-
     /**
      * 用户注册方法
+     * 
      * @return 新用户Id
      */
-    private Long register(){
+    private Long register() {
         UserRegisterContext context = createRegisterContext();
         Long register = iUserService.register(context);
         Assert.isTrue(register > 0L);
@@ -723,23 +721,23 @@ public class FileTest {
 
     /**
      * 查询登录用户的基本信息
+     * 
      * @return 返回用户的相应信息
      */
-    private UserInfoVO info(Long userId){
+    private UserInfoVO info(Long userId) {
         UserInfoVO userInfoVO = iUserService.info(userId);
         Assert.notNull(userInfoVO);
         return userInfoVO;
     }
-
 
     private final String USERNAME = "Jfeng";
     private final String PASSWORD = "12345678";
     private final String QUESTION = "Question123";
     private final String ANSWER = "Answer123";
 
-
     /**
      * 注册用户上下文信息
+     * 
      * @return
      */
     private UserRegisterContext createRegisterContext() {
@@ -750,8 +748,10 @@ public class FileTest {
         context.setAnswer(ANSWER);
         return context;
     }
+
     /**
      * 构建用户登录上下文信息
+     * 
      * @return
      */
     private UserLoginContext createLoginContext() {

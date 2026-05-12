@@ -16,6 +16,7 @@
         <module>storage-engine-local</module>
         <module>storage-engine-oss</module>
         <module>storage-engine-fastdfs</module>
+        <module>storage-engine-rustfs</module>
     </modules>
     <properties>
         <maven.compiler.source>21</maven.compiler.source>

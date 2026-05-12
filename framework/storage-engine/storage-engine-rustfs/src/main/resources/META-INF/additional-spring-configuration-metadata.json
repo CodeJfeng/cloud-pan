@@ -1,0 +1,46 @@
+{
+  "properties": [
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.endpoint",
+      "type": "java.lang.String",
+      "description": "文件上传的端点",
+      "defaultValue": ""
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.access-key-id",
+      "type": "java.lang.String",
+      "description": "accessKeyId",
+      "defaultValue": ""
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.access-key-secret",
+      "type": "java.lang.String",
+      "description": "accessKeySecret",
+      "defaultValue": ""
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.bucket-name",
+      "type": "java.lang.String",
+      "description": "bucketName",
+      "defaultValue": ""
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.auto-create-bucket",
+      "type": "java.lang.Boolean",
+      "description": "是否自动创建桶",
+      "defaultValue": true
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.min-part-size",
+      "type": "java.lang.Long",
+      "description": "最小分片大小（字节），S3协议要求非最后分片不小于5MB，默认5242880",
+      "defaultValue": 5242880
+    },
+    {
+      "name": "com.jfeng.pan.storage.engine.rustfs.timeout-seconds",
+      "type": "java.lang.Long",
+      "description": "S3客户端超时时间（秒），上传大文件时需要适当增大，默认60",
+      "defaultValue": 60
+    }
+  ]
+}

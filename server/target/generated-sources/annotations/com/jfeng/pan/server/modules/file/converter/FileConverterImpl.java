@@ -28,8 +28,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-05-11T20:22:58+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
+    date = "2026-05-11T22:50:55+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class FileConverterImpl implements FileConverter {
@@ -104,10 +104,10 @@ public class FileConverterImpl implements FileConverter {
 
         FileUploadContext fileUploadContext = new FileUploadContext();
 
+        fileUploadContext.setFile( fileUploadPO.getFile() );
         fileUploadContext.setFilename( fileUploadPO.getFilename() );
         fileUploadContext.setIdentifier( fileUploadPO.getIdentifier() );
         fileUploadContext.setTotalSize( fileUploadPO.getTotalSize() );
-        fileUploadContext.setFile( fileUploadPO.getFile() );
 
         fileUploadContext.setParentId( com.jfeng.pan.core.utils.IdUtil.decrypt(fileUploadPO.getParentId()) );
         fileUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
@@ -123,10 +123,10 @@ public class FileConverterImpl implements FileConverter {
 
         FileSaveContext fileSaveContext = new FileSaveContext();
 
+        fileSaveContext.setFile( context.getFile() );
         fileSaveContext.setFilename( context.getFilename() );
         fileSaveContext.setIdentifier( context.getIdentifier() );
         fileSaveContext.setTotalSize( context.getTotalSize() );
-        fileSaveContext.setFile( context.getFile() );
         fileSaveContext.setUserId( context.getUserId() );
 
         return fileSaveContext;
@@ -140,13 +140,13 @@ public class FileConverterImpl implements FileConverter {
 
         FileChunkUploadContext fileChunkUploadContext = new FileChunkUploadContext();
 
+        fileChunkUploadContext.setChunkNumber( fileChunkUploadPO.getChunkNumber() );
+        fileChunkUploadContext.setCurrentChunkSize( fileChunkUploadPO.getCurrentChunkSize() );
+        fileChunkUploadContext.setFile( fileChunkUploadPO.getFile() );
         fileChunkUploadContext.setFilename( fileChunkUploadPO.getFilename() );
         fileChunkUploadContext.setIdentifier( fileChunkUploadPO.getIdentifier() );
         fileChunkUploadContext.setTotalChunks( fileChunkUploadPO.getTotalChunks() );
-        fileChunkUploadContext.setChunkNumber( fileChunkUploadPO.getChunkNumber() );
-        fileChunkUploadContext.setCurrentChunkSize( fileChunkUploadPO.getCurrentChunkSize() );
         fileChunkUploadContext.setTotalSize( fileChunkUploadPO.getTotalSize() );
-        fileChunkUploadContext.setFile( fileChunkUploadPO.getFile() );
 
         fileChunkUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
 
@@ -161,13 +161,13 @@ public class FileConverterImpl implements FileConverter {
 
         FileChunkSaveContext fileChunkSaveContext = new FileChunkSaveContext();
 
+        fileChunkSaveContext.setChunkNumber( context.getChunkNumber() );
+        fileChunkSaveContext.setCurrentChunkSize( context.getCurrentChunkSize() );
+        fileChunkSaveContext.setFile( context.getFile() );
         fileChunkSaveContext.setFilename( context.getFilename() );
         fileChunkSaveContext.setIdentifier( context.getIdentifier() );
         fileChunkSaveContext.setTotalChunks( context.getTotalChunks() );
-        fileChunkSaveContext.setChunkNumber( context.getChunkNumber() );
-        fileChunkSaveContext.setCurrentChunkSize( context.getCurrentChunkSize() );
         fileChunkSaveContext.setTotalSize( context.getTotalSize() );
-        fileChunkSaveContext.setFile( context.getFile() );
         fileChunkSaveContext.setUserId( context.getUserId() );
 
         return fileChunkSaveContext;
@@ -235,10 +235,10 @@ public class FileConverterImpl implements FileConverter {
 
         fileChunkMergeAndSaveContext.setFilename( context.getFilename() );
         fileChunkMergeAndSaveContext.setIdentifier( context.getIdentifier() );
-        fileChunkMergeAndSaveContext.setTotalSize( context.getTotalSize() );
         fileChunkMergeAndSaveContext.setParentId( context.getParentId() );
-        fileChunkMergeAndSaveContext.setUserId( context.getUserId() );
         fileChunkMergeAndSaveContext.setRecord( context.getRecord() );
+        fileChunkMergeAndSaveContext.setTotalSize( context.getTotalSize() );
+        fileChunkMergeAndSaveContext.setUserId( context.getUserId() );
 
         return fileChunkMergeAndSaveContext;
     }
@@ -269,11 +269,11 @@ public class FileConverterImpl implements FileConverter {
         RPanUserFileVO rPanUserFileVO = new RPanUserFileVO();
 
         rPanUserFileVO.setFileId( record.getFileId() );
-        rPanUserFileVO.setParentId( record.getParentId() );
-        rPanUserFileVO.setFilename( record.getFilename() );
         rPanUserFileVO.setFileSizeDesc( record.getFileSizeDesc() );
-        rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
         rPanUserFileVO.setFileType( record.getFileType() );
+        rPanUserFileVO.setFilename( record.getFilename() );
+        rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
+        rPanUserFileVO.setParentId( record.getParentId() );
         rPanUserFileVO.setUpdateTime( record.getUpdateTime() );
 
         return rPanUserFileVO;

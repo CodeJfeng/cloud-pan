@@ -110,6 +110,16 @@ com:
                 funnel-type-name: LONG
                 expected-insertions: 5000000
                 fpp: 0.01
+      storage: 
+        engine:
+          rustfs: 
+            endpoint: http://localhost:9000
+            access-key-id: rustfsadmin
+            access-key-secret: rustfsadmin
+            bucket-name: cloud-pan
+            auto-create-bucket: true
+
+
 #      storage:
 #        engine:
 #          oss:
