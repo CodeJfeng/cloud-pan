@@ -18,9 +18,8 @@ public interface FileConverter {
 
     @Mapping(target = "fileId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(updateFilenamePO.getFileId()))")
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
-    @Mapping(target = "newFilename", source ="updateFilenamePO.newFilename")
+    @Mapping(target = "newFilename", source = "updateFilenamePO.newFilename")
     UpdateFilenameContext updateFilenamePO2UpdateFilenameContext(UpdateFilenamePO updateFilenamePO);
-
 
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
     DeleteFileContext deleteFilePO2DeleteFileContext(DeleteFilePO deleteFilePO);
@@ -45,7 +44,8 @@ public interface FileConverter {
     StoreFileChunkContext fileChunkSaveContext2StoreFileChunkContext(FileChunkSaveContext fileChunkSaveContext);
 
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
-    QueryUploadedChunksContext queryUploadedChunksPO2QueryUploadedChunksContext(QueryUploadedChunksPO queryUploadedChunksPO);
+    QueryUploadedChunksContext queryUploadedChunksPO2QueryUploadedChunksContext(
+            QueryUploadedChunksPO queryUploadedChunksPO);
 
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
     @Mapping(target = "parentId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(fileChunkMergePO.getParentId()))")
