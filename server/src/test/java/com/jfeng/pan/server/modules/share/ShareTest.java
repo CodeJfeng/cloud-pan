@@ -345,7 +345,7 @@ public class ShareTest {
     }
 
     @Test
-    public void init() {
+    public void init() throws InterruptedException {
         Long userId = register();
         UserInfoVO userInfoVO = info(userId);
 
@@ -365,6 +365,7 @@ public class ShareTest {
         for (int i = 0; i < 2; i++) {
             context.setShareName("测试分享" + i);
             iShareService.create(context);
+            Thread.sleep(1000);
         }
     }
 

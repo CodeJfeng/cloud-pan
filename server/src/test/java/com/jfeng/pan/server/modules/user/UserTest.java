@@ -25,7 +25,6 @@ import org.springframework.transaction.annotation.Transactional;
 @RunWith(SpringRunner.class)
 @SpringBootTest(classes = { RPanServerLauncher.class })
 @Transactional
-@Rollback(true)
 public class UserTest {
 
     @Autowired
