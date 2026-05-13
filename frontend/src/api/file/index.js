@@ -111,6 +111,13 @@ let fileService = {
             data: data,
             method: 'post'
         }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    listUploadedParts: function (params, resolve, reject) {
+        http({
+            url: '/file/uploaded-parts',
+            params: params,
+            method: 'get'
+        }).then(res => resolve(res)).catch(err => reject(err))
     }
 }
 

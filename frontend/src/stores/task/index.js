@@ -45,20 +45,37 @@ export const useTaskStore = defineStore('task', () => {
 
     function pause(filename) {
         let taskItem = taskList.value.find(taskItem => filename === taskItem.filename)
-        taskItem.target.pause()
+        if (taskItem.target && typeof taskItem.target.pause === 'function') {
+            taskItem.target.pause()
+        }
+        if (taskItem.directUploader && typeof taskItem.directUploader.pause === 'function') {
+            taskItem.directUploader.pause()
+        }
         taskItem.status = panUtil.fileStatus.PAUSE.code
         taskItem.statusText = panUtil.fileStatus.PAUSE.text
     }
 
     function resume(filename) {
         let taskItem = taskList.value.find(taskItem => filename === taskItem.filename)
-        taskItem.target.resume()
+        if (taskItem.target && typeof taskItem.target.resume === 'function') {
+            taskItem.target.resume()
+        }
+        if (taskItem.directUploader && typeof taskItem.directUploader.resume === 'function') {
+            taskItem.directUploader.resume()
+            taskItem.status = panUtil.fileStatus.UPLOADING.code
+            taskItem.statusText = panUtil.fileStatus.UPLOADING.text
+        }
     }
 
     function cancel(filename) {
         for (let i = 0; i < taskList.value.length; i++) {
             if (filename === taskList.value[i].filename) {
-                taskList.value[i].target.cancel()
+                if (taskList.value[i].target && typeof taskList.value[i].target.cancel === 'function') {
+                    taskList.value[i].target.cancel()
+                }
+                if (taskList.value[i].directUploader && typeof taskList.value[i].directUploader.cancel === 'function') {
+                    taskList.value[i].directUploader.cancel()
+                }
                 taskList.value.splice(i, 1)
                 if (taskList.value.length === 0) {
                     viewFlag.value = false
@@ -71,8 +88,12 @@ export const useTaskStore = defineStore('task', () => {
 
     function retry(filename) {
         let taskItem = taskList.value.find(taskItem => filename === taskItem.filename)
-        taskItem.target.bootstrap()
-        taskItem.target.resume()
+        if (taskItem.target && typeof taskItem.target.bootstrap === 'function') {
+            taskItem.target.bootstrap()
+        }
+        if (taskItem.target && typeof taskItem.target.resume === 'function') {
+            taskItem.target.resume()
+        }
     }
 
     function updateViewFlag(newViewFlag) {

@@ -337,4 +337,38 @@ public abstract class AbstractStorageEngine implements StorageEngine {
         Assert.notNull(context.getTotalSize(), "文件总大小不能为空");
         Assert.notNull(context.getUserId(), "当前登录用户ID不能为空");
     }
+
+    /**
+     * 查询已上传的分片列表
+     * 1、参数校验
+     * 2、查询已上传分片
+     *
+     * @param context 查询已上传分片上下文
+     * @return 已上传的分片编号列表
+     */
+    @Override
+    public java.util.List<Integer> listUploadedParts(ListUploadedPartsContext context) {
+        checkListUploadedPartsContext(context);
+        return doListUploadedParts(context);
+    }
+
+    /**
+     * 校验查询已上传分片上下文
+     *
+     * @param context 查询已上传分片上下文
+     */
+    private void checkListUploadedPartsContext(ListUploadedPartsContext context) {
+        Assert.notNull(context, "查询已上传分片上下文不能为空");
+        Assert.notBlank(context.getObjectKey(), "objectKey不能为空");
+        Assert.notBlank(context.getUploadId(), "uploadId不能为空");
+    }
+
+    /**
+     * 执行查询已上传分片的具体逻辑
+     * 下沉到子类实现
+     *
+     * @param context 查询已上传分片上下文
+     * @return 已上传的分片编号列表
+     */
+    protected abstract java.util.List<Integer> doListUploadedParts(ListUploadedPartsContext context);
 }

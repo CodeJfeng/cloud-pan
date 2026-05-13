@@ -90,4 +90,13 @@ public interface StorageEngine {
      * @throws IOException 文件合并异常或存储系统通信异常
      */
     void completeMultipartUpload(CompleteMultipartUploadContext context) throws IOException;
+
+    /**
+     * 查询已上传的分片列表
+     * 用于断点续传场景，获取 S3 上已上传的分片编号列表
+     *
+     * @param context 查询已上传分片上下文，包含objectKey、uploadId等信息
+     * @return 已上传的分片编号列表
+     */
+    java.util.List<Integer> listUploadedParts(ListUploadedPartsContext context);
 }

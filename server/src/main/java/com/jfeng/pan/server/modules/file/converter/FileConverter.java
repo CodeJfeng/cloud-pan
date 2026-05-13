@@ -72,4 +72,7 @@ public interface FileConverter {
     @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
     @Mapping(target = "parentId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(po.getParentId()))")
     CompleteDirectUploadContext completeDirectUploadPO2Context(CompleteDirectUploadPO po);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    QueryUploadedPartsContext queryUploadedPartsPO2Context(QueryUploadedPartsPO po);
 }

@@ -1215,9 +1215,10 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
     }
 
     /**
-     *  完成直传文件的上传
-     *  1、如果是分片上传，调用存储引擎完成分片上传的合并
-     *  2、保存文件实体
+     * 完成直传文件的上传
+     * 1、如果是分片上传，调用存储引擎完成分片上传的合并
+     * 2、保存文件实体
+     * 
      * @param context 完成直传上下文，包含objectKey、uploadId（分片上传时）、文件名、文件大小等信息
      */
     @Override
@@ -1233,7 +1234,8 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
             engineContext.setUserId(context.getUserId());
 
             if (!CollectionUtils.isEmpty(context.getParts())) {
-                List<com.jfeng.pan.storage.engine.core.context.CompleteMultipartUploadContext.PartInfo> engineParts = context.getParts().stream()
+                List<com.jfeng.pan.storage.engine.core.context.CompleteMultipartUploadContext.PartInfo> engineParts = context
+                        .getParts().stream()
                         .map(part -> {
                             com.jfeng.pan.storage.engine.core.context.CompleteMultipartUploadContext.PartInfo enginePart = new com.jfeng.pan.storage.engine.core.context.CompleteMultipartUploadContext.PartInfo();
                             enginePart.setPartNumber(part.getPartNumber());
@@ -1276,5 +1278,29 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
                 fileRecord.getFileId(),
                 context.getUserId(),
                 fileRecord.getFileSizeDesc());
+    }
+
+    /**
+     * 查询已上传的分片列表
+     * 用于断点续传场景，获取 S3 上已上传的分片编号列表
+     *
+     * @param context 查询已上传分片上下文，包含objectKey、uploadId等信息
+     * @return 已上传分片列表响应
+     */
+    @Override
+    public com.jfeng.pan.server.modules.file.vo.UploadedPartsVO listUploadedParts(
+            com.jfeng.pan.server.modules.file.context.QueryUploadedPartsContext context) {
+        com.jfeng.pan.storage.engine.core.context.ListUploadedPartsContext engineContext = new com.jfeng.pan.storage.engine.core.context.ListUploadedPartsContext();
+        engineContext.setObjectKey(context.getObjectKey());
+        engineContext.setUploadId(context.getUploadId());
+        engineContext.setUserId(context.getUserId());
+
+        java.util.List<Integer> uploadedParts = storageEngine.listUploadedParts(engineContext);
+
+        com.jfeng.pan.server.modules.file.vo.UploadedPartsVO vo = new com.jfeng.pan.server.modules.file.vo.UploadedPartsVO();
+        vo.setUploadedParts(uploadedParts);
+        vo.setObjectKey(context.getObjectKey());
+        vo.setUploadId(context.getUploadId());
+        return vo;
     }
 }

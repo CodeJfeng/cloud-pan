@@ -211,4 +211,14 @@ public interface IUserFileService extends IService<RPanUserFile> {
          * @param context 完成直传上下文，包含objectKey、uploadId（分片上传时）、文件名、文件大小等信息
          */
         void completeDirectUpload(com.jfeng.pan.server.modules.file.context.CompleteDirectUploadContext context);
+
+        /**
+         * 查询已上传的分片列表
+         * 用于断点续传场景，获取 S3 上已上传的分片编号列表
+         *
+         * @param context 查询已上传分片上下文，包含objectKey、uploadId等信息
+         * @return 已上传分片列表响应
+         */
+        com.jfeng.pan.server.modules.file.vo.UploadedPartsVO listUploadedParts(
+                        com.jfeng.pan.server.modules.file.context.QueryUploadedPartsContext context);
 }

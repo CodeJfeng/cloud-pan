@@ -182,15 +182,39 @@ const handleDirectUpload = async (file, md5, taskItem) => {
             statusText: panUtil.fileStatus.UPLOADING.text
         })
 
-        await directUploader.upload(file.file, md5, paramParentId.value, (uploadedSize, totalSize, percentage) => {
-            taskStore.updateProcess({
-                filename: file.name,
-                speed: panUtil.translateSpeed(file.averageSpeed),
-                percentage: percentage,
-                uploadedSize: panUtil.translateFileSize(uploadedSize),
-                timeRemaining: panUtil.translateTime(file.timeRemaining())
-            })
-        })
+        const uploadTask = directUploader.getTask(md5)
+        taskItem.directUploader = uploadTask
+
+        while (true) {
+            try {
+                await directUploader.upload(file.file, md5, paramParentId.value, (uploadedSize, totalSize, percentage) => {
+                    taskStore.updateProcess({
+                        filename: file.name,
+                        speed: panUtil.translateSpeed(file.averageSpeed),
+                        percentage: percentage,
+                        uploadedSize: panUtil.translateFileSize(uploadedSize),
+                        timeRemaining: panUtil.translateTime(file.timeRemaining())
+                    })
+                })
+                break
+            } catch (error) {
+                if (error.message === '上传已暂停') {
+                    taskStore.updateStatus({
+                        filename: file.name,
+                        status: panUtil.fileStatus.PAUSE.code,
+                        statusText: panUtil.fileStatus.PAUSE.text
+                    })
+                    await waitForResume(uploadTask)
+                    taskStore.updateStatus({
+                        filename: file.name,
+                        status: panUtil.fileStatus.UPLOADING.code,
+                        statusText: panUtil.fileStatus.UPLOADING.text
+                    })
+                    continue
+                }
+                throw error
+            }
+        }
 
         ElMessage.success('文件：' + file.name + ' 上传完成')
         taskStore.updateStatus({
@@ -204,6 +228,9 @@ const handleDirectUpload = async (file, md5, taskItem) => {
             taskStore.updateViewFlag(false)
         }
     } catch (error) {
+        if (error.message === '上传已取消') {
+            return
+        }
         ElMessage.error('文件：' + file.name + ' 上传失败: ' + error.message)
         taskStore.updateStatus({
             filename: file.name,
@@ -211,6 +238,17 @@ const handleDirectUpload = async (file, md5, taskItem) => {
             statusText: panUtil.fileStatus.FAIL.text
         })
     }
+}
+
+const waitForResume = (uploadTask) => {
+    return new Promise((resolve) => {
+        const checkResume = setInterval(() => {
+            if (!uploadTask.isPaused) {
+                clearInterval(checkResume)
+                resolve()
+            }
+        }, 500)
+    })
 }
 
 const uploadProgress = (rootFile, file, chunk) => {

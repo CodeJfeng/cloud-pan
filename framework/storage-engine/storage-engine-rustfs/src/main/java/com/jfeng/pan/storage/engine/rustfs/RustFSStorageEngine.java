@@ -647,4 +647,30 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         String cacheKey = getCacheKey(context.getUploadId(), context.getUserId());
         getCache().evict(cacheKey);
     }
+
+    /**
+     * 查询已上传的分片列表
+     * 调用 S3 ListParts API 获取已上传的分片编号
+     *
+     * @param context 查询已上传分片上下文，包含objectKey、uploadId等信息
+     * @return 已上传的分片编号列表
+     */
+    @Override
+    protected java.util.List<Integer> doListUploadedParts(ListUploadedPartsContext context) {
+        java.util.List<Integer> uploadedParts = new ArrayList<>();
+
+        ListPartsResponse response = s3Client.listParts(ListPartsRequest.builder()
+                .bucket(config.getBucketName())
+                .key(context.getObjectKey())
+                .uploadId(context.getUploadId())
+                .build());
+
+        if (Objects.nonNull(response) && !CollectionUtils.isEmpty(response.parts())) {
+            uploadedParts = response.parts().stream()
+                    .map(part -> part.partNumber())
+                    .collect(Collectors.toList());
+        }
+
+        return uploadedParts;
+    }
 }

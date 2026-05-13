@@ -276,4 +276,13 @@ public class FileController {
         iUserFileService.completeDirectUpload(context);
         return R.success();
     }
+
+    @Operation(summary = "查询已上传的分片列表",
+            description = "用于断点续传场景，获取S3上已上传的分片编号列表")
+    @GetMapping("file/uploaded-parts")
+    public R<UploadedPartsVO> listUploadedParts(@Validated QueryUploadedPartsPO po){
+        QueryUploadedPartsContext context = fileConverter.queryUploadedPartsPO2Context(po);
+        UploadedPartsVO vo = iUserFileService.listUploadedParts(context);
+        return R.data(vo);
+    }
 }
