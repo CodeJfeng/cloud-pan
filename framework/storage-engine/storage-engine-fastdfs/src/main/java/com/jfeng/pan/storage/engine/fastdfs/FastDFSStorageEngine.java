@@ -18,6 +18,7 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
     protected void doStore(StoreFileContext context) throws IOException {
 
     }
+
     /**
      * 执行删除物理文件的动作
      *
@@ -27,6 +28,7 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
     protected void doDelete(DeleteFileContext context) throws IOException {
 
     }
+
     /**
      * 执行保存文件分片
      *
@@ -40,6 +42,7 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
 
     /**
      * 执行文件分片的动作
+     * 
      * @param context
      */
     @Override
@@ -53,7 +56,7 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
      * @param context
      */
     @Override
-    protected void doReadFile(ReadFileContext context)throws IOException {
+    protected void doReadFile(ReadFileContext context) throws IOException {
 
     }
 
@@ -75,5 +78,10 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
     @Override
     protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
         throw new UnsupportedOperationException("FastDFS存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected java.util.List<Integer> doListUploadedParts(ListUploadedPartsContext context) {
+        throw new UnsupportedOperationException("FastDFS存储引擎不支持查询已上传分片");
     }
 }

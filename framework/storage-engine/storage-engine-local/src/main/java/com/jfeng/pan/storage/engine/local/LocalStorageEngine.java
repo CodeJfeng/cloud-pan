@@ -110,4 +110,9 @@ public class LocalStorageEngine extends AbstractStorageEngine {
     protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
         throw new UnsupportedOperationException("本地存储引擎不支持预签名URL");
     }
+
+    @Override
+    protected java.util.List<Integer> doListUploadedParts(ListUploadedPartsContext context) {
+        throw new UnsupportedOperationException("本地存储引擎不支持查询已上传分片");
+    }
 }
