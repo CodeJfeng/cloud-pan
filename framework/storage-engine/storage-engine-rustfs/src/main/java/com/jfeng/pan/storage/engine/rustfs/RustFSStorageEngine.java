@@ -601,8 +601,7 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
                         .bucket(config.getBucketName())
                         .key(context.getObjectKey())
                         .uploadId(context.getUploadId())
-                        .partNumber(context.getPartNumber())
-                        .contentLength(context.getPartSize()))
+                        .partNumber(context.getPartNumber()))
                 .build();
 
         PresignedUploadPartRequest presignedRequest = s3Presigner.presignUploadPart(presignRequest);

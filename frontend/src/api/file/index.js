@@ -83,6 +83,34 @@ let fileService = {
             data: data,
             method: 'post'
         }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    generatePresignedUrl: function (data, resolve, reject) {
+        http({
+            url: '/file/presigned-url',
+            data: data,
+            method: 'post'
+        }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    initMultipartUpload: function (data, resolve, reject) {
+        http({
+            url: '/file/init-multipart',
+            data: data,
+            method: 'post'
+        }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    generatePresignedPartUrl: function (data, resolve, reject) {
+        http({
+            url: '/file/presigned-part-url',
+            data: data,
+            method: 'post'
+        }).then(res => resolve(res)).catch(err => reject(err))
+    },
+    completeDirectUpload: function (data, resolve, reject) {
+        http({
+            url: '/file/complete-direct-upload',
+            data: data,
+            method: 'post'
+        }).then(res => resolve(res)).catch(err => reject(err))
     }
 }
 

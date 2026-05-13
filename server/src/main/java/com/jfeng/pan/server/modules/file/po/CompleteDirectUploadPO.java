@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.po;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.Data;
@@ -57,6 +58,7 @@ public class CompleteDirectUploadPO implements Serializable {
 
         @Schema(description = "分片的 ETag 值", requiredMode = Schema.RequiredMode.REQUIRED)
         @NotBlank(message = "ETag不能为空")
+        @JsonProperty("eTag")
         private String eTag;
     }
 }

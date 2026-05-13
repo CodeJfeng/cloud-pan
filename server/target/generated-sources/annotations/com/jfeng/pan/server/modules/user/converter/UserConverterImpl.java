@@ -20,8 +20,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-05-12T20:30:11+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
+    date = "2026-05-13T15:28:33+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class UserConverterImpl implements UserConverter {
@@ -34,10 +34,10 @@ public class UserConverterImpl implements UserConverter {
 
         UserRegisterContext userRegisterContext = new UserRegisterContext();
 
-        userRegisterContext.setUsername( userRegisterPO.getUsername() );
+        userRegisterContext.setAnswer( userRegisterPO.getAnswer() );
         userRegisterContext.setPassword( userRegisterPO.getPassword() );
         userRegisterContext.setQuestion( userRegisterPO.getQuestion() );
-        userRegisterContext.setAnswer( userRegisterPO.getAnswer() );
+        userRegisterContext.setUsername( userRegisterPO.getUsername() );
 
         return userRegisterContext;
     }
@@ -50,9 +50,9 @@ public class UserConverterImpl implements UserConverter {
 
         RPanUser rPanUser = new RPanUser();
 
-        rPanUser.setUsername( userRegisterContext.getUsername() );
-        rPanUser.setQuestion( userRegisterContext.getQuestion() );
         rPanUser.setAnswer( userRegisterContext.getAnswer() );
+        rPanUser.setQuestion( userRegisterContext.getQuestion() );
+        rPanUser.setUsername( userRegisterContext.getUsername() );
 
         return rPanUser;
     }
@@ -65,8 +65,8 @@ public class UserConverterImpl implements UserConverter {
 
         UserLoginContext userLoginContext = new UserLoginContext();
 
-        userLoginContext.setUsername( userLoginPO.getUsername() );
         userLoginContext.setPassword( userLoginPO.getPassword() );
+        userLoginContext.setUsername( userLoginPO.getUsername() );
 
         return userLoginContext;
     }
@@ -92,9 +92,9 @@ public class UserConverterImpl implements UserConverter {
 
         CheckAnswerContext checkAnswerContext = new CheckAnswerContext();
 
-        checkAnswerContext.setUsername( checkAnswerPO.getUsername() );
-        checkAnswerContext.setQuestion( checkAnswerPO.getQuestion() );
         checkAnswerContext.setAnswer( checkAnswerPO.getAnswer() );
+        checkAnswerContext.setQuestion( checkAnswerPO.getQuestion() );
+        checkAnswerContext.setUsername( checkAnswerPO.getUsername() );
 
         return checkAnswerContext;
     }
@@ -107,9 +107,9 @@ public class UserConverterImpl implements UserConverter {
 
         ResetPasswordContext resetPasswordContext = new ResetPasswordContext();
 
-        resetPasswordContext.setUsername( resetPasswordPO.getUsername() );
         resetPasswordContext.setPassword( resetPasswordPO.getPassword() );
         resetPasswordContext.setToken( resetPasswordPO.getToken() );
+        resetPasswordContext.setUsername( resetPasswordPO.getUsername() );
 
         return resetPasswordContext;
     }
@@ -122,8 +122,8 @@ public class UserConverterImpl implements UserConverter {
 
         ChangePasswordContext changePasswordContext = new ChangePasswordContext();
 
-        changePasswordContext.setOldPassword( changePasswordPO.getOldPassword() );
         changePasswordContext.setNewPassword( changePasswordPO.getNewPassword() );
+        changePasswordContext.setOldPassword( changePasswordPO.getOldPassword() );
 
         return changePasswordContext;
     }

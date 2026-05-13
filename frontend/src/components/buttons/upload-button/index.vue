@@ -53,6 +53,7 @@ import {ElMessage} from 'element-plus'
 import {useFileStore} from '@/stores/file'
 import {useTaskStore} from '@/stores/task'
 import {storeToRefs} from 'pinia'
+import directUploader from '@/utils/direct-upload'
 
 const fileStore = useFileStore()
 const taskStore = useTaskStore()
@@ -120,7 +121,6 @@ const rebindUploader = () => {
 }
 
 const filesAdded = (files, fileList, event) => {
-    // 插件在调用该方法之前会自动过滤选择的文件 去除正在上传的文件 新添加的文件就是第一个参数files
     uploadDialogVisible.value = false
     try {
         files.forEach((f) => {
@@ -140,7 +140,6 @@ const filesAdded = (files, fileList, event) => {
                 percentage: 0,
                 parentId: new String(paramParentId.value)
             }
-            // 添加
             taskStore.add(taskItem)
             MD5(f.file, (e, md5) => {
                 f['uniqueIdentifier'] = md5
@@ -158,20 +157,10 @@ const filesAdded = (files, fileList, event) => {
                             taskStore.updateViewFlag(false)
                         }
                     } else {
-                        f.resume()
-                        taskStore.updateStatus({
-                            filename: f.name,
-                            status: panUtil.fileStatus.WAITING.code,
-                            statusText: panUtil.fileStatus.WAITING.text
-                        })
+                        handleDirectUpload(f, md5, taskItem)
                     }
                 }, res => {
-                    f.resume()
-                    taskStore.updateStatus({
-                        filename: f.name,
-                        status: panUtil.fileStatus.WAITING.code,
-                        statusText: panUtil.fileStatus.WAITING.text
-                    })
+                    handleDirectUpload(f, md5, taskItem)
                 })
             })
         })
@@ -183,6 +172,45 @@ const filesAdded = (files, fileList, event) => {
     }
     taskStore.updateViewFlag(true)
     return true
+}
+
+const handleDirectUpload = async (file, md5, taskItem) => {
+    try {
+        taskStore.updateStatus({
+            filename: file.name,
+            status: panUtil.fileStatus.UPLOADING.code,
+            statusText: panUtil.fileStatus.UPLOADING.text
+        })
+
+        await directUploader.upload(file.file, md5, paramParentId.value, (uploadedSize, totalSize, percentage) => {
+            taskStore.updateProcess({
+                filename: file.name,
+                speed: panUtil.translateSpeed(file.averageSpeed),
+                percentage: percentage,
+                uploadedSize: panUtil.translateFileSize(uploadedSize),
+                timeRemaining: panUtil.translateTime(file.timeRemaining())
+            })
+        })
+
+        ElMessage.success('文件：' + file.name + ' 上传完成')
+        taskStore.updateStatus({
+            filename: file.name,
+            status: panUtil.fileStatus.SUCCESS.code,
+            statusText: panUtil.fileStatus.SUCCESS.text
+        })
+        taskStore.remove(file.name)
+        fileStore.loadFileList()
+        if (uploader.files.length === 0) {
+            taskStore.updateViewFlag(false)
+        }
+    } catch (error) {
+        ElMessage.error('文件：' + file.name + ' 上传失败: ' + error.message)
+        taskStore.updateStatus({
+            filename: file.name,
+            status: panUtil.fileStatus.FAIL.code,
+            statusText: panUtil.fileStatus.FAIL.text
+        })
+    }
 }
 
 const uploadProgress = (rootFile, file, chunk) => {
