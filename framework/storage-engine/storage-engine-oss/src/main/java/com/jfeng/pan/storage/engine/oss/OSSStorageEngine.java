@@ -4,6 +4,7 @@ import cn.hutool.core.date.DateUtil;
 import com.alibaba.fastjson2.JSONObject;
 import com.aliyun.oss.OSSClient;
 import com.aliyun.oss.model.*;
+import com.aliyun.oss.HttpMethod;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.FileUtil;
@@ -23,11 +24,12 @@ import java.io.Serial;
 import java.io.Serializable;
 import java.util.*;
 import java.util.stream.Collectors;
+import java.util.Date;
 
 @Component
 public class OSSStorageEngine extends AbstractStorageEngine {
 
-    private static  final Integer TEN_THOUSAND_INT = 10000;
+    private static final Integer TEN_THOUSAND_INT = 10000;
 
     private static final String CACHE_KEY_TEMPLATE = "oss_cache_upload_id_%s_%s";
 
@@ -70,15 +72,16 @@ public class OSSStorageEngine extends AbstractStorageEngine {
      * 1、获取所有需要删除的文件存储路径
      * 2、如果该存储路径是一个文件分片的路径，截取出对应的Object的name。发送request进行删除
      * 3、如果是存储对象文件，直接调用client的删除函数
+     * 
      * @param context
      */
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
         List<String> realFilePathList = context.getRealPathList();
-        realFilePathList.forEach(realPath->{
-            if(checkHaveParams(realPath)){
+        realFilePathList.forEach(realPath -> {
+            if (checkHaveParams(realPath)) {
                 JSONObject params = JSONObject.from(analysisUrlParams(realPath));
-                if(Objects.nonNull(params) && !params.isEmpty()){
+                if (Objects.nonNull(params) && !params.isEmpty()) {
                     String upload = params.getString(UPLOAD_ID_KEY);
                     String identifier = params.getString(IDENTIFIER_KEY);
                     Long userId = params.getLongValue(USER_ID_KEY);
@@ -86,19 +89,18 @@ public class OSSStorageEngine extends AbstractStorageEngine {
 
                     getCache().evict(cacheKey);
 
-                    try{
+                    try {
                         AbortMultipartUploadRequest request = new AbortMultipartUploadRequest(
                                 config.getBucketName(),
                                 getBaseUrl(realPath),
-                                upload
-                        );
+                                upload);
                         client.abortMultipartUpload(request);
-                    }catch (Exception ignored){
+                    } catch (Exception ignored) {
                     }
                 }
             }
             // 普通文件的物理文件
-            else{
+            else {
                 client.deleteObject(config.getBucketName(), realPath);
             }
         });
@@ -107,45 +109,52 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     /**
      * 文件分片上传处理
      *
-     * <p>实现OSS分片上传的三个核心步骤：</p>
+     * <p>
+     * 实现OSS分片上传的三个核心步骤：
+     * </p>
      * <ol>
-     *   <li><b>初始化</b>：获取全局唯一的uploadId</li>
-     *   <li><b>并发上传</b>：多线程上传文件分片，每个分片携带uploadId</li>
-     *   <li><b>合并分片</b>：所有分片上传完成后触发合并操作</li>
+     * <li><b>初始化</b>：获取全局唯一的uploadId</li>
+     * <li><b>并发上传</b>：多线程上传文件分片，每个分片携带uploadId</li>
+     * <li><b>合并分片</b>：所有分片上传完成后触发合并操作</li>
      * </ol>
      *
-     * <p><b>技术挑战与解决方案：</b></p>
+     * <p>
+     * <b>技术挑战与解决方案：</b>
+     * </p>
      * <ul>
-     *   <li><b>并发控制</b>：加锁，我们目前首先按单体架构去考虑，使用JVM的锁去保证一个线程初始化文件分片上传，如果后续扩展分布式的架构，需要更换分布式锁</li>
-     *   <li><b>状态共享</b>：使用缓存，缓存分为本地缓存以及分布式缓存（比如 redis)，优于我们当前是一个单体架构，可以考虑使用本地缓存，但是，后期的项目升级为分布式架构
-     *    升级之后，同样要升级我们的缓存为分布式缓存， 与其后期升级，我们第一版就支持分布缓存比较好</li>
-     *   <li><b>参数传递</b>：想把每一个文件的Kye都能够通过文件url来获取，就需要定义一种数据格式，支持我们添加附件数据，并可以很方便的解析出来，
-     *   采用URL格式(fileRealPath?paramKey=paramValue)封装上传参数，
-     *       支持独立解析每个分片信息</li>
+     * <li><b>并发控制</b>：加锁，我们目前首先按单体架构去考虑，使用JVM的锁去保证一个线程初始化文件分片上传，如果后续扩展分布式的架构，需要更换分布式锁</li>
+     * <li><b>状态共享</b>：使用缓存，缓存分为本地缓存以及分布式缓存（比如
+     * redis)，优于我们当前是一个单体架构，可以考虑使用本地缓存，但是，后期的项目升级为分布式架构
+     * 升级之后，同样要升级我们的缓存为分布式缓存， 与其后期升级，我们第一版就支持分布缓存比较好</li>
+     * <li><b>参数传递</b>：想把每一个文件的Kye都能够通过文件url来获取，就需要定义一种数据格式，支持我们添加附件数据，并可以很方便的解析出来，
+     * 采用URL格式(fileRealPath?paramKey=paramValue)封装上传参数，
+     * 支持独立解析每个分片信息</li>
      * </ul>
      *
-     * <p><b>执行流程：</b></p>
+     * <p>
+     * <b>执行流程：</b>
+     * </p>
      * <ol>
-     *   <li>校验文件分片数量（≤10000）</li>
-     *   <li>获取缓存键，尝试从缓存读取uploadId和objectName</li>
-     *   <li>若缓存不存在，执行初始化获取uploadId并缓存</li>
-     *   <li>并发执行分片上传</li>
-     *   <li>封装上传参数为可解析的URL格式，存入上下文供业务层使用</li>
+     * <li>校验文件分片数量（≤10000）</li>
+     * <li>获取缓存键，尝试从缓存读取uploadId和objectName</li>
+     * <li>若缓存不存在，执行初始化获取uploadId并缓存</li>
+     * <li>并发执行分片上传</li>
+     * <li>封装上传参数为可解析的URL格式，存入上下文供业务层使用</li>
      * </ol>
      *
      * @param context 上传上下文，包含文件信息及配置参数
-     * @throws IOException 文件读写异常或OSS通信异常
+     * @throws IOException              文件读写异常或OSS通信异常
      * @throws IllegalArgumentException 分片数量超过限制或参数无效
      */
-    @Lock(name = "OssDoStoreChunkLock", keys = {"#context.userId", "#context.identifier"}, expireSecond = 10L)
+    @Lock(name = "OssDoStoreChunkLock", keys = { "#context.userId", "#context.identifier" }, expireSecond = 10L)
     @Override
     protected void doStoreChunk(StoreFileChunkContext context) throws IOException {
-        if(context.getTotalChunks() > TEN_THOUSAND_INT){
+        if (context.getTotalChunks() > TEN_THOUSAND_INT) {
             throw new RPanBusinessException("分片数超过了限制，分片数不得大于：" + TEN_THOUSAND_INT);
         }
         String cacheKey = getCacheKey(context.getIdentifier(), context.getUserId());
         ChunkUploadEntity entity = getCache().get(cacheKey, ChunkUploadEntity.class);
-        if (Objects.isNull(entity)){
+        if (Objects.isNull(entity)) {
             entity = initChunkUpload(context.getFilename(), cacheKey);
         }
         UploadPartRequest request = new UploadPartRequest();
@@ -157,7 +166,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         request.setPartNumber(context.getChunkNumber());
 
         UploadPartResult result = client.uploadPart(request);
-        if(Objects.isNull(result)){
+        if (Objects.isNull(result)) {
             throw new RPanBusinessException("文件分片上传失败");
         }
 
@@ -180,61 +189,64 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     /**
      * 合并已上传的文件分片，完成分片上传流程
      *
-     * <p><b>执行流程：</b></p>
+     * <p>
+     * <b>执行流程：</b>
+     * </p>
      * <ol>
-     *   <li>从缓存中获取全局一致的 uploadId /li>
-     *   <li>从上传上下文中提取所有分片URL，解析合并所需参数</li>
-     *   <li>向OSS服务发起文件合并请求</li>
-     *   <li>清理缓存中的分片数据</li>
-     *   <li>设置最终文件的真实存储路径</li>
+     * <li>从缓存中获取全局一致的 uploadId /li>
+     * <li>从上传上下文中提取所有分片URL，解析合并所需参数</li>
+     * <li>向OSS服务发起文件合并请求</li>
+     * <li>清理缓存中的分片数据</li>
+     * <li>设置最终文件的真实存储路径</li>
      * </ol>
      *
-     * <p><b>注意事项：</b></p>
+     * <p>
+     * <b>注意事项：</b>
+     * </p>
      * <ul>
-     *   <li>合并操作是幂等的，可安全重试</li>
-     *   <li>合并成功后会自动清理缓存，避免内存泄漏</li>
-     *   <li>需确保所有分片均已成功上传，否则合并会失败</li>
-     *   <li>合并操作可能较耗时，建议异步执行</li>
+     * <li>合并操作是幂等的，可安全重试</li>
+     * <li>合并成功后会自动清理缓存，避免内存泄漏</li>
+     * <li>需确保所有分片均已成功上传，否则合并会失败</li>
+     * <li>合并操作可能较耗时，建议异步执行</li>
      * </ul>
      *
      * @param context 上传上下文，包含分片信息和OSS配置
      * @throws IllegalStateException 缓存数据不存在或分片信息不完整
-     * @throws IOException OSS服务通信异常或合并操作失败
+     * @throws IOException           OSS服务通信异常或合并操作失败
      */
     @Override
     protected void doMergeFile(MergeFileContext context) throws IOException {
-       String cacheKey = getCacheKey(context.getIdentifier(), context.getUserId());
-       ChunkUploadEntity entity = getCache().get(cacheKey, ChunkUploadEntity.class);
-       if(Objects.isNull(entity)){
-           throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为："+ context.getIdentifier());
-       }
+        String cacheKey = getCacheKey(context.getIdentifier(), context.getUserId());
+        ChunkUploadEntity entity = getCache().get(cacheKey, ChunkUploadEntity.class);
+        if (Objects.isNull(entity)) {
+            throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为：" + context.getIdentifier());
+        }
 
-       List<String> chunkPaths = context.getRealPathList();
-       List<PartETag> partETags = new ArrayList<>();
-       if (!CollectionUtils.isEmpty(chunkPaths)){
-           partETags = chunkPaths.stream()
-                   .filter(StringUtils::isNotBlank)
-                   .map(this::analysisUrlParams)
-                   .filter(Objects::nonNull)
-                   .filter(jsonObject -> !jsonObject.isEmpty())
-                   .map(jsonObject -> new PartETag(
-                           jsonObject.getIntValue(PART_NUMBER_KEY),
-                           jsonObject.getString(E_TAG_KEY),
-                           jsonObject.getLongValue(PART_SIZE_KEY),
-                           jsonObject.getLong(PART_CRC_KEY)
-                   )).collect(Collectors.toList());
-       }
+        List<String> chunkPaths = context.getRealPathList();
+        List<PartETag> partETags = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(chunkPaths)) {
+            partETags = chunkPaths.stream()
+                    .filter(StringUtils::isNotBlank)
+                    .map(this::analysisUrlParams)
+                    .filter(Objects::nonNull)
+                    .filter(jsonObject -> !jsonObject.isEmpty())
+                    .map(jsonObject -> new PartETag(
+                            jsonObject.getIntValue(PART_NUMBER_KEY),
+                            jsonObject.getString(E_TAG_KEY),
+                            jsonObject.getLongValue(PART_SIZE_KEY),
+                            jsonObject.getLong(PART_CRC_KEY)))
+                    .collect(Collectors.toList());
+        }
 
-       CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
-               config.getBucketName(),
-               entity.getObjectKey(),
-               entity.getUploadId(),
-               partETags
-       );
+        CompleteMultipartUploadRequest request = new CompleteMultipartUploadRequest(
+                config.getBucketName(),
+                entity.getObjectKey(),
+                entity.getUploadId(),
+                partETags);
 
         CompleteMultipartUploadResult result = client.completeMultipartUpload(request);
-        if(Objects.isNull(result)){
-            throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为："+ context.getIdentifier());
+        if (Objects.isNull(result)) {
+            throw new RPanBusinessException("文件分片合并失败，文件的唯一标识为：" + context.getIdentifier());
         }
         getCache().evict(cacheKey);
         context.setRealPath(entity.getObjectKey());
@@ -248,13 +260,15 @@ public class OSSStorageEngine extends AbstractStorageEngine {
     @Override
     protected void doReadFile(ReadFileContext context) throws IOException {
         OSSObject ossObject = client.getObject(config.getBucketName(), context.getRealPath());
-        if (Objects.isNull(ossObject)){
-            throw new RPanBusinessException("文件读取失败，文件的名称是"+ context.getRealPath());
+        if (Objects.isNull(ossObject)) {
+            throw new RPanBusinessException("文件读取失败，文件的名称是" + context.getRealPath());
         }
         FileUtil.writeStream2StreamNormal(ossObject.getObjectContent(), context.getOutputStream());
     }
 
-    /********************************************* private ************************************************************/
+    /*********************************************
+     * private
+     ************************************************************/
 
     /**
      * 该实体为文件分片上传初始化之后的全局信息载体
@@ -291,7 +305,6 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         return String.format(CACHE_KEY_TEMPLATE, identifier, userId);
     }
 
-
     /**
      * 获取对象的完整名称
      * /年/月/日/UUID.fileSuffix
@@ -309,7 +322,6 @@ public class OSSStorageEngine extends AbstractStorageEngine {
                 + UUIDUtil.getUUID()
                 + fileSuffix;
     }
-
 
     /**
      * 拼装Url
@@ -415,7 +427,7 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         String filePath = getFilePath(filename);
         InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(config.getBucketName(), filePath);
         InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
-        if(Objects.isNull(result)){
+        if (Objects.isNull(result)) {
             throw new RPanBusinessException("文件分片上传初始化失败");
         }
         ChunkUploadEntity entity = new ChunkUploadEntity();
@@ -425,6 +437,78 @@ public class OSSStorageEngine extends AbstractStorageEngine {
         return entity;
     }
 
+    @Override
+    protected String doGeneratePresignedUploadUrl(GeneratePresignedUrlContext context) {
+        String objectKey = getFilePath(FileUtil.getFileSuffix(context.getFilename()));
+        Date expiration = new Date(System.currentTimeMillis() + 900 * 1000);
 
+        java.net.URL url = client.generatePresignedUrl(
+                config.getBucketName(),
+                objectKey,
+                expiration,
+                HttpMethod.PUT);
 
+        return url.toString() + "|" + objectKey;
+    }
+
+    @Override
+    protected String doGeneratePresignedMultipartInitUrl(GeneratePresignedMultipartUrlContext context) {
+        String objectKey = getFilePath(FileUtil.getFileSuffix(context.getFilename()));
+
+        InitiateMultipartUploadRequest request = new InitiateMultipartUploadRequest(config.getBucketName(), objectKey);
+        InitiateMultipartUploadResult result = client.initiateMultipartUpload(request);
+
+        if (Objects.isNull(result)) {
+            throw new RPanBusinessException("分片上传初始化失败");
+        }
+
+        ChunkUploadEntity entity = new ChunkUploadEntity();
+        entity.setObjectKey(objectKey);
+        entity.setUploadId(result.getUploadId());
+        String cacheKey = getCacheKey(UUIDUtil.getUUID(), context.getUserId());
+        getCache().put(cacheKey, entity);
+
+        Date expiration = new Date(System.currentTimeMillis() + 900 * 1000);
+        java.net.URL url = client.generatePresignedUrl(
+                config.getBucketName(),
+                objectKey,
+                expiration,
+                HttpMethod.PUT);
+
+        return url.toString() + "|" + objectKey + "|" + result.getUploadId() + "|" + cacheKey;
+    }
+
+    @Override
+    protected String doGeneratePresignedPartUploadUrl(GeneratePresignedPartUrlContext context) {
+        Date expiration = new Date(System.currentTimeMillis() + 900 * 1000);
+
+        java.net.URL url = client.generatePresignedUrl(
+                config.getBucketName(),
+                context.getObjectKey(),
+                expiration,
+                HttpMethod.PUT);
+
+        return url.toString();
+    }
+
+    @Override
+    protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
+        String cacheKey = getCacheKey(context.getUploadId(), context.getUserId());
+        ChunkUploadEntity entity = getCache().get(cacheKey, ChunkUploadEntity.class);
+        if (Objects.isNull(entity)) {
+            throw new RPanBusinessException("完成分片上传失败，未找到上传上下文");
+        }
+
+        try {
+            OSSObject ossObject = client.getObject(config.getBucketName(), context.getObjectKey());
+            if (Objects.isNull(ossObject)) {
+                throw new RPanBusinessException("完成分片上传失败，文件不存在");
+            }
+            ossObject.close();
+        } catch (Exception e) {
+            throw new RPanBusinessException("完成分片上传失败，文件不存在");
+        }
+
+        getCache().evict(cacheKey);
+    }
 }

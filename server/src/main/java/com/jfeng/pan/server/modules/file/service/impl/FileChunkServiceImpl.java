@@ -49,7 +49,7 @@ public class FileChunkServiceImpl extends ServiceImpl<RPanFileChunkMapper, RPanF
      *
      * @param context
      */
-    @Lock(name = "saveChunkFileLock", keys = { "#context.userId", "#context.identifier" }, expireSecond = 10L)
+    @Lock(name = "saveChunkFileLock", keys = { "#context.userId", "#context.identifier" }, expireSecond = 60L)
     @Override
     public void saveChunkFile(FileChunkSaveContext context) {
         doSaveChunkFile(context);

@@ -56,4 +56,24 @@ public class FastDFSStorageEngine extends AbstractStorageEngine {
     protected void doReadFile(ReadFileContext context)throws IOException {
 
     }
+
+    @Override
+    protected String doGeneratePresignedUploadUrl(GeneratePresignedUrlContext context) {
+        throw new UnsupportedOperationException("FastDFS存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected String doGeneratePresignedMultipartInitUrl(GeneratePresignedMultipartUrlContext context) {
+        throw new UnsupportedOperationException("FastDFS存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected String doGeneratePresignedPartUploadUrl(GeneratePresignedPartUrlContext context) {
+        throw new UnsupportedOperationException("FastDFS存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
+        throw new UnsupportedOperationException("FastDFS存储引擎不支持预签名URL");
+    }
 }

@@ -90,4 +90,24 @@ public class LocalStorageEngine extends AbstractStorageEngine {
         File file = new File(context.getRealPath());
         FileUtil.writeFile2OutputStream(new FileInputStream(file), context.getOutputStream(), file.length());
     }
+
+    @Override
+    protected String doGeneratePresignedUploadUrl(GeneratePresignedUrlContext context) {
+        throw new UnsupportedOperationException("本地存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected String doGeneratePresignedMultipartInitUrl(GeneratePresignedMultipartUrlContext context) {
+        throw new UnsupportedOperationException("本地存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected String doGeneratePresignedPartUploadUrl(GeneratePresignedPartUrlContext context) {
+        throw new UnsupportedOperationException("本地存储引擎不支持预签名URL");
+    }
+
+    @Override
+    protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
+        throw new UnsupportedOperationException("本地存储引擎不支持预签名URL");
+    }
 }

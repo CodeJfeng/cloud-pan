@@ -241,5 +241,39 @@ public class FileController {
         return R.data(result);
     }
 
+    @Operation(summary = "生成单文件预签名URL",
+            description = "服务端生成预签名URL，客户端直传S3")
+    @PostMapping("file/presigned-url")
+    public R<PresignedUrlVO> generatePresignedUrl(@Validated @RequestBody GeneratePresignedUrlPO po){
+        GeneratePresignedUrlContext context = fileConverter.generatePresignedUrlPO2Context(po);
+        PresignedUrlVO vo = iUserFileService.generatePresignedUrl(context);
+        return R.data(vo);
+    }
 
+    @Operation(summary = "初始化分片上传预签名URL",
+            description = "服务端初始化分片上传，返回uploadId和预签名URL")
+    @PostMapping("file/init-multipart")
+    public R<PresignedUrlVO> initMultipartUpload(@Validated @RequestBody InitMultipartUploadPO po){
+        GeneratePresignedMultipartUrlContext context = fileConverter.initMultipartUploadPO2Context(po);
+        PresignedUrlVO vo = iUserFileService.initMultipartUpload(context);
+        return R.data(vo);
+    }
+
+    @Operation(summary = "生成分片上传预签名URL",
+            description = "服务端生成单个分片的预签名URL")
+    @PostMapping("file/presigned-part-url")
+    public R<PresignedUrlVO> generatePresignedPartUrl(@Validated @RequestBody GeneratePresignedPartUrlPO po){
+        GeneratePresignedPartUrlContext context = fileConverter.generatePresignedPartUrlPO2Context(po);
+        PresignedUrlVO vo = iUserFileService.generatePresignedPartUrl(context);
+        return R.data(vo);
+    }
+
+    @Operation(summary = "完成直传回调",
+            description = "客户端上传完成后回调服务端保存文件记录")
+    @PostMapping("file/complete-direct-upload")
+    public R completeDirectUpload(@Validated @RequestBody CompleteDirectUploadPO po){
+        CompleteDirectUploadContext context = fileConverter.completeDirectUploadPO2Context(po);
+        iUserFileService.completeDirectUpload(context);
+        return R.success();
+    }
 }

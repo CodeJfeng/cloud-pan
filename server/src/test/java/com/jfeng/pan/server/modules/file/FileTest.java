@@ -3,6 +3,8 @@ package com.jfeng.pan.server.modules.file;
 import cn.hutool.core.collection.CollectionUtil;
 import cn.hutool.core.date.DateUtil;
 import cn.hutool.core.lang.Assert;
+import cn.hutool.http.HttpRequest;
+import cn.hutool.http.HttpResponse;
 import com.jfeng.pan.core.exception.RPanBusinessException;
 import com.jfeng.pan.core.utils.IdUtil;
 import com.jfeng.pan.server.modules.file.context.*;
@@ -42,7 +44,7 @@ import java.util.concurrent.CountDownLatch;
 @RunWith(SpringRunner.class)
 @SpringBootTest
 @Transactional
-@Rollback(true)
+@Rollback
 public class FileTest {
 
     @Autowired
@@ -630,6 +632,206 @@ public class FileTest {
         List<BreadcrumbVO> result = iUserFileService.getBreadcrumbs(queryBreadcrumbContext);
         Assert.notEmpty(result);
         Assert.isTrue(result.size() == 2);
+    }
+
+    // 验证预签名URL直传测试成功
+    /**
+     * 测试单文件预签名URL生成
+     */
+    @Test
+    public void testGeneratePresignedUrl() {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        GeneratePresignedUrlContext context = new GeneratePresignedUrlContext();
+        context.setFilename("test-file.txt");
+        context.setTotalSize(1024L);
+        context.setContentType("text/plain");
+        context.setUserId(userId);
+
+        PresignedUrlVO vo = iUserFileService.generatePresignedUrl(context);
+
+        Assert.notNull(vo);
+        Assert.notNull(vo.getUploadUrl());
+        Assert.notNull(vo.getObjectKey());
+        System.out.println("预签名URL: " + vo.getUploadUrl());
+        System.out.println("ObjectKey: " + vo.getObjectKey());
+    }
+
+    /**
+     * 测试单文件直传完整流程
+     * 1. 生成预签名URL
+     * 2. 客户端使用PUT请求直传S3
+     * 3. 回调完成直传接口
+     */
+    @Test
+    public void testDirectUploadCompleteFlow() {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        String filename = "test-direct-upload.txt";
+        String fileContent = "Hello, this is a test file for direct upload!";
+        byte[] fileBytes = fileContent.getBytes(StandardCharsets.UTF_8);
+
+        GeneratePresignedUrlContext context = new GeneratePresignedUrlContext();
+        context.setFilename(filename);
+        context.setTotalSize((long) fileBytes.length);
+        context.setContentType("text/plain");
+        context.setUserId(userId);
+
+        PresignedUrlVO vo = iUserFileService.generatePresignedUrl(context);
+        Assert.notNull(vo);
+        Assert.notNull(vo.getUploadUrl());
+        Assert.notNull(vo.getObjectKey());
+
+        String uploadUrl = vo.getUploadUrl();
+        String objectKey = vo.getObjectKey();
+        String identifier = IdUtil.get().toString();
+
+        // url直传
+        HttpResponse response = HttpRequest.put(uploadUrl)
+                .header("Content-Type", "text/plain")
+                .body(fileBytes)
+                .execute();
+
+        Assert.isTrue(response.isOk());
+
+        CompleteDirectUploadContext completeContext = new CompleteDirectUploadContext();
+        completeContext.setObjectKey(objectKey);
+        completeContext.setFilename(filename);
+        completeContext.setTotalSize((long) fileBytes.length);
+        completeContext.setIdentifier(identifier);
+        completeContext.setParentId(userInfoVO.getRootFileId());
+        completeContext.setUserId(userId);
+
+        iUserFileService.completeDirectUpload(completeContext);
+
+        RPanFile fileRecord = iFileService.lambdaQuery()
+                .eq(RPanFile::getIdentifier, identifier)
+                .one();
+        Assert.notNull(fileRecord);
+        Assert.isTrue(filename.equals(fileRecord.getFilename()));
+        Assert.isTrue(fileBytes.length == Long.parseLong(fileRecord.getFileSize()));
+
+        System.out.println("直传测试完成，文件记录ID: " + fileRecord.getFileId());
+    }
+
+    /**
+     * 测试分片上传初始化
+     */
+    @Test
+    public void testInitMultipartUpload() {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        GeneratePresignedMultipartUrlContext context = new GeneratePresignedMultipartUrlContext();
+        context.setFilename("large-file.bin");
+        context.setTotalSize(10 * 1024 * 1024L);
+        context.setTotalChunks(2);
+        context.setContentType("application/octet-stream");
+        context.setUserId(userId);
+
+        PresignedUrlVO vo = iUserFileService.initMultipartUpload(context);
+
+        Assert.notNull(vo);
+        Assert.notNull(vo.getUploadUrl());
+        Assert.notNull(vo.getObjectKey());
+        Assert.notNull(vo.getUploadId());
+        Assert.notNull(vo.getCacheKey());
+
+        System.out.println("初始化URL: " + vo.getUploadUrl());
+        System.out.println("ObjectKey: " + vo.getObjectKey());
+        System.out.println("UploadId: " + vo.getUploadId());
+        System.out.println("CacheKey: " + vo.getCacheKey());
+    }
+
+    /**
+     * 测试分片上传完整流程
+     * 1. 初始化分片上传
+     * 2. 上传每个分片
+     * 3. 完成分片上传
+     */
+    @Test
+    public void testMultipartUploadCompleteFlow() {
+        Long userId = register();
+        UserInfoVO userInfoVO = info(userId);
+
+        String filename = "multipart-test.bin";
+        int totalChunks = 3;
+        long chunkSize = 5 * 1024 * 1024L;
+        long totalSize = chunkSize * totalChunks;
+        // 预签名
+        GeneratePresignedMultipartUrlContext initContext = new GeneratePresignedMultipartUrlContext();
+        initContext.setFilename(filename);
+        initContext.setTotalSize(totalSize);
+        initContext.setTotalChunks(totalChunks);
+        initContext.setContentType("application/octet-stream");
+        initContext.setUserId(userId);
+        PresignedUrlVO initVO = iUserFileService.initMultipartUpload(initContext);
+        Assert.notNull(initVO);
+        Assert.notNull(initVO.getUploadId());
+
+        // 上传单文件
+        String objectKey = initVO.getObjectKey();
+        String uploadId = initVO.getUploadId();
+        String identifier = IdUtil.get().toString();
+
+        List<CompleteDirectUploadContext.PartInfo> parts = new ArrayList<>();
+
+        for (int i = 1; i <= totalChunks; i++) {
+            // 上传单文件
+            GeneratePresignedPartUrlContext partContext = new GeneratePresignedPartUrlContext();
+            partContext.setObjectKey(objectKey);
+            partContext.setUploadId(uploadId);
+            partContext.setPartNumber(i);
+            partContext.setPartSize(chunkSize);
+            partContext.setUserId(userId);
+            // 每个文件生成一个url地址
+            PresignedUrlVO partVO = iUserFileService.generatePresignedPartUrl(partContext);
+            Assert.notNull(partVO);
+            Assert.notNull(partVO.getUploadUrl());
+            byte[] chunkData = new byte[(int) chunkSize];
+            for (int j = 0; j < chunkSize; j++) {
+                chunkData[j] = (byte) (i % 256);
+            }
+            // 客户端直传
+            HttpResponse response = HttpRequest.put(partVO.getUploadUrl())
+                    .header("Content-Type", "application/octet-stream")
+                    .body(chunkData)
+                    .execute();
+
+            Assert.isTrue(response.isOk());
+
+            String eTag = response.header("ETag");
+            Assert.notBlank(eTag);
+
+            CompleteDirectUploadContext.PartInfo partInfo = new CompleteDirectUploadContext.PartInfo();
+            partInfo.setPartNumber(i);
+            partInfo.setETag(eTag);
+            parts.add(partInfo);
+
+            System.out.println("分片 " + i + " 上传成功，ETag: " + eTag);
+        }
+        // 执行合并
+        CompleteDirectUploadContext completeContext = new CompleteDirectUploadContext();
+        completeContext.setObjectKey(objectKey);
+        completeContext.setUploadId(uploadId);
+        completeContext.setFilename(filename);
+        completeContext.setTotalSize(totalSize);
+        completeContext.setIdentifier(identifier);
+        completeContext.setParentId(userInfoVO.getRootFileId());
+        completeContext.setUserId(userId);
+        completeContext.setParts(parts);
+
+        iUserFileService.completeDirectUpload(completeContext);
+
+        RPanFile fileRecord = iFileService.lambdaQuery()
+                .eq(RPanFile::getIdentifier, identifier)
+                .one();
+        Assert.notNull(fileRecord);
+        Assert.isTrue(filename.equals(fileRecord.getFilename()));
+
+        System.out.println("分片上传测试完成，文件记录ID: " + fileRecord.getFileId());
     }
 
     /*************************************************************

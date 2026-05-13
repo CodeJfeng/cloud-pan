@@ -1,5 +1,6 @@
 package com.jfeng.pan.server.modules.file.converter;
 
+import com.jfeng.pan.server.modules.file.context.CompleteDirectUploadContext;
 import com.jfeng.pan.server.modules.file.context.CreateFolderContext;
 import com.jfeng.pan.server.modules.file.context.DeleteFileContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkMergeAndSaveContext;
@@ -8,28 +9,37 @@ import com.jfeng.pan.server.modules.file.context.FileChunkSaveContext;
 import com.jfeng.pan.server.modules.file.context.FileChunkUploadContext;
 import com.jfeng.pan.server.modules.file.context.FileSaveContext;
 import com.jfeng.pan.server.modules.file.context.FileUploadContext;
+import com.jfeng.pan.server.modules.file.context.GeneratePresignedMultipartUrlContext;
+import com.jfeng.pan.server.modules.file.context.GeneratePresignedPartUrlContext;
+import com.jfeng.pan.server.modules.file.context.GeneratePresignedUrlContext;
 import com.jfeng.pan.server.modules.file.context.QueryUploadedChunksContext;
 import com.jfeng.pan.server.modules.file.context.SecUploadContext;
 import com.jfeng.pan.server.modules.file.context.UpdateFilenameContext;
 import com.jfeng.pan.server.modules.file.entity.RPanUserFile;
+import com.jfeng.pan.server.modules.file.po.CompleteDirectUploadPO;
 import com.jfeng.pan.server.modules.file.po.CreateFolderPO;
 import com.jfeng.pan.server.modules.file.po.DeleteFilePO;
 import com.jfeng.pan.server.modules.file.po.FileChunkMergePO;
 import com.jfeng.pan.server.modules.file.po.FileChunkUploadPO;
 import com.jfeng.pan.server.modules.file.po.FileUploadPO;
+import com.jfeng.pan.server.modules.file.po.GeneratePresignedPartUrlPO;
+import com.jfeng.pan.server.modules.file.po.GeneratePresignedUrlPO;
+import com.jfeng.pan.server.modules.file.po.InitMultipartUploadPO;
 import com.jfeng.pan.server.modules.file.po.QueryUploadedChunksPO;
 import com.jfeng.pan.server.modules.file.po.SecUploadPO;
 import com.jfeng.pan.server.modules.file.po.UpdateFilenamePO;
 import com.jfeng.pan.server.modules.file.vo.FolderTreeNodeVO;
 import com.jfeng.pan.server.modules.file.vo.RPanUserFileVO;
 import com.jfeng.pan.storage.engine.core.context.StoreFileChunkContext;
+import java.util.ArrayList;
+import java.util.List;
 import javax.annotation.processing.Generated;
 import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-05-12T18:50:56+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
+    date = "2026-05-13T11:06:07+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class FileConverterImpl implements FileConverter {
@@ -277,5 +287,105 @@ public class FileConverterImpl implements FileConverter {
         rPanUserFileVO.setUpdateTime( record.getUpdateTime() );
 
         return rPanUserFileVO;
+    }
+
+    @Override
+    public GeneratePresignedUrlContext generatePresignedUrlPO2Context(GeneratePresignedUrlPO po) {
+        if ( po == null ) {
+            return null;
+        }
+
+        GeneratePresignedUrlContext generatePresignedUrlContext = new GeneratePresignedUrlContext();
+
+        generatePresignedUrlContext.setFilename( po.getFilename() );
+        generatePresignedUrlContext.setTotalSize( po.getTotalSize() );
+        generatePresignedUrlContext.setContentType( po.getContentType() );
+
+        generatePresignedUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
+
+        return generatePresignedUrlContext;
+    }
+
+    @Override
+    public GeneratePresignedMultipartUrlContext initMultipartUploadPO2Context(InitMultipartUploadPO po) {
+        if ( po == null ) {
+            return null;
+        }
+
+        GeneratePresignedMultipartUrlContext generatePresignedMultipartUrlContext = new GeneratePresignedMultipartUrlContext();
+
+        generatePresignedMultipartUrlContext.setFilename( po.getFilename() );
+        generatePresignedMultipartUrlContext.setTotalSize( po.getTotalSize() );
+        generatePresignedMultipartUrlContext.setTotalChunks( po.getTotalChunks() );
+        generatePresignedMultipartUrlContext.setContentType( po.getContentType() );
+
+        generatePresignedMultipartUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
+
+        return generatePresignedMultipartUrlContext;
+    }
+
+    @Override
+    public GeneratePresignedPartUrlContext generatePresignedPartUrlPO2Context(GeneratePresignedPartUrlPO po) {
+        if ( po == null ) {
+            return null;
+        }
+
+        GeneratePresignedPartUrlContext generatePresignedPartUrlContext = new GeneratePresignedPartUrlContext();
+
+        generatePresignedPartUrlContext.setObjectKey( po.getObjectKey() );
+        generatePresignedPartUrlContext.setUploadId( po.getUploadId() );
+        generatePresignedPartUrlContext.setPartNumber( po.getPartNumber() );
+        generatePresignedPartUrlContext.setPartSize( po.getPartSize() );
+
+        generatePresignedPartUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
+
+        return generatePresignedPartUrlContext;
+    }
+
+    @Override
+    public CompleteDirectUploadContext completeDirectUploadPO2Context(CompleteDirectUploadPO po) {
+        if ( po == null ) {
+            return null;
+        }
+
+        CompleteDirectUploadContext completeDirectUploadContext = new CompleteDirectUploadContext();
+
+        completeDirectUploadContext.setObjectKey( po.getObjectKey() );
+        completeDirectUploadContext.setUploadId( po.getUploadId() );
+        completeDirectUploadContext.setFilename( po.getFilename() );
+        completeDirectUploadContext.setTotalSize( po.getTotalSize() );
+        completeDirectUploadContext.setIdentifier( po.getIdentifier() );
+        completeDirectUploadContext.setParts( partInfoListToPartInfoList( po.getParts() ) );
+
+        completeDirectUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
+        completeDirectUploadContext.setParentId( com.jfeng.pan.core.utils.IdUtil.decrypt(po.getParentId()) );
+
+        return completeDirectUploadContext;
+    }
+
+    protected CompleteDirectUploadContext.PartInfo partInfoToPartInfo(CompleteDirectUploadPO.PartInfo partInfo) {
+        if ( partInfo == null ) {
+            return null;
+        }
+
+        CompleteDirectUploadContext.PartInfo partInfo1 = new CompleteDirectUploadContext.PartInfo();
+
+        partInfo1.setPartNumber( partInfo.getPartNumber() );
+        partInfo1.setETag( partInfo.getETag() );
+
+        return partInfo1;
+    }
+
+    protected List<CompleteDirectUploadContext.PartInfo> partInfoListToPartInfoList(List<CompleteDirectUploadPO.PartInfo> list) {
+        if ( list == null ) {
+            return null;
+        }
+
+        List<CompleteDirectUploadContext.PartInfo> list1 = new ArrayList<CompleteDirectUploadContext.PartInfo>( list.size() );
+        for ( CompleteDirectUploadPO.PartInfo partInfo : list ) {
+            list1.add( partInfoToPartInfo( partInfo ) );
+        }
+
+        return list1;
     }
 }

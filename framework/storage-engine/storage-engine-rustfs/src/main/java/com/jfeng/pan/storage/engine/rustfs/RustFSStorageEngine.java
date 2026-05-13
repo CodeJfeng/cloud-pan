@@ -21,10 +21,18 @@ import software.amazon.awssdk.core.ResponseInputStream;
 import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.*;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedUploadPartRequest;
+import software.amazon.awssdk.services.s3.presigner.model.UploadPartPresignRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedCreateMultipartUploadRequest;
+import software.amazon.awssdk.services.s3.presigner.model.CreateMultipartUploadPresignRequest;
 
 import java.io.IOException;
 import java.io.Serial;
 import java.io.Serializable;
+import java.time.Duration;
 import java.util.*;
 import java.util.stream.Collectors;
 
@@ -54,6 +62,9 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
     private S3Client s3Client;
 
     @Autowired
+    private S3Presigner s3Presigner;
+
+    @Autowired
     private StringRedisTemplate stringRedisTemplate;
 
     @Autowired
@@ -62,6 +73,14 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
     @Autowired
     private DefaultRedisScript<String> getIfExistsRedisScript;
 
+    /**
+     * 存储物理文件到 RustFS（S3 兼容存储）
+     * 1、生成文件存储路径（按日期+UUID）
+     * 2、调用 S3 putObject API 上传文件
+     *
+     * @param context 文件存储上下文，包含文件名、文件大小、文件输入流等信息
+     * @throws IOException 文件读写异常或 S3 通信异常
+     */
     @Override
     protected void doStore(StoreFileContext context) throws IOException {
         String realPath = getFilePath(FileUtil.getFileSuffix(context.getFilename()));
@@ -74,6 +93,15 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         context.setRealPath(realPath);
     }
 
+    /**
+     * 删除物理文件
+     * 1、解析文件路径，判断是否包含分片上传参数
+     * 2、若包含分片参数，清理缓存并中止分片上传
+     * 3、若不包含分片参数，直接删除 S3 对象
+     *
+     * @param context 文件删除上下文，包含要删除的文件路径列表
+     * @throws IOException 文件删除异常或 S3 通信异常
+     */
     @Override
     protected void doDelete(DeleteFileContext context) throws IOException {
         List<String> realFilePathList = context.getRealPathList();
@@ -192,6 +220,17 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         context.setRealPath(realPath);
     }
 
+    /**
+     * 合并文件分片
+     * 使用分布式锁保护，防止并发合并冲突
+     * 1、从缓存获取 uploadId 和 objectKey
+     * 2、从分片路径列表中解析每个分片的 partNumber 和 eTag
+     * 3、调用 S3 completeMultipartUpload API 合并分片
+     * 4、清理缓存
+     *
+     * @param context 文件分片合并上下文，包含文件名、文件唯一标识、分片路径列表等信息
+     * @throws IOException 文件合并异常或 S3 通信异常
+     */
     @Lock(name = "RustfsMergeFileLock", keys = { "#context.identifier", "#context.userId" }, expireSecond = 60L)
     @Override
     protected void doMergeFile(MergeFileContext context) throws IOException {
@@ -233,6 +272,15 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         context.setRealPath(entity.getObjectKey());
     }
 
+    /**
+     * 读取文件内容并写入到输出流
+     * 用于文件下载场景
+     * 1、调用 S3 getObject API 获取文件流
+     * 2、将文件流写入到响应输出流
+     *
+     * @param context 文件读取上下文，包含文件真实路径、输出流等信息
+     * @throws IOException 文件读取异常或 S3 通信异常
+     */
     @Override
     protected void doReadFile(ReadFileContext context) throws IOException {
         ResponseInputStream<GetObjectResponse> response = s3Client.getObject(
@@ -250,6 +298,10 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
      * private
      ************************************************************/
 
+    /**
+     * 分片上传实体内部类
+     * 用于存储分片上传的 uploadId 和 objectKey
+     */
     @AllArgsConstructor
     @NoArgsConstructor
     @Getter
@@ -265,10 +317,24 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         private String objectKey;
     }
 
+    /**
+     * 生成分片上传缓存键
+     *
+     * @param identifier 文件唯一标识
+     * @param userId     用户ID
+     * @return 缓存键字符串
+     */
     private String getCacheKey(String identifier, Long userId) {
         return String.format(CACHE_KEY_TEMPLATE, identifier, userId);
     }
 
+    /**
+     * 生成文件存储路径
+     * 格式：/年/月/日/UUID.fileSuffix
+     *
+     * @param fileSuffix 文件后缀（如 .jpg, .pdf）
+     * @return 完整的文件存储路径
+     */
     private String getFilePath(String fileSuffix) {
         return DateUtil.thisYear()
                 + RPanConstants.SLASH_STR
@@ -280,6 +346,13 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
                 + fileSuffix;
     }
 
+    /**
+     * 组装URL，将参数以查询字符串形式附加到基础URL后
+     *
+     * @param baseUrl 基础URL
+     * @param params  参数字典
+     * @return 组装后的完整URL
+     */
     private String assembleUrl(String baseUrl, JSONObject params) {
         if (Objects.isNull(params) || params.isEmpty()) {
             return baseUrl;
@@ -300,6 +373,12 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         return urlStringBuffer.append(String.join(RPanConstants.AND_MARK_STR, paramsList)).toString();
     }
 
+    /**
+     * 从URL中提取基础路径（去除查询参数部分）
+     *
+     * @param url 完整URL
+     * @return 基础路径部分
+     */
     private String getBaseUrl(String url) {
         if (StringUtils.isBlank(url)) {
             return RPanConstants.EMPTY_STR;
@@ -310,12 +389,24 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         return url;
     }
 
+    /**
+     * 获取URL参数的分隔符标记
+     *
+     * @param mark 分隔符（如 ? 或 & 或 =）
+     * @return 正则表达式格式的分隔符
+     */
     private String getSplitMark(String mark) {
         return RPanConstants.LEFT_BRACKET_STR +
                 mark +
                 RPanConstants.RIGHT_BRACKET_STR;
     }
 
+    /**
+     * 解析URL中的查询参数，返回JSON对象
+     *
+     * @param url 完整URL
+     * @return 包含查询参数的JSON对象
+     */
     private com.alibaba.fastjson.JSONObject analysisUrlParams(String url) {
         com.alibaba.fastjson.JSONObject result = new com.alibaba.fastjson.JSONObject();
         if (!checkHaveParams(url)) {
@@ -334,6 +425,12 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         return result;
     }
 
+    /**
+     * 检查URL是否包含查询参数
+     *
+     * @param url URL字符串
+     * @return 是否包含查询参数
+     */
     private boolean checkHaveParams(String url) {
         return StringUtils.isNotBlank(url) && url.contains(RPanConstants.QUESTION_MARK_STR);
     }
@@ -412,5 +509,143 @@ public class RustFSStorageEngine extends AbstractStorageEngine {
         entity.setUploadId(response.uploadId());
         getCache().put(cacheKey, entity);
         return entity;
+    }
+
+    /**
+     * 生成单文件上传预签名URL
+     * 1、生成文件存储路径
+     * 2、构建 PutObject 预签名请求
+     * 3、返回预签名URL和objectKey
+     *
+     * @param context 预签名URL生成上下文，包含文件名、文件大小、MIME类型等信息
+     * @return 预签名上传URL，格式为：uploadUrl|objectKey
+     */
+    @Override
+    protected String doGeneratePresignedUploadUrl(GeneratePresignedUrlContext context) {
+        String objectKey = getFilePath(FileUtil.getFileSuffix(context.getFilename()));
+
+        PutObjectPresignRequest presignRequest = PutObjectPresignRequest.builder()
+                .signatureDuration(Duration.ofSeconds(config.getPresignedUrlExpirationSeconds()))
+                .putObjectRequest(builder -> builder
+                        .bucket(config.getBucketName())
+                        .key(objectKey)
+                        .contentLength(context.getTotalSize())
+                        .contentType(context.getContentType() != null ? context.getContentType()
+                                : "application/octet-stream"))
+                .build();
+
+        PresignedPutObjectRequest presignedRequest = s3Presigner.presignPutObject(presignRequest);
+        return presignedRequest.url().toString() + "|" + objectKey;
+    }
+
+    /**
+     * 生成分片上传初始化预签名URL
+     * 1、生成文件存储路径
+     * 2、构建 CreateMultipartUpload 预签名请求
+     * 3、调用 S3 createMultipartUpload 获取 uploadId
+     * 4、将 uploadId 和 objectKey 缓存到 Redis
+     * 5、返回预签名URL、objectKey、uploadId 和 cacheKey
+     *
+     * @param context 分片上传初始化上下文，包含文件名、文件大小、MIME类型、用户ID等信息
+     * @return 分片上传初始化预签名URL，格式为：uploadUrl|objectKey|uploadId|cacheKey
+     */
+    @Override
+    protected String doGeneratePresignedMultipartInitUrl(GeneratePresignedMultipartUrlContext context) {
+        String objectKey = getFilePath(FileUtil.getFileSuffix(context.getFilename()));
+
+        CreateMultipartUploadPresignRequest presignRequest = CreateMultipartUploadPresignRequest.builder()
+                .signatureDuration(Duration.ofSeconds(config.getPresignedUrlExpirationSeconds()))
+                .createMultipartUploadRequest(builder -> builder
+                        .bucket(config.getBucketName())
+                        .key(objectKey)
+                        .contentType(context.getContentType() != null ? context.getContentType()
+                                : "application/octet-stream"))
+                .build();
+
+        PresignedCreateMultipartUploadRequest presignedRequest = s3Presigner
+                .presignCreateMultipartUpload(presignRequest);
+
+        CreateMultipartUploadResponse response = s3Client.createMultipartUpload(
+                CreateMultipartUploadRequest.builder()
+                        .bucket(config.getBucketName())
+                        .key(objectKey)
+                        .build());
+
+        if (Objects.isNull(response) || StringUtils.isBlank(response.uploadId())) {
+            throw new RPanBusinessException("分片上传初始化失败");
+        }
+
+        ChunkUploadEntity entity = new ChunkUploadEntity();
+        entity.setObjectKey(objectKey);
+        entity.setUploadId(response.uploadId());
+        String cacheKey = getCacheKey(response.uploadId(), context.getUserId());
+        getCache().put(cacheKey, entity);
+
+        return presignedRequest.url().toString() + "|" + objectKey + "|" + response.uploadId() + "|" + cacheKey;
+    }
+
+    /**
+     * 生成分片上传预签名URL
+     * 用于客户端直传单个分片到 S3
+     * 1、构建 UploadPart 预签名请求
+     * 2、返回预签名URL
+     *
+     * @param context 分片上传上下文，包含objectKey、uploadId、分片号、分片大小等信息
+     * @return 分片上传预签名URL
+     */
+    @Override
+    protected String doGeneratePresignedPartUploadUrl(GeneratePresignedPartUrlContext context) {
+        UploadPartPresignRequest presignRequest = UploadPartPresignRequest.builder()
+                .signatureDuration(Duration.ofSeconds(config.getPresignedUrlExpirationSeconds()))
+                .uploadPartRequest(builder -> builder
+                        .bucket(config.getBucketName())
+                        .key(context.getObjectKey())
+                        .uploadId(context.getUploadId())
+                        .partNumber(context.getPartNumber())
+                        .contentLength(context.getPartSize()))
+                .build();
+
+        PresignedUploadPartRequest presignedRequest = s3Presigner.presignUploadPart(presignRequest);
+        return presignedRequest.url().toString();
+    }
+
+    /**
+     * 完成分片上传并合并文件
+     * 1、从上下文获取分片信息列表（partNumber + eTag）
+     * 2、构建 CompletedPart 列表
+     * 3、调用 S3 completeMultipartUpload API 合并分片
+     * 4、清理缓存中的上传上下文
+     *
+     * @param context 完成分片上传上下文，包含objectKey、uploadId、分片信息列表等
+     * @throws IOException 文件合并异常或 S3 通信异常
+     */
+    @Override
+    protected void doCompleteMultipartUpload(CompleteMultipartUploadContext context) throws IOException {
+        List<CompletedPart> completedParts = new ArrayList<>();
+        if (!CollectionUtils.isEmpty(context.getParts())) {
+            completedParts = context.getParts().stream()
+                    .map(part -> CompletedPart.builder()
+                            .partNumber(part.getPartNumber())
+                            .eTag(part.getETag())
+                            .build())
+                    .collect(Collectors.toList());
+        }
+
+        CompleteMultipartUploadResponse response = s3Client.completeMultipartUpload(
+                CompleteMultipartUploadRequest.builder()
+                        .bucket(config.getBucketName())
+                        .key(context.getObjectKey())
+                        .uploadId(context.getUploadId())
+                        .multipartUpload(CompletedMultipartUpload.builder()
+                                .parts(completedParts)
+                                .build())
+                        .build());
+
+        if (Objects.isNull(response)) {
+            throw new RPanBusinessException("完成分片上传失败，文件合并失败");
+        }
+
+        String cacheKey = getCacheKey(context.getUploadId(), context.getUserId());
+        getCache().evict(cacheKey);
     }
 }

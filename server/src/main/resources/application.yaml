@@ -118,6 +118,8 @@ com:
             access-key-secret: rustfsadmin
             bucket-name: cloud-pan
             auto-create-bucket: true
+            presigned-url-expiration-seconds: 900
+            public-endpoint: http://localhost:9000
 
 
 #      storage:

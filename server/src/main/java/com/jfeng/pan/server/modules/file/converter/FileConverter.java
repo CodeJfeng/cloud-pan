@@ -59,4 +59,17 @@ public interface FileConverter {
     FolderTreeNodeVO rPanUserFile2FolderTreeNodeVO(RPanUserFile record);
 
     RPanUserFileVO rPanUserFile2RPanUserFileVO2(RPanUserFile record);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    GeneratePresignedUrlContext generatePresignedUrlPO2Context(GeneratePresignedUrlPO po);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    GeneratePresignedMultipartUrlContext initMultipartUploadPO2Context(InitMultipartUploadPO po);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    GeneratePresignedPartUrlContext generatePresignedPartUrlPO2Context(GeneratePresignedPartUrlPO po);
+
+    @Mapping(target = "userId", expression = "java(com.jfeng.pan.server.common.utils.UserIdUtil.get())")
+    @Mapping(target = "parentId", expression = "java(com.jfeng.pan.core.utils.IdUtil.decrypt(po.getParentId()))")
+    CompleteDirectUploadContext completeDirectUploadPO2Context(CompleteDirectUploadPO po);
 }

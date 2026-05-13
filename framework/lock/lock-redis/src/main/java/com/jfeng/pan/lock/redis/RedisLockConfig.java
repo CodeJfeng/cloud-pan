@@ -17,7 +17,7 @@ public class RedisLockConfig {
         RedisLockRegistry redisLockRegistry = new RedisLockRegistry(
                 redisConnectionFactory,
                 LockConstants.R_PAN_LOCK,
-                60L);
+                60000L);
 
         log.info("redis lock is loaded successfully!");
         return redisLockRegistry;
