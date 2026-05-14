@@ -5,6 +5,7 @@ import cn.hutool.core.util.StrUtil;
 import com.jfeng.pan.core.constants.RPanConstants;
 import com.jfeng.pan.core.response.R;
 import com.jfeng.pan.core.utils.IdUtil;
+import com.jfeng.pan.server.common.annotation.RateLimit;
 import com.jfeng.pan.server.common.utils.UserIdUtil;
 import com.jfeng.pan.server.modules.file.constants.FileConstants;
 import com.jfeng.pan.server.modules.file.context.*;
@@ -38,21 +39,22 @@ public class FileController {
     private IUserFileService iUserFileService;
 
     @Autowired
-    private FileConverter  fileConverter;
+    private FileConverter fileConverter;
 
-    @Operation(summary = "查询文件列表",
-                description = "该接口提供了用户查询某文件夹下面某些文件类型的文件列表的功能")
+    @Operation(summary = "查询文件列表", description = "该接口提供了用户查询某文件夹下面某些文件类型的文件列表的功能")
     @GetMapping("files")
-    public R<List<RPanUserFileVO>> list(@NotBlank(message = "父文件夹ID不能为空") @RequestParam (value = "parentId", required = false) String parentId,
-                                        @RequestParam (value = "fileTypes", required = false, defaultValue = FileConstants.ALL_FILE_TYPE) String fileType ){
+    public R<List<RPanUserFileVO>> list(
+            @NotBlank(message = "父文件夹ID不能为空") @RequestParam(value = "parentId", required = false) String parentId,
+            @RequestParam(value = "fileTypes", required = false, defaultValue = FileConstants.ALL_FILE_TYPE) String fileType) {
         Long realParentId = -1L;
-        if(!FileConstants.ALL_FILE_TYPE.equals(parentId)){
+        if (!FileConstants.ALL_FILE_TYPE.equals(parentId)) {
             realParentId = IdUtil.decrypt(parentId);
         }
         List<Integer> fileTypeArray = null;
 
-        if(!Objects.equals(FileConstants.ALL_FILE_TYPE, fileType)){
-            fileTypeArray = StrSplitter.split(fileType, RPanConstants.COMMON_SEPARATOR, true,true).stream().map(Integer::valueOf).toList();
+        if (!Objects.equals(FileConstants.ALL_FILE_TYPE, fileType)) {
+            fileTypeArray = StrSplitter.split(fileType, RPanConstants.COMMON_SEPARATOR, true, true).stream()
+                    .map(Integer::valueOf).toList();
 
         }
 
@@ -66,89 +68,86 @@ public class FileController {
         return R.data(result);
     }
 
-    @Operation(summary = "创建文件夹",
-            description = "该接口提供了用户创建文件夹的功能")
+    @Operation(summary = "创建文件夹", description = "该接口提供了用户创建文件夹的功能")
     @PostMapping("file/folder")
-    public R createFolder(@Validated @RequestBody CreateFolderPO createFolderPO){
+    public R createFolder(@Validated @RequestBody CreateFolderPO createFolderPO) {
         CreateFolderContext createFolderContext = fileConverter.createFolderPO2CreateFolderContext(createFolderPO);
         Long fileId = iUserFileService.createFolder(createFolderContext);
         return R.data(IdUtil.encrypt(fileId));
     }
 
-    @Operation(summary = "文件重命名",
-            description = "该接口提供了文件重命名的功能")
+    @Operation(summary = "文件重命名", description = "该接口提供了文件重命名的功能")
     @PutMapping("file")
-    public R updateFilename(@Validated @RequestBody UpdateFilenamePO updateFilenamePO){
-        UpdateFilenameContext updateFilenameContext = fileConverter.updateFilenamePO2UpdateFilenameContext(updateFilenamePO);
+    public R updateFilename(@Validated @RequestBody UpdateFilenamePO updateFilenamePO) {
+        UpdateFilenameContext updateFilenameContext = fileConverter
+                .updateFilenamePO2UpdateFilenameContext(updateFilenamePO);
         Long fileId = iUserFileService.updateFilename(updateFilenameContext);
         return R.data(IdUtil.encrypt(fileId));
     }
 
-    @Operation(summary = "批量删除文件",
-            description = "该接口提 供了文件批量删除的功能")
+    @Operation(summary = "批量删除文件", description = "该接口提 供了文件批量删除的功能")
     @DeleteMapping("file")
-    public R delete(@Validated @RequestBody DeleteFilePO deleteFilePO){
+    public R delete(@Validated @RequestBody DeleteFilePO deleteFilePO) {
         DeleteFileContext deleteFileContext = fileConverter.deleteFilePO2DeleteFileContext(deleteFilePO);
         String fileIds = deleteFilePO.getFileIds();
-        List<Long> fileIdList = StrUtil.split(fileIds, RPanConstants.COMMON_SEPARATOR).stream().map(IdUtil::decrypt).toList();
+        List<Long> fileIdList = StrUtil.split(fileIds, RPanConstants.COMMON_SEPARATOR).stream().map(IdUtil::decrypt)
+                .toList();
         deleteFileContext.setFileIdList(fileIdList);
         iUserFileService.deleteFile(deleteFileContext);
         return R.data("文件删除成功");
     }
 
-    @Operation(summary = "文件秒传",
-            description = "该接口提供了文件秒传的功能")
+    @Operation(summary = "文件秒传", description = "该接口提供了文件秒传的功能")
+    @RateLimit(key = "file_sec_upload", permits = 20, seconds = 60, message = "秒传请求过于频繁，请稍后重试")
     @PostMapping("file/sec-upload")
-    public R secUpload(@Validated @RequestBody SecUploadPO secUploadPO){
+    public R secUpload(@Validated @RequestBody SecUploadPO secUploadPO) {
         SecUploadContext secUploadContext = fileConverter.secUploadPO2SecUploadContext(secUploadPO);
         boolean success = iUserFileService.SecUpload(secUploadContext);
-        if(success){
+        if (success) {
             return R.data("文件秒传成功");
         }
         return R.fail("文件唯一标识不存在，请手动执行上传的操作");
     }
 
-    @Operation(summary = "单文件上传",
-            description = "该接口提供了单文件上传的功能")
+    @Operation(summary = "单文件上传", description = "该接口提供了单文件上传的功能")
+    @RateLimit(key = "file_upload", permits = 5, seconds = 60, message = "上传文件过于频繁，请稍后重试")
     @PostMapping("file/upload")
-    public R upload(@Validated @RequestBody FileUploadPO fileUploadPO){
+    public R upload(@Validated @RequestBody FileUploadPO fileUploadPO) {
         FileUploadContext fileUploadContext = fileConverter.fileUploadPO2FileUploadContext(fileUploadPO);
         iUserFileService.upload(fileUploadContext);
         return R.data("文件上传成功");
     }
 
-    @Operation(summary = "文件分片上传",
-            description = "该接口提供了文件分片上传的功能")
+    @Operation(summary = "文件分片上传", description = "该接口提供了文件分片上传的功能")
     @PostMapping("file/chunk-upload")
-    public R<FileChunkUploadVO> upload(@Validated FileChunkUploadPO fileChunkUploadPO){
+    public R<FileChunkUploadVO> upload(@Validated FileChunkUploadPO fileChunkUploadPO) {
         FileChunkUploadContext context = fileConverter.fileChunkUploadPO2FileChunkUploadContext(fileChunkUploadPO);
-        FileChunkUploadVO vo =  iUserFileService.chunkUpload(context);
+        FileChunkUploadVO vo = iUserFileService.chunkUpload(context);
         return R.data(vo);
     }
 
-
-    @Operation(summary = "文件分片查询",
-            description = "该接口提供了查询用户已经上传的分片列表")
+    @Operation(summary = "文件分片查询", description = "该接口提供了查询用户已经上传的分片列表")
     @GetMapping("file/chunk-upload")
-    public R<UploadedChunksVO> getUploadedChunks(@Validated QueryUploadedChunksPO queryUploadedChunksPO){
-        QueryUploadedChunksContext context = fileConverter.queryUploadedChunksPO2QueryUploadedChunksContext(queryUploadedChunksPO);
-        UploadedChunksVO vo =  iUserFileService.getUploadedChunks(context);
+    public R<UploadedChunksVO> getUploadedChunks(@Validated QueryUploadedChunksPO queryUploadedChunksPO) {
+        QueryUploadedChunksContext context = fileConverter
+                .queryUploadedChunksPO2QueryUploadedChunksContext(queryUploadedChunksPO);
+        UploadedChunksVO vo = iUserFileService.getUploadedChunks(context);
         return R.data(vo);
     }
 
-    @Operation(summary = "文件分片合并",
-            description = "该接口提供了文件分片合并的的功能")
+    @Operation(summary = "文件分片合并", description = "该接口提供了文件分片合并的的功能")
     @PostMapping("file/merge")
-    public R mergeFile(@Validated @RequestBody FileChunkMergePO fileChunkMergePO){
+    public R mergeFile(@Validated @RequestBody FileChunkMergePO fileChunkMergePO) {
         FileChunkMergeContext context = fileConverter.fileChunkMergePO2FileChunkMergeContext(fileChunkMergePO);
         iUserFileService.mergeFile(context);
         return R.success();
     }
 
-    @Operation(summary = "文件下载",
-            description = "该接口提供了文件下载的的功能")
+    @Operation(summary = "文件下载", description = "该接口提供了文件下载的的功能")
     @GetMapping("file/download")
-    public void download(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId, HttpServletResponse response){
+    public void download(
+            @NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId,
+            HttpServletResponse response) {
         FileDownloadContext context = new FileDownloadContext();
         context.setFileId(IdUtil.decrypt(fileId));
         context.setResponse(response);
@@ -157,10 +156,10 @@ public class FileController {
         iUserFileService.download(context);
     }
 
-    @Operation(summary = "文件预览",
-            description = "该接口提供了单文件预览的的功能")
+    @Operation(summary = "文件预览", description = "该接口提供了单文件预览的的功能")
     @GetMapping("file/preview")
-    public void preview(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId, HttpServletResponse response){
+    public void preview(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = false) String fileId,
+            HttpServletResponse response) {
         FilePreviewContext context = new FilePreviewContext();
         context.setFileId(IdUtil.decrypt(fileId));
         context.setResponse(response);
@@ -169,24 +168,22 @@ public class FileController {
         iUserFileService.preview(context);
     }
 
-    @Operation(summary = "查询文件夹树",
-            description = "该接口提供了高性能的文件夹查询功能的的功能，使用HashMap代替递归查询")
+    @Operation(summary = "查询文件夹树", description = "该接口提供了高性能的文件夹查询功能的的功能，使用HashMap代替递归查询")
     @GetMapping("file/folder/tree")
-    public R<List<FolderTreeNodeVO>> getFolderTree(){
+    public R<List<FolderTreeNodeVO>> getFolderTree() {
         QueryFolderTreeContext context = new QueryFolderTreeContext();
         context.setUserId(UserIdUtil.get());
         List<FolderTreeNodeVO> result = iUserFileService.getFolderTree(context);
         return R.data(result);
     }
 
-
-    @Operation(summary = "文件转移",
-            description = "该接口提供了文件转移的功能")
+    @Operation(summary = "文件转移", description = "该接口提供了文件转移的功能")
     @PostMapping("file/transfer")
-    public R transfer(@Validated @RequestBody TransferFilePO transferFilePO){
+    public R transfer(@Validated @RequestBody TransferFilePO transferFilePO) {
         String fileIds = transferFilePO.getFileIds();
         String targetParentId = transferFilePO.getTargetParentId();
-        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
+        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt)
+                .toList();
         TransferFileConext context = new TransferFileConext();
         context.setFileIdList(fileIdList);
         context.setTargetParentId(IdUtil.decrypt(targetParentId));
@@ -195,14 +192,13 @@ public class FileController {
         return R.success();
     }
 
-
-    @Operation(summary = "文件复制",
-            description = "该文件提供了文件复制的功能")
+    @Operation(summary = "文件复制", description = "该文件提供了文件复制的功能")
     @PostMapping("file/copy")
-    public R copy(@Validated @RequestBody CopyFilePO copyFilePO){
+    public R copy(@Validated @RequestBody CopyFilePO copyFilePO) {
         String fileIds = copyFilePO.getFileIds();
         String targetParentId = copyFilePO.getTargetParentId();
-        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt).toList();
+        List<Long> fileIdList = Arrays.stream(fileIds.split(RPanConstants.COMMON_SEPARATOR)).map(IdUtil::decrypt)
+                .toList();
 
         CopyFileContext context = new CopyFileContext();
         context.setFileIdList(fileIdList);
@@ -212,17 +208,17 @@ public class FileController {
         return R.success();
     }
 
-    @Operation(summary = "文件搜索",
-            description = "该文件提供了文件搜索的功能")
+    @Operation(summary = "文件搜索", description = "该文件提供了文件搜索的功能")
     @GetMapping("file/search")
-    public R<List<FileSearchResultVO>> search(@Validated FileSearchPO fileSearchPO){
+    public R<List<FileSearchResultVO>> search(@Validated FileSearchPO fileSearchPO) {
         FileSearchContext context = new FileSearchContext();
         context.setKeyword(fileSearchPO.getKeyword());
         context.setUserId(UserIdUtil.get());
 
         String fileTypes = fileSearchPO.getFileTypes();
-        if(StringUtils.isNotBlank(fileTypes) && !Objects.equals(FileConstants.ALL_FILE_TYPE, fileTypes) ){
-            List<Integer> fileTypeArray = Arrays.stream(fileTypes.split(RPanConstants.COMMON_SEPARATOR)).map(Integer::valueOf).toList();
+        if (StringUtils.isNotBlank(fileTypes) && !Objects.equals(FileConstants.ALL_FILE_TYPE, fileTypes)) {
+            List<Integer> fileTypeArray = Arrays.stream(fileTypes.split(RPanConstants.COMMON_SEPARATOR))
+                    .map(Integer::valueOf).toList();
             context.setFileTypeArray(fileTypeArray);
         }
 
@@ -230,10 +226,10 @@ public class FileController {
         return R.data(vo);
     }
 
-    @Operation(summary = "查询面包屑列表",
-            description = "该文件提供了查询面包屑列表的功能")
+    @Operation(summary = "查询面包屑列表", description = "该文件提供了查询面包屑列表的功能")
     @GetMapping("file/breadcrumbs")
-    public R<List<BreadcrumbVO>> getBreadcrumbs(@NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = true) String fileId){
+    public R<List<BreadcrumbVO>> getBreadcrumbs(
+            @NotBlank(message = "文件ID不能为空") @RequestParam(value = "fileId", required = true) String fileId) {
         QueryBreadcrumbContext context = new QueryBreadcrumbContext();
         context.setFileId(IdUtil.decrypt(fileId));
         context.setUserId(UserIdUtil.get());
@@ -241,46 +237,44 @@ public class FileController {
         return R.data(result);
     }
 
-    @Operation(summary = "生成单文件预签名URL",
-            description = "服务端生成预签名URL，客户端直传S3")
+    @Operation(summary = "生成单文件预签名URL", description = "服务端生成预签名URL，客户端直传S3")
+    @RateLimit(key = "file_presigned_url", permits = 10, seconds = 60, message = "获取预签名URL请求过于频繁，请稍后重试")
     @PostMapping("file/presigned-url")
-    public R<PresignedUrlVO> generatePresignedUrl(@Validated @RequestBody GeneratePresignedUrlPO po){
+    public R<PresignedUrlVO> generatePresignedUrl(@Validated @RequestBody GeneratePresignedUrlPO po) {
         GeneratePresignedUrlContext context = fileConverter.generatePresignedUrlPO2Context(po);
         PresignedUrlVO vo = iUserFileService.generatePresignedUrl(context);
         return R.data(vo);
     }
 
-    @Operation(summary = "初始化分片上传预签名URL",
-            description = "服务端初始化分片上传，返回uploadId和预签名URL")
+    @Operation(summary = "初始化分片上传预签名URL", description = "服务端初始化分片上传，返回uploadId和预签名URL")
+    @RateLimit(key = "file_init_multipart", permits = 5, seconds = 60, message = "初始化分片上传请求过于频繁，请稍后重试")
     @PostMapping("file/init-multipart")
-    public R<PresignedUrlVO> initMultipartUpload(@Validated @RequestBody InitMultipartUploadPO po){
+    public R<PresignedUrlVO> initMultipartUpload(@Validated @RequestBody InitMultipartUploadPO po) {
         GeneratePresignedMultipartUrlContext context = fileConverter.initMultipartUploadPO2Context(po);
         PresignedUrlVO vo = iUserFileService.initMultipartUpload(context);
         return R.data(vo);
     }
 
-    @Operation(summary = "生成分片上传预签名URL",
-            description = "服务端生成单个分片的预签名URL")
+    @Operation(summary = "生成分片上传预签名URL", description = "服务端生成单个分片的预签名URL")
+    @RateLimit(key = "file_presigned_part_url", permits = 30, seconds = 60, message = "获取分片预签名URL请求过于频繁，请稍后重试")
     @PostMapping("file/presigned-part-url")
-    public R<PresignedUrlVO> generatePresignedPartUrl(@Validated @RequestBody GeneratePresignedPartUrlPO po){
+    public R<PresignedUrlVO> generatePresignedPartUrl(@Validated @RequestBody GeneratePresignedPartUrlPO po) {
         GeneratePresignedPartUrlContext context = fileConverter.generatePresignedPartUrlPO2Context(po);
         PresignedUrlVO vo = iUserFileService.generatePresignedPartUrl(context);
         return R.data(vo);
     }
 
-    @Operation(summary = "完成直传回调",
-            description = "客户端上传完成后回调服务端保存文件记录")
+    @Operation(summary = "完成直传回调", description = "客户端上传完成后回调服务端保存文件记录")
     @PostMapping("file/complete-direct-upload")
-    public R completeDirectUpload(@Validated @RequestBody CompleteDirectUploadPO po){
+    public R completeDirectUpload(@Validated @RequestBody CompleteDirectUploadPO po) {
         CompleteDirectUploadContext context = fileConverter.completeDirectUploadPO2Context(po);
         iUserFileService.completeDirectUpload(context);
         return R.success();
     }
 
-    @Operation(summary = "查询已上传的分片列表",
-            description = "用于断点续传场景，获取S3上已上传的分片编号列表")
+    @Operation(summary = "查询已上传的分片列表", description = "用于断点续传场景，获取S3上已上传的分片编号列表")
     @GetMapping("file/uploaded-parts")
-    public R<UploadedPartsVO> listUploadedParts(@Validated QueryUploadedPartsPO po){
+    public R<UploadedPartsVO> listUploadedParts(@Validated QueryUploadedPartsPO po) {
         QueryUploadedPartsContext context = fileConverter.queryUploadedPartsPO2Context(po);
         UploadedPartsVO vo = iUserFileService.listUploadedParts(context);
         return R.data(vo);

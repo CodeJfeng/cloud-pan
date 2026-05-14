@@ -2,7 +2,9 @@ package com.jfeng.pan.server.common.utils;
 
 import lombok.AllArgsConstructor;
 import lombok.Getter;
+import org.apache.commons.lang3.StringUtils;
 
+import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
 
 /**
@@ -10,6 +12,45 @@ import javax.servlet.http.HttpServletResponse;
  * Created by RubinChu on 2021/1/19 17:54
  */
 public class HttpUtil {
+
+    /**
+     * 获取客户端真实IP地址
+     *
+     * @param request HTTP请求
+     * @return 客户端IP地址
+     */
+    public static String getIpAddress(HttpServletRequest request) {
+        if (request == null) {
+            return "unknown";
+        }
+        
+        String ip = request.getHeader("X-Forwarded-For");
+        if (StringUtils.isNotBlank(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            int index = ip.indexOf(',');
+            if (index != -1) {
+                return ip.substring(0, index);
+            } else {
+                return ip;
+            }
+        }
+        
+        ip = request.getHeader("X-Real-IP");
+        if (StringUtils.isNotBlank(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        
+        ip = request.getHeader("Proxy-Client-IP");
+        if (StringUtils.isNotBlank(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        
+        ip = request.getHeader("WL-Proxy-Client-IP");
+        if (StringUtils.isNotBlank(ip) && !"unknown".equalsIgnoreCase(ip)) {
+            return ip;
+        }
+        
+        return request.getRemoteAddr();
+    }
 
     /**
      * 添加跨域的响应头
