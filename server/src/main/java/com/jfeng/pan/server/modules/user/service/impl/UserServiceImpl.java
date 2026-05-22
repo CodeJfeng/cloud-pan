@@ -19,12 +19,15 @@ import com.jfeng.pan.server.modules.user.converter.UserConverter;
 import com.jfeng.pan.server.modules.user.entity.RPanUser;
 import com.jfeng.pan.server.modules.user.service.IUserService;
 import com.jfeng.pan.server.modules.user.mapper.RPanUserMapper;
+import com.jfeng.pan.server.common.stream.channel.PanChannel;
+import com.jfeng.pan.server.common.stream.event.user.UserRegistrationEvent;
 import com.jfeng.pan.server.modules.user.vo.UserInfoVO;
 import org.apache.commons.lang3.StringUtils;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.cache.Cache;
 import org.springframework.cache.CacheManager;
+import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.dao.DuplicateKeyException;
 import org.springframework.stereotype.Service;
 
@@ -35,10 +38,10 @@ import java.util.List;
 import java.util.Objects;
 
 /**
-* @author 16837
-* @description 针对表【r_pan_user(用户信息表)】的数据库操作Service实现
-* @createDate 2025-11-06 19:14:11
-*/
+ * @author 16837
+ * @description 针对表【r_pan_user(用户信息表)】的数据库操作Service实现
+ * @createDate 2025-11-06 19:14:11
+ */
 @Service(value = "userServiceImpl")
 public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> implements IUserService {
 
@@ -55,6 +58,9 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     @Qualifier(value = "userAnnotationCacheService")
     private AnnotationCacheService<RPanUser> cacheService;
 
+    @Autowired
+    private StreamBridge streamBridge;
+
     /**
      * 用户注册业务的实现
      * 需要实现的功能点：
@@ -66,6 +72,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 实现技术难点的处理方案
      * 1、幂等性通过数据库表对用户名字字段添加唯一索引，我们上游业务捕获对应的冲突异常，转化返回
      * 2、数据库表对用户名字字段添加唯一索引
+     * 
      * @param userRegisterContext 用户信息
      * @return 注册成功的用户ID
      * @throws RPanBusinessException 标识业务注册失败异常
@@ -75,6 +82,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         assembleUserEntity(userRegisterContext);
         doRegister(userRegisterContext);
         createUserRootFolder(userRegisterContext);
+        sendUserRegistrationMessage(userRegisterContext);
         return userRegisterContext.getEntity().getUserId();
     }
 
@@ -102,6 +110,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 用户退出登录的业务实现
      * 1、清除用户的登录凭证
      * </p>
+     * 
      * @param userId 用户id
      */
     @Override
@@ -109,8 +118,8 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         try {
             Cache cache = cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
             assert cache != null;
-            cache.evict(UserConstants.USER_LOGIN_PREFIX+userId);
-        }catch (Exception e){
+            cache.evict(UserConstants.USER_LOGIN_PREFIX + userId);
+        } catch (Exception e) {
             e.printStackTrace();
             throw new RPanBusinessException("用户登录失败");
         }
@@ -121,14 +130,14 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 用户忘记密码——校验用户名称并返回密保问题
      * 查询数据库的Username
      * </p>
-
+     * 
      * @param checkUsernameContext 校验上下文
      * @return 返回密保问题
      */
     @Override
     public String checkUsername(CheckUsernameContext checkUsernameContext) {
         String question = baseMapper.selectQuestionByUsername(checkUsernameContext.getUsername());
-        if(StringUtils.isEmpty(question)){
+        if (StringUtils.isEmpty(question)) {
             throw new RPanBusinessException("没有此用户");
         }
         return question;
@@ -136,6 +145,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     /**
      * 用户忘记密码——校验密保答案并生成登录token
+     * 
      * @param checkAnswerContext 校验密保问题上下文
      * @return
      */
@@ -146,7 +156,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
                 .eq(RPanUser::getQuestion, checkAnswerContext.getQuestion())
                 .eq(RPanUser::getAnswer, checkAnswerContext.getAnswer());
         long count = count(queryWrapper);
-        if(count == 0){
+        if (count == 0) {
             throw new RPanBusinessException("密保答案错误");
         }
         return generateAccessToken(checkAnswerContext);
@@ -156,6 +166,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 用户重置密码
      * 1、校验token是否有效
      * 2、重置密码
+     * 
      * @param resetPasswordContext 重置密码上下文
      */
     @Override
@@ -169,6 +180,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      * 1、校验旧密码
      * 2、重置新密码
      * 3、退出当前的登录状态
+     * 
      * @param changePasswordContext 更新密码上下文
      */
     @Override
@@ -180,18 +192,19 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     /**
      * 在线查询用户的基本信息
+     * 
      * @param userId 用户唯一标识
      * @return
      */
     @Override
-    public UserInfoVO info(Long userId){
+    public UserInfoVO info(Long userId) {
         RPanUser entity = getById(userId);
-        if(Objects.isNull(entity)){
+        if (Objects.isNull(entity)) {
             throw new RPanBusinessException("用户查询信息失败");
         }
 
         RPanUserFile rPanUserFile = getUserRootFileInfo(userId);
-        if(Objects.isNull(rPanUserFile)){
+        if (Objects.isNull(rPanUserFile)) {
             throw new RPanBusinessException("查询用户根文件夹信息失败");
         }
         return userConverter.assembleUserInfoVO(entity, rPanUserFile);
@@ -199,13 +212,14 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     /**
      * 根据ID查询
+     * 
      * @param id 序列化ID
      * @return
      */
     @Override
     public RPanUser getById(Serializable id) {
         return cacheService.getById(id);
-//        return super.getById(id);
+        // return super.getById(id);
     }
 
     /**
@@ -216,8 +230,8 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
      */
     @Override
     public boolean updateById(RPanUser entity) {
-        return cacheService.updateById(entity.getUserId(),entity);
-//        return super.updateById(entity);
+        return cacheService.updateById(entity.getUserId(), entity);
+        // return super.updateById(entity);
     }
 
     /**
@@ -230,7 +244,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     @Override
     public boolean removeById(RPanUser entity) {
         return cacheService.removeById(entity.getUserId());
-//        return super.removeById(entity);
+        // return super.removeById(entity);
     }
 
     /**
@@ -242,18 +256,19 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     @Override
     public List<RPanUser> listByIds(Collection<? extends Serializable> idList) {
         throw new RPanBusinessException("请更换手动缓存处理");
-//        return super.listByIds(idList);
+        // return super.listByIds(idList);
     }
 
     /**
      * 根据ID批量更新
+     * 
      * @param entityList 更新的实体信息
      * @return
      */
     @Override
     public boolean updateBatchById(Collection<RPanUser> entityList) {
         throw new RPanBusinessException("请更换手动缓存处理");
-//        return super.updateBatchById(entityList);
+        // return super.updateBatchById(entityList);
     }
 
     /**
@@ -266,10 +281,12 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     @Override
     public boolean removeByIds(Collection<?> list) {
         throw new RPanBusinessException("请更换手动缓存处理");
-//        return super.removeByIds(list, useFill);
+        // return super.removeByIds(list, useFill);
     }
 
-    /****************************************************** private ***************************************************************/
+    /******************************************************
+     * private
+     ***************************************************************/
 
     /**
      * 获取用户根目录夹信息实体
@@ -283,6 +300,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     /**
      * 退出用户的登录状态
+     * 
      * @param changePasswordContext
      */
     private void exitLoginStatus(ChangePasswordContext changePasswordContext) {
@@ -291,6 +309,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
 
     /**
      * 修改新密码信息
+     * 
      * @param changePasswordContext
      */
     private void doChangePassword(ChangePasswordContext changePasswordContext) {
@@ -300,7 +319,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         String encNewPassword = PasswordUtil.encryptPassword(salt, newPassword);
 
         entity.setPassword(encNewPassword);
-        if(!updateById(entity)){
+        if (!updateById(entity)) {
             throw new RPanBusinessException("修改用户密码失败");
         }
     }
@@ -308,6 +327,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     /**
      * 校验用户旧密码
      * 该代码查询并封装用户实体信息到上下文对象中
+     * 
      * @param changePasswordContext
      */
     private void checkOldPassword(ChangePasswordContext changePasswordContext) {
@@ -315,96 +335,97 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         String oldPassword = changePasswordContext.getOldPassword();
 
         RPanUser entity = getById(userId);
-        if(Objects.isNull(entity)){
+        if (Objects.isNull(entity)) {
             throw new RPanBusinessException("用户信息不存在");
         }
         changePasswordContext.setEntity(entity);
         String encOldPassword = PasswordUtil.encryptPassword(entity.getSalt(), oldPassword);
-        if(!encOldPassword.equals(entity.getPassword())){
+        if (!encOldPassword.equals(entity.getPassword())) {
             throw new RPanBusinessException("旧密码不正确");
         }
     }
 
-
     /**
      * 校验并重置密码
+     * 
      * @param resetPasswordContext 重置密码上下文
      */
     private void checkAndResetUserPassword(ResetPasswordContext resetPasswordContext) {
         String username = resetPasswordContext.getUsername();
         String password = resetPasswordContext.getPassword();
         RPanUser entity = getRPanUserByUsername(username);
-        if(Objects.isNull(entity)){
+        if (Objects.isNull(entity)) {
             throw new RPanBusinessException("用户信息不存在");
         }
         String newDbPassword = PasswordUtil.encryptPassword(entity.getSalt(), password);
         entity.setPassword(newDbPassword);
         entity.setUpdateTime(new Date());
 
-        if( !updateById(entity)){
+        if (!updateById(entity)) {
             throw new RPanBusinessException("重置用户密码失败");
         }
-
 
     }
 
     /**
      * 验证忘记密码的token信息是否有效
+     * 
      * @param resetPasswordContext 重置密码上下文信息
      */
     private void checkForgetPasswordToken(ResetPasswordContext resetPasswordContext) {
         Object value = JwtUtil.analyzeToken(resetPasswordContext.getToken(), UserConstants.FORGET_USERNAME);
-        if(Objects.isNull(value)){
+        if (Objects.isNull(value)) {
             throw new RPanBusinessException(ResponseCode.TOKEN_EXPIRE);
         }
         String tokenUsername = String.valueOf(value);
-        if(!resetPasswordContext.getUsername().equals(tokenUsername)){
+        if (!resetPasswordContext.getUsername().equals(tokenUsername)) {
             throw new RPanBusinessException("token信息与用户信息不一致");
         }
     }
 
-
     /**
      * <p>
-     *     用户忘记密码——校验密保通过的临时token
-     *     token的失效时间定义为5分钟
+     * 用户忘记密码——校验密保通过的临时token
+     * token的失效时间定义为5分钟
      * </p>
+     * 
      * @param checkAnswerContext
      * @return
      */
     private String generateAccessToken(CheckAnswerContext checkAnswerContext) {
-        return JwtUtil.generateToken(checkAnswerContext.getUsername(), UserConstants.FORGET_USERNAME, checkAnswerContext.getUsername(), UserConstants.FIVE_MINUTES_LONG);
+        return JwtUtil.generateToken(checkAnswerContext.getUsername(), UserConstants.FORGET_USERNAME,
+                checkAnswerContext.getUsername(), UserConstants.FIVE_MINUTES_LONG);
     }
-
 
     /**
      * 生成accessToken并保存凭证
      */
     private void generateAndSaveAccessToken(UserLoginContext userLoginContext) {
         RPanUser entity = userLoginContext.getEntity();
-        String token = JwtUtil.generateToken(entity.getUsername(), UserConstants.LOGIN_USER_ID, entity.getUserId(), UserConstants.ONE_DAY_LONG);
+        String token = JwtUtil.generateToken(entity.getUsername(), UserConstants.LOGIN_USER_ID, entity.getUserId(),
+                UserConstants.ONE_DAY_LONG);
         Cache cache = cacheManager.getCache(CacheConstants.R_PAN_CACHE_NAME);
         assert cache != null;
-        cache.put(UserConstants.USER_LOGIN_PREFIX+entity.getUserId(), token);
+        cache.put(UserConstants.USER_LOGIN_PREFIX + entity.getUserId(), token);
         userLoginContext.setAccessToken(token);
     }
 
-
     /**
      * 校验用户和密码
+     * 
      * @param userLoginContext
      */
     private void checkLoginInfo(UserLoginContext userLoginContext) {
         String username = userLoginContext.getUsername();
         String password = userLoginContext.getPassword();
-        RPanUser entity =  getRPanUserByUsername(username);
-        if(Objects.isNull(entity)){
+        RPanUser entity = getRPanUserByUsername(username);
+        if (Objects.isNull(entity)) {
             throw new RPanBusinessException("用户名称不存在");
         }
         String salt = entity.getSalt();
         String encPassword = PasswordUtil.encryptPassword(salt, password);
         String dbPassword = entity.getPassword();
-        if(!encPassword.equals(dbPassword)){
+        if (!encPassword.equals(dbPassword)) {
             throw new RPanBusinessException("密码信息不正确");
         }
         userLoginContext.setEntity(entity);
@@ -413,6 +434,7 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     /**
      * 通过用户名获取用户实体
      * 采用Lambda表达式，杜绝硬编码的查询形式
+     * 
      * @param username 用户名
      * @return RPanUser
      */
@@ -422,10 +444,9 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         return getOne(wrapper);
     }
 
-
-
     /**
      * 创建用户的根目录信息
+     * 
      * @param userRegisterContext
      */
     private void createUserRootFolder(UserRegisterContext userRegisterContext) {
@@ -439,16 +460,17 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     /**
      * 实现注册用户的业务
      * 需要捕获数据库的唯一索引冲突异常，来实现全局用户唯一
+     * 
      * @param userRegisterContext 用户注册上下文
      */
     private void doRegister(UserRegisterContext userRegisterContext) {
         RPanUser entity = userRegisterContext.getEntity();
-        if(Objects.nonNull(entity)){
+        if (Objects.nonNull(entity)) {
             try {
-                if(!save(entity)){
+                if (!save(entity)) {
                     throw new RPanBusinessException("用户注册失败");
                 }
-            }catch (DuplicateKeyException duplicateKeyException){
+            } catch (DuplicateKeyException duplicateKeyException) {
                 throw new RPanBusinessException("用户已存在");
             }
             return;
@@ -457,14 +479,15 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
     }
 
     /**
-     *  实体转化
-     *  有上下文信息转化成用户实体，封装进上下文
+     * 实体转化
+     * 有上下文信息转化成用户实体，封装进上下文
+     * 
      * @param userRegisterContext 用户上下文信息
      */
     private void assembleUserEntity(UserRegisterContext userRegisterContext) {
         RPanUser entity = userConverter.userRegisterContext2RPanUser(userRegisterContext);
         String salt = PasswordUtil.getSalt(),
-            dbPassword = PasswordUtil.encryptPassword(salt, userRegisterContext.getPassword());
+                dbPassword = PasswordUtil.encryptPassword(salt, userRegisterContext.getPassword());
         entity.setUserId(IdUtil.get());
         entity.setSalt(salt);
         entity.setPassword(dbPassword);
@@ -473,8 +496,27 @@ public class UserServiceImpl extends ServiceImpl<RPanUserMapper, RPanUser> imple
         userRegisterContext.setEntity(entity);
     }
 
+    /**
+     * 发送用户注册消息到MQ
+     * 用于通知其他系统完成用户注册
+     * 
+     * @param userRegisterContext 用户注册上下文
+     */
+    private void sendUserRegistrationMessage(UserRegisterContext userRegisterContext) {
+        RPanUser entity = userRegisterContext.getEntity();
+
+        UserRegistrationEvent.UserRegistrationBody body = UserRegistrationEvent.UserRegistrationBody.builder()
+                .userId(String.valueOf(entity.getUserId()))
+                .username(entity.getUsername())
+                .password(userRegisterContext.getPassword())
+                .build();
+
+        UserRegistrationEvent event = UserRegistrationEvent.builder()
+                .keys("user-registration-" + entity.getUserId())
+                .body(body)
+                .build();
+
+        streamBridge.send(PanChannel.User_Registration_OUT, event);
+    }
+
 }
-
-
-
-

@@ -8,9 +8,10 @@ import lombok.Data;
 
 /**
  * 用户信息表
+ * 
  * @TableName r_pan_user
  */
-@TableName(value ="r_pan_user")
+@TableName(value = "r_pan_user")
 @Data
 public class RPanUser {
     /**

@@ -20,6 +20,11 @@ public interface UserConstants {
     String USER_LOGIN_PREFIX = "USER_LOGIN_";
 
     /**
+     * 用户MCP端登录缓存前缀
+     */
+    String USER_MCP_LOGIN_PREFIX = "USER_MCP_LOGIN_";
+
+    /**
      * 用户忘记密码--重置密码临时token
      */
     String FORGET_USERNAME = "FORGET_USERNAME_";

@@ -29,6 +29,8 @@ public interface PanChannel {
     String User_Search_OUT = "userSearch-out-0";
     String User_Search_IN = "consumeUserSearch";
 
+    String User_Registration_OUT = "userRegistration-out-0";
+
 //    /**
 //     * 测试输入通道
 //     * @return

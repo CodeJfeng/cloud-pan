@@ -40,8 +40,8 @@ import org.springframework.stereotype.Component;
 
 @Generated(
     value = "org.mapstruct.ap.MappingProcessor",
-    date = "2026-05-13T19:53:25+0800",
-    comments = "version: 1.5.5.Final, compiler: javac, environment: Java 21.0.9 (Microsoft)"
+    date = "2026-05-22T10:06:07+0800",
+    comments = "version: 1.5.5.Final, compiler: Eclipse JDT (IDE) 3.46.0.v20260407-0427, environment: Java 21.0.10 (Eclipse Adoptium)"
 )
 @Component
 public class FileConverterImpl implements FileConverter {
@@ -116,10 +116,10 @@ public class FileConverterImpl implements FileConverter {
 
         FileUploadContext fileUploadContext = new FileUploadContext();
 
+        fileUploadContext.setFile( fileUploadPO.getFile() );
         fileUploadContext.setFilename( fileUploadPO.getFilename() );
         fileUploadContext.setIdentifier( fileUploadPO.getIdentifier() );
         fileUploadContext.setTotalSize( fileUploadPO.getTotalSize() );
-        fileUploadContext.setFile( fileUploadPO.getFile() );
 
         fileUploadContext.setParentId( com.jfeng.pan.core.utils.IdUtil.decrypt(fileUploadPO.getParentId()) );
         fileUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
@@ -135,10 +135,10 @@ public class FileConverterImpl implements FileConverter {
 
         FileSaveContext fileSaveContext = new FileSaveContext();
 
+        fileSaveContext.setFile( context.getFile() );
         fileSaveContext.setFilename( context.getFilename() );
         fileSaveContext.setIdentifier( context.getIdentifier() );
         fileSaveContext.setTotalSize( context.getTotalSize() );
-        fileSaveContext.setFile( context.getFile() );
         fileSaveContext.setUserId( context.getUserId() );
 
         return fileSaveContext;
@@ -152,13 +152,13 @@ public class FileConverterImpl implements FileConverter {
 
         FileChunkUploadContext fileChunkUploadContext = new FileChunkUploadContext();
 
+        fileChunkUploadContext.setChunkNumber( fileChunkUploadPO.getChunkNumber() );
+        fileChunkUploadContext.setCurrentChunkSize( fileChunkUploadPO.getCurrentChunkSize() );
+        fileChunkUploadContext.setFile( fileChunkUploadPO.getFile() );
         fileChunkUploadContext.setFilename( fileChunkUploadPO.getFilename() );
         fileChunkUploadContext.setIdentifier( fileChunkUploadPO.getIdentifier() );
         fileChunkUploadContext.setTotalChunks( fileChunkUploadPO.getTotalChunks() );
-        fileChunkUploadContext.setChunkNumber( fileChunkUploadPO.getChunkNumber() );
-        fileChunkUploadContext.setCurrentChunkSize( fileChunkUploadPO.getCurrentChunkSize() );
         fileChunkUploadContext.setTotalSize( fileChunkUploadPO.getTotalSize() );
-        fileChunkUploadContext.setFile( fileChunkUploadPO.getFile() );
 
         fileChunkUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
 
@@ -173,13 +173,13 @@ public class FileConverterImpl implements FileConverter {
 
         FileChunkSaveContext fileChunkSaveContext = new FileChunkSaveContext();
 
+        fileChunkSaveContext.setChunkNumber( context.getChunkNumber() );
+        fileChunkSaveContext.setCurrentChunkSize( context.getCurrentChunkSize() );
+        fileChunkSaveContext.setFile( context.getFile() );
         fileChunkSaveContext.setFilename( context.getFilename() );
         fileChunkSaveContext.setIdentifier( context.getIdentifier() );
         fileChunkSaveContext.setTotalChunks( context.getTotalChunks() );
-        fileChunkSaveContext.setChunkNumber( context.getChunkNumber() );
-        fileChunkSaveContext.setCurrentChunkSize( context.getCurrentChunkSize() );
         fileChunkSaveContext.setTotalSize( context.getTotalSize() );
-        fileChunkSaveContext.setFile( context.getFile() );
         fileChunkSaveContext.setUserId( context.getUserId() );
 
         return fileChunkSaveContext;
@@ -247,10 +247,10 @@ public class FileConverterImpl implements FileConverter {
 
         fileChunkMergeAndSaveContext.setFilename( context.getFilename() );
         fileChunkMergeAndSaveContext.setIdentifier( context.getIdentifier() );
-        fileChunkMergeAndSaveContext.setTotalSize( context.getTotalSize() );
         fileChunkMergeAndSaveContext.setParentId( context.getParentId() );
-        fileChunkMergeAndSaveContext.setUserId( context.getUserId() );
         fileChunkMergeAndSaveContext.setRecord( context.getRecord() );
+        fileChunkMergeAndSaveContext.setTotalSize( context.getTotalSize() );
+        fileChunkMergeAndSaveContext.setUserId( context.getUserId() );
 
         return fileChunkMergeAndSaveContext;
     }
@@ -281,11 +281,11 @@ public class FileConverterImpl implements FileConverter {
         RPanUserFileVO rPanUserFileVO = new RPanUserFileVO();
 
         rPanUserFileVO.setFileId( record.getFileId() );
-        rPanUserFileVO.setParentId( record.getParentId() );
-        rPanUserFileVO.setFilename( record.getFilename() );
         rPanUserFileVO.setFileSizeDesc( record.getFileSizeDesc() );
-        rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
         rPanUserFileVO.setFileType( record.getFileType() );
+        rPanUserFileVO.setFilename( record.getFilename() );
+        rPanUserFileVO.setFolderFlag( record.getFolderFlag() );
+        rPanUserFileVO.setParentId( record.getParentId() );
         rPanUserFileVO.setUpdateTime( record.getUpdateTime() );
 
         return rPanUserFileVO;
@@ -299,9 +299,9 @@ public class FileConverterImpl implements FileConverter {
 
         GeneratePresignedUrlContext generatePresignedUrlContext = new GeneratePresignedUrlContext();
 
+        generatePresignedUrlContext.setContentType( po.getContentType() );
         generatePresignedUrlContext.setFilename( po.getFilename() );
         generatePresignedUrlContext.setTotalSize( po.getTotalSize() );
-        generatePresignedUrlContext.setContentType( po.getContentType() );
 
         generatePresignedUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
 
@@ -316,10 +316,10 @@ public class FileConverterImpl implements FileConverter {
 
         GeneratePresignedMultipartUrlContext generatePresignedMultipartUrlContext = new GeneratePresignedMultipartUrlContext();
 
-        generatePresignedMultipartUrlContext.setFilename( po.getFilename() );
-        generatePresignedMultipartUrlContext.setTotalSize( po.getTotalSize() );
-        generatePresignedMultipartUrlContext.setTotalChunks( po.getTotalChunks() );
         generatePresignedMultipartUrlContext.setContentType( po.getContentType() );
+        generatePresignedMultipartUrlContext.setFilename( po.getFilename() );
+        generatePresignedMultipartUrlContext.setTotalChunks( po.getTotalChunks() );
+        generatePresignedMultipartUrlContext.setTotalSize( po.getTotalSize() );
 
         generatePresignedMultipartUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
 
@@ -335,9 +335,9 @@ public class FileConverterImpl implements FileConverter {
         GeneratePresignedPartUrlContext generatePresignedPartUrlContext = new GeneratePresignedPartUrlContext();
 
         generatePresignedPartUrlContext.setObjectKey( po.getObjectKey() );
-        generatePresignedPartUrlContext.setUploadId( po.getUploadId() );
         generatePresignedPartUrlContext.setPartNumber( po.getPartNumber() );
         generatePresignedPartUrlContext.setPartSize( po.getPartSize() );
+        generatePresignedPartUrlContext.setUploadId( po.getUploadId() );
 
         generatePresignedPartUrlContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
 
@@ -352,12 +352,12 @@ public class FileConverterImpl implements FileConverter {
 
         CompleteDirectUploadContext completeDirectUploadContext = new CompleteDirectUploadContext();
 
-        completeDirectUploadContext.setObjectKey( po.getObjectKey() );
-        completeDirectUploadContext.setUploadId( po.getUploadId() );
         completeDirectUploadContext.setFilename( po.getFilename() );
-        completeDirectUploadContext.setTotalSize( po.getTotalSize() );
         completeDirectUploadContext.setIdentifier( po.getIdentifier() );
+        completeDirectUploadContext.setObjectKey( po.getObjectKey() );
         completeDirectUploadContext.setParts( partInfoListToPartInfoList( po.getParts() ) );
+        completeDirectUploadContext.setTotalSize( po.getTotalSize() );
+        completeDirectUploadContext.setUploadId( po.getUploadId() );
 
         completeDirectUploadContext.setUserId( com.jfeng.pan.server.common.utils.UserIdUtil.get() );
         completeDirectUploadContext.setParentId( com.jfeng.pan.core.utils.IdUtil.decrypt(po.getParentId()) );
@@ -388,8 +388,8 @@ public class FileConverterImpl implements FileConverter {
 
         CompleteDirectUploadContext.PartInfo partInfo1 = new CompleteDirectUploadContext.PartInfo();
 
-        partInfo1.setPartNumber( partInfo.getPartNumber() );
         partInfo1.setETag( partInfo.getETag() );
+        partInfo1.setPartNumber( partInfo.getPartNumber() );
 
         return partInfo1;
     }

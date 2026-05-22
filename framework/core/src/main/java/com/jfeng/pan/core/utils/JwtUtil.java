@@ -39,8 +39,8 @@ public class JwtUtil {
      * 如果实际密钥长度不足，JJWT可能会自动延长或报错。建议使用更长的密钥。
      * 这里为了兼容，直接使用UTF-8编码。
      */
-    private final static SecretKey SECRET_KEY = Keys.hmacShaKeyFor(JWT_PRIVATE_KEY_STR.getBytes(StandardCharsets.UTF_8));
-
+    private final static SecretKey SECRET_KEY = Keys
+            .hmacShaKeyFor(JWT_PRIVATE_KEY_STR.getBytes(StandardCharsets.UTF_8));
 
     /**
      * Token 中用于续签的时间戳的 claim key
@@ -98,16 +98,16 @@ public class JwtUtil {
                     .build();
             Jws<Claims> jws = jwtParser.parseSignedClaims(token);
             Claims claims = jws.getPayload();
-            return  claims.get(claimKey);
+            return claims.get(claimKey);
 
             // 【修正点】Jwts.parser() 返回 JwtParserBuilder，需要调用 .build()
-//            return Jwts.parser()
-////                    .requireIssuer(claimKey)
-//                    .verifyWith(SECRET_KEY)
-//                    .build()
-//                    .parseUnsecuredClaims(token)
-//                    .getPayload()
-//                    .get(claimKey);
+            // return Jwts.parser()
+            //// .requireIssuer(claimKey)
+            // .verifyWith(SECRET_KEY)
+            // .build()
+            // .parseUnsecuredClaims(token)
+            // .getPayload()
+            // .get(claimKey);
         } catch (ExpiredJwtException e) {
             // Token 过期异常
             System.err.println("JWT Token expired: " + e.getMessage());
@@ -144,7 +144,8 @@ public class JwtUtil {
         // 测试解析Token
         Object userId = (Object) analyzeToken(token, "userId");
         Object renewalTime = (Object) analyzeToken(token, RENEWAL_TIME_CLAIM_KEY);
-        Date expirationTime = (Date) Jwts.parser().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody().getExpiration(); // 直接获取过期时间
+        Date expirationTime = (Date) Jwts.parser().setSigningKey(SECRET_KEY).build().parseClaimsJws(token).getBody()
+                .getExpiration(); // 直接获取过期时间
         System.out.println("Parsed User ID: " + userId);
         System.out.println("Renewal Time: " + renewalTime);
         System.out.println("Expiration Time: " + expirationTime);

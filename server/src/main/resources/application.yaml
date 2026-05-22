@@ -39,6 +39,8 @@ spring:
           destination: physicalDeleteFile
         userSearch-out-0:
           destination: userSearch
+        userRegistration-out-0:
+          destination: user-registration_topic
 
         # 消费者 # 固定格式：函数名 + -in-0
         consumeTest-in-0:
