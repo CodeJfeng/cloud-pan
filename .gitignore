@@ -29,3 +29,6 @@ frontend/dist/
 *.zip
 *.tar.gz
 *.rar
+
+.codebuddy
+.idea/compiler.xml
