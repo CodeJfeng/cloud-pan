@@ -6,11 +6,25 @@
                 <span>云盘智能助手</span>
             </div>
             <div class="chat-actions">
+                <el-button size="small" :disabled="sending" @click="loadHistory">
+                    <el-icon><Clock/></el-icon>&nbsp;历史会话
+                </el-button>
                 <el-button size="small" @click="newSession" :disabled="sending">
                     <el-icon><Plus/></el-icon>&nbsp;新会话
                 </el-button>
             </div>
         </div>
+
+        <el-dialog v-model="historyVisible" title="历史会话" width="440px" append-to-body>
+            <div v-if="historyLoading" class="history-empty">加载中…</div>
+            <div v-else-if="historyList.length === 0" class="history-empty">暂无历史会话</div>
+            <div v-else class="history-list">
+                <div v-for="s in historyList" :key="s.sessionId" class="history-item" @click="openHistory(s)">
+                    <div class="history-title">{{ s.title || '（未命名会话）' }}</div>
+                    <div class="history-time">{{ formatTime(s.updatedAt) }}</div>
+                </div>
+            </div>
+        </el-dialog>
 
         <div class="chat-body" ref="bodyRef">
             <div v-if="messages.length === 0" class="chat-empty">
@@ -27,12 +41,28 @@
                     <el-icon v-else :size="18"><MagicStick/></el-icon>
                 </div>
                 <div class="msg-content">
-                    <template v-if="msg.role === 'assistant' && msg.tooling">
-                        <div class="tool-tip">
-                            <el-icon class="is-loading"><Loading/></el-icon>
-                            <span>正在调用 {{ msg.toolName }}…</span>
+                    <div v-if="msg.role === 'assistant' && msg.steps && msg.steps.length" class="think-steps">
+                        <div v-for="(step, si) in msg.steps" :key="si" class="think-block">
+                            <div
+                                class="think-step"
+                                :class="{running: step.running, done: step.done, error: step.error, rejected: step.rejected}"
+                                @click="toggleStep(step)"
+                            >
+                                <el-icon v-if="step.running" class="is-loading"><Loading/></el-icon>
+                                <el-icon v-else-if="step.error || step.rejected"><CircleCloseFilled/></el-icon>
+                                <el-icon v-else-if="step.done"><CircleCheckFilled/></el-icon>
+                                <el-icon v-else><Right/></el-icon>
+                                <span class="think-text">{{ step.text }}</span>
+                                <span v-if="step.durationMs != null" class="think-dur">{{ step.durationMs }} ms</span>
+                            </div>
+                            <div v-if="step.kind === 'tool' && step.expanded" class="think-detail">
+                                <div v-if="step.args != null" class="think-label">参数</div>
+                                <pre v-if="step.args != null" class="think-code">{{ formatJson(step.args) }}</pre>
+                                <div v-if="step.result" class="think-label">结果</div>
+                                <pre v-if="step.result" class="think-code">{{ step.result }}</pre>
+                            </div>
                         </div>
-                    </template>
+                    </div>
                     <div class="msg-text" v-html="renderContent(msg.content)"/>
                     <div v-if="msg.role === 'assistant' && msg.traceId" class="trace-entry">
                         <el-button size="small" link type="primary" :disabled="msg.traceLoading" @click="toggleTrace(msg)">
@@ -111,7 +141,7 @@
 <script setup>
 import {nextTick, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
-import {agentChat, agentConfirm, agentHistory, agentTraceDetail} from '@/api/agent'
+import {agentChat, agentConfirm, agentHistory, agentSessions, agentTraceDetail} from '@/api/agent'
 import {getToken} from '@/utils/cookie'
 
 const messages = ref([])
@@ -120,6 +150,9 @@ const sending = ref(false)
 const bodyRef = ref(null)
 const sessionId = ref('')
 const lastTooling = ref(false)
+const historyVisible = ref(false)
+const historyList = ref([])
+const historyLoading = ref(false)
 
 const SESSION_KEY = 'agent_session_id'
 
@@ -240,11 +273,100 @@ function formatJson(v) {
     }
 }
 
+function pushStep(cur, step) {
+    if (!messages.value[cur].steps) {
+        messages.value[cur].steps = []
+    }
+    messages.value[cur].steps.push(step)
+}
+
+function finishThinking(cur) {
+    ;(messages.value[cur].steps || []).forEach(s => {
+        if (s.running && s.kind === 'thinking') s.running = false
+    })
+}
+
+function finishAllRunning(cur) {
+    ;(messages.value[cur].steps || []).forEach(s => {
+        if (s.running) {
+            s.running = false
+            s.done = true
+        }
+    })
+}
+
+function lastStepOfTool(cur, tool) {
+    const steps = messages.value[cur].steps || []
+    for (let i = steps.length - 1; i >= 0; i--) {
+        if (steps[i].kind === 'tool' && steps[i].tool === tool) return steps[i]
+    }
+    return null
+}
+
+function toggleStep(step) {
+    if (step.kind === 'tool') step.expanded = !step.expanded
+}
+
 function newSession() {
     sessionId.value = ''
     localStorage.removeItem(SESSION_KEY)
     messages.value = []
     input.value = ''
+}
+
+function formatTime(iso) {
+    if (!iso) return ''
+    const d = new Date(iso)
+    if (Number.isNaN(d.getTime())) return ''
+    const pad = n => String(n).padStart(2, '0')
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())} ${pad(d.getHours())}:${pad(d.getMinutes())}`
+}
+
+async function loadHistory() {
+    const userId = getUserIdFromToken()
+    if (!userId) {
+        ElMessage.error('登录状态失效，请重新登录')
+        return
+    }
+    historyVisible.value = true
+    historyLoading.value = true
+    try {
+        historyList.value = await agentSessions(userId)
+    } catch (e) {
+        historyList.value = []
+        ElMessage.warning(e.message || '获取会话列表失败')
+    } finally {
+        historyLoading.value = false
+    }
+}
+
+async function openHistory(s) {
+    const userId = getUserIdFromToken()
+    if (!userId) {
+        ElMessage.error('登录状态失效，请重新登录')
+        return
+    }
+    historyVisible.value = false
+    try {
+        const data = await agentHistory(s.sessionId, userId)
+        const history = data.messages || []
+        messages.value = history.length > 0
+            ? history.map(m => ({
+                role: m.role === 'user' ? 'user' : 'assistant',
+                content: m.content || '',
+                tooling: false,
+                steps: [],
+                traceId: m.trace_id || m.traceId || null,
+            }))
+            : [{role: 'assistant', content: '（该会话暂无消息记录）', steps: []}]
+        sessionId.value = s.sessionId
+        localStorage.setItem(SESSION_KEY, s.sessionId)
+        input.value = ''
+        scrollToBottom()
+        ElMessage.success('已切换到历史会话，可继续提问')
+    } catch (e) {
+        ElMessage.error(e.message || '加载历史会话失败')
+    }
 }
 
 async function send() {
@@ -257,7 +379,7 @@ async function send() {
     }
 
     messages.value.push({role: 'user', content: text})
-    messages.value.push({role: 'assistant', content: '', tooling: false})
+    messages.value.push({role: 'assistant', content: '', tooling: false, steps: []})
     input.value = ''
     sending.value = true
     lastTooling.value = false
@@ -265,25 +387,61 @@ async function send() {
     const cur = messages.value.length - 1
     try {
         await agentChat(text, String(userId), sessionId.value || null, async ev => {
-            if (ev.event === 'confirmation_required') {
-                messages.value[cur].tooling = true
-                messages.value[cur].toolName = `等待你批准：${toolLabel(ev.data.tool)}`
+            if (ev.event === 'thinking') {
+                // 决策等待期：仅保留一条"思考中"，避免重复
+                if (!(messages.value[cur].steps || []).some(s => s.running)) {
+                    pushStep(cur, {kind: 'thinking', text: ev.data.content || '正在分析…', running: true})
+                }
+                scrollToBottom()
+            } else if (ev.event === 'llm_decision') {
+                finishThinking(cur)
+                const tools = ev.data.tools || []
+                if (tools.length > 0) {
+                    pushStep(cur, {kind: 'plan', text: `准备调用工具：${tools.map(t => toolLabel(t)).join('、')}`, tools})
+                } else {
+                    pushStep(cur, {kind: 'thinking', text: '正在生成回答…', running: true})
+                }
+                scrollToBottom()
+            } else if (ev.event === 'confirmation_required') {
+                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `等待你批准「${toolLabel(ev.data.tool)}」操作…`, args: ev.data.arguments, running: true, awaiting: true})
                 lastTooling.value = true
                 scrollToBottom()
-                await requestConfirm(userId, ev.data.requestId, ev.data.tool, ev.data.arguments)
+                const approved = await requestConfirm(userId, ev.data.requestId, ev.data.tool, ev.data.arguments)
+                const waitStep = lastStepOfTool(cur, ev.data.tool)
+                if (waitStep) {
+                    waitStep.running = false
+                    waitStep.awaiting = false
+                    if (approved) {
+                        waitStep.done = true
+                        waitStep.text = `已批准「${toolLabel(ev.data.tool)}」，继续执行`
+                    } else {
+                        waitStep.rejected = true
+                        waitStep.text = `已拒绝「${toolLabel(ev.data.tool)}」操作`
+                    }
+                }
+                scrollToBottom()
             } else if (ev.event === 'tool_start') {
-                messages.value[cur].tooling = true
-                messages.value[cur].toolName = ev.data.tool
+                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `正在调用「${toolLabel(ev.data.tool)}」…`, args: ev.data.arguments, running: true})
                 lastTooling.value = true
                 scrollToBottom()
             } else if (ev.event === 'tool_end') {
-                messages.value[cur].tooling = false
+                const step = lastStepOfTool(cur, ev.data.tool)
+                if (step) {
+                    step.running = false
+                    step.done = true
+                    step.error = !!ev.data.error
+                    step.rejected = !!ev.data.skipped
+                    step.durationMs = ev.data.duration_ms
+                    step.result = ev.data.resultPreview || ''
+                }
                 lastTooling.value = false
                 scrollToBottom()
             } else if (ev.event === 'delta') {
+                finishThinking(cur)
                 messages.value[cur].content += ev.data.content
                 scrollToBottom()
             } else if (ev.event === 'done') {
+                finishAllRunning(cur)
                 if (ev.data.sessionId) {
                     sessionId.value = ev.data.sessionId
                     localStorage.setItem(SESSION_KEY, sessionId.value)
@@ -296,6 +454,7 @@ async function send() {
                 }
                 scrollToBottom()
             } else if (ev.event === 'error') {
+                finishAllRunning(cur)
                 messages.value[cur].content = ev.data.content || '出错了'
             }
         })
@@ -322,10 +481,11 @@ if (saved) {
                         role: m.role === 'user' ? 'user' : 'assistant',
                         content: m.content || '',
                         tooling: false,
+                        steps: [],
                         traceId: m.trace_id || m.traceId || null,
                     }))
                 } else {
-                    messages.value.push({role: 'assistant', content: '（已恢复上次会话，你可以继续向我提问）'})
+                    messages.value.push({role: 'assistant', content: '（已恢复上次会话，你可以继续向我提问）', steps: []})
                 }
                 scrollToBottom()
             })
@@ -454,12 +614,84 @@ if (saved) {
     word-break: break-word;
 }
 
-.tool-tip {
+/* ---- 思考链路 ---- */
+.think-steps {
+    margin-bottom: 8px;
+    border-left: 2px solid #e4e7ed;
+    padding-left: 10px;
+}
+
+.think-block {
+    margin: 4px 0;
+}
+
+.think-step {
     display: flex;
     align-items: center;
-    gap: 8px;
+    gap: 6px;
+    font-size: 12px;
+    line-height: 1.5;
+    color: #909399;
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: #f7f8fa;
+    cursor: default;
+    user-select: none;
+}
+
+.think-step.running {
     color: #09AAFF;
-    font-size: 13px;
+    background: #f0f7ff;
+}
+
+.think-step.done {
+    color: #67c23a;
+}
+
+.think-step.error {
+    color: #f56c6c;
+    background: #fef0f0;
+}
+
+.think-step.rejected {
+    color: #e6a23c;
+    background: #fdf6ec;
+}
+
+.think-text {
+    flex: 1;
+    word-break: break-all;
+}
+
+.think-dur {
+    font-size: 11px;
+    color: #a8abb2;
+    flex-shrink: 0;
+}
+
+.think-detail {
+    margin: 2px 0 4px 20px;
+}
+
+.think-label {
+    font-size: 11px;
+    color: #909399;
+    margin: 4px 0 2px;
+}
+
+.think-code {
+    font-size: 12px;
+    line-height: 1.5;
+    color: #606266;
+    background: #fafafa;
+    border: 1px solid #f0f0f0;
+    border-radius: 6px;
+    padding: 6px 8px;
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-all;
+    max-height: 160px;
+    overflow-y: auto;
 }
 
 .typing {
@@ -502,6 +734,49 @@ if (saved) {
     height: 56px;
     border-radius: 8px;
     padding: 0 28px;
+}
+
+/* ---- 历史会话 ---- */
+.history-list {
+    max-height: 420px;
+    overflow-y: auto;
+}
+
+.history-item {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: background .15s;
+}
+
+.history-item:hover {
+    background: #f0f7ff;
+}
+
+.history-title {
+    flex: 1;
+    font-size: 13px;
+    color: #333;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+
+.history-time {
+    flex-shrink: 0;
+    font-size: 12px;
+    color: #909399;
+}
+
+.history-empty {
+    text-align: center;
+    color: #909399;
+    font-size: 13px;
+    padding: 32px 0;
 }
 
 /* ---- 链路追踪 ---- */

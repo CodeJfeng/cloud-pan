@@ -166,7 +166,9 @@ async def test_sse_tool_flow(fake_deps):
     body = await _sse_posts({"message": "看看 abc", "userId": "42"})
     events = parse_sse(body)
     types = [t for t, _ in events]
-    assert types[0] == "llm_decision"
+    # 决策前会先推送 thinking 事件，之后才是 llm_decision
+    assert types[0] == "thinking"
+    assert types[1] == "llm_decision"
     assert "tool_start" in types
     assert "tool_end" in types
     assert types[-1] == "done"
@@ -176,6 +178,8 @@ async def test_sse_tool_flow(fake_deps):
     assert tool_evt["arguments"] == {"parentId": "abc"}
     tool_end_evt = [d for t, d in events if t == "tool_end"][0]
     assert tool_end_evt["duration_ms"] is not None
+    # 工具结果预览随事件透传，供前端展示思考链路
+    assert tool_end_evt["resultPreview"] == "list_files 结果: 3 个文件"
 
 
 @pytest.mark.asyncio
@@ -213,6 +217,33 @@ async def test_session_messages_api(fake_deps):
         resp = await c.get("/api/agent/session/no_such_sid/messages", params={"userId": "42"})
         assert resp.status_code == 200
         assert resp.json()["code"] == 404
+
+
+@pytest.mark.asyncio
+async def test_sessions_list_api(fake_deps):
+    """会话列表接口：按用户返回历史会话（最新在前），且用户之间隔离。"""
+    _make, _ = fake_deps
+    _make([{"content": "回答"}] * 2)
+
+    body = await _sse_posts({"message": "第一条", "userId": "42"})
+    sid1 = [d for t, d in parse_sse(body) if t == "done"][0]["sessionId"]
+    body = await _sse_posts({"message": "第二条", "userId": "42"})
+    sid2 = [d for t, d in parse_sse(body) if t == "done"][0]["sessionId"]
+    assert sid1 and sid2 and sid1 != sid2
+
+    transport = ASGITransport(app=app)
+    async with AsyncClient(transport=transport, base_url="http://test") as c:
+        resp = await c.get("/api/agent/sessions", params={"userId": "42"})
+        assert resp.status_code == 200
+        data = resp.json()["data"]
+        assert len(data) == 2
+        assert [s["sessionId"] for s in data] == [sid2, sid1]  # 最新更新的在前
+        assert data[0]["title"] == "第二条"
+
+        # 其他用户看不到这些会话
+        resp = await c.get("/api/agent/sessions", params={"userId": "999"})
+        assert resp.status_code == 200
+        assert resp.json()["data"] == []
 
 
 @pytest.mark.asyncio

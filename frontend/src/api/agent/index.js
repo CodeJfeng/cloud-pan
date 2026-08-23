@@ -59,6 +59,23 @@ export async function agentChat(message, userId, sessionId, onEvent) {
 }
 
 /**
+ * 列出当前用户的历史会话（按更新时间倒序）。
+ * @param {string} userId 用户ID
+ * @returns {Promise<Array<{sessionId: string, title: string, updatedAt: string|null}>>}
+ */
+export async function agentSessions(userId) {
+    const resp = await fetch(
+        `${AGENT_BASE}/api/agent/sessions?userId=${encodeURIComponent(userId)}`,
+        {method: 'GET'}
+    )
+    const json = await resp.json().catch(() => null)
+    if (!resp.ok || !json || json.code !== 200) {
+        throw new Error(json?.message || `获取会话列表失败: ${resp.status}`)
+    }
+    return json.data || []
+}
+
+/**
  * 查询会话历史消息。
  * @param {string} sessionId 会话ID
  * @param {string} userId    用户ID（校验归属）

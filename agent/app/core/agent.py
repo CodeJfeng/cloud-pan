@@ -129,6 +129,7 @@ class Agent:
         """流式运行：产出事件 dict，供 SSE 接口消费。
 
         事件类型：
+        - thinking:            LLM 决策前的"思考中"提示 {"type","content"}
         - confirmation_required: 敏感操作等待用户批准 {"type","requestId","tool","arguments"}
         - tool_start: 开始调用工具 {"type","tool","arguments"}
         - tool_end:   工具执行完成 {"type","tool","result","error"?,"skipped"?}
@@ -151,6 +152,8 @@ class Agent:
         # 模型承诺继续搜索但未发起工具调用的兜底强制次数，避免无限循环
         continue_prompted = 0
         for _ in range(MAX_TOOL_TURNS):
+            # 决策前推送"思考中"事件，让前端在 LLM 等待期间有可见反馈
+            yield {"type": "thinking", "content": "正在分析你的需求…"}
             t0 = time.perf_counter()
             answer = await self.llm.chat(messages, tools=self._openai_tools)
             llm_ms = int((time.perf_counter() - t0) * 1000)

@@ -60,6 +60,28 @@ def _sse(event: str, data: dict[str, Any]) -> str:
     return f"event: {event}\ndata: {json.dumps(data, ensure_ascii=False)}\n\n"
 
 
+@router.get("/sessions")
+async def list_my_sessions(userId: str) -> R:
+    """列出当前用户的历史会话（按更新时间倒序，最多 50 条）。"""
+    global _store
+    if _store is None:
+        _store = SessionStore()
+    try:
+        await _store.init()
+        rows = await _store.list_sessions(int(userId), limit=50)
+        data = [
+            {
+                "sessionId": r["session_id"],
+                "title": r["title"],
+                "updatedAt": r["updated_at"].isoformat() if r["updated_at"] else None,
+            }
+            for r in rows
+        ]
+        return R.ok(data=data)
+    except Exception as exc:
+        return R.fail(f"查询会话列表失败: {exc}", code=500)
+
+
 @router.get("/session/{session_id}/messages")
 async def session_messages(session_id: str, userId: str) -> R:
     """查询指定会话的历史消息（校验归属，防止越权）。"""
@@ -241,6 +263,11 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                         "arguments": evt.get("arguments"),
                     }
                 elif ev_type == "tool_end":
+                    result_text = evt.get("result") or ""
+                    preview = (
+                        result_text[:200] + "…" if len(result_text) > 200 else result_text
+                    )
+                    evt = {**evt, "resultPreview": preview}
                     await trace(
                         "tool_call",
                         {
