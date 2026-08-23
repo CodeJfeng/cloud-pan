@@ -165,10 +165,15 @@ function getUserIdFromToken() {
         // JWT payload 是 base64url，转回标准 base64 并补齐 padding
         let base64 = parts[1].replace(/-/g, '+').replace(/_/g, '/')
         base64 += '='.repeat((4 - (base64.length % 4)) % 4)
-        const json = JSON.parse(atob(base64))
+        const payloadText = atob(base64)
+        // 注意：不能对整个 payload 做 JSON.parse —— 云盘用户 ID 是雪花算法生成的大整数，
+        // 超过 JS 安全整数范围(2^53)，JSON.parse 会静默丢失精度（例如 2055271612527890400
+        // 会被解析成 2055271612527890432），导致历史会话/链路查询查不到数据。
+        // 因此直接从原始 JSON 文本中用正则提取字符串形式的 ID，避免精度损失。
         // 后端把用户 ID 存在 LOGIN_USER_ID claim（见 JwtUtil.generateToken），兼容 userId 两种写法
-        const uid = json.LOGIN_USER_ID ?? json.userId
-        return uid != null ? String(uid) : null
+        let m = /"LOGIN_USER_ID"\s*:\s*"?(\d+)"?/.exec(payloadText)
+        if (!m) m = /"userId"\s*:\s*"?(\d+)"?/.exec(payloadText)
+        return m ? m[1] : null
     } catch (e) {
         return null
     }
