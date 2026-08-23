@@ -30,6 +30,8 @@ import com.jfeng.pan.storage.engine.core.StorageEngine;
 import com.jfeng.pan.storage.engine.core.context.*;
 import org.apache.commons.lang3.StringUtils;
 import org.assertj.core.util.Lists;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.cloud.stream.function.StreamBridge;
 import org.springframework.http.MediaType;
@@ -50,6 +52,8 @@ import java.util.stream.Collectors;
  */
 @Service
 public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUserFile> implements IUserFileService {
+    private static final Logger logger = LoggerFactory.getLogger(UserFileServiceImpl.class);
+
     @Autowired
     private IFileService iFileService;
 
@@ -504,7 +508,10 @@ public class UserFileServiceImpl extends ServiceImpl<RPanUserFileMapper, RPanUse
      */
     private void afterSearch(FileSearchContext context) {
         UserSearchEvent event = new UserSearchEvent(context.getKeyword(), context.getUserId());
-        streamBridge.send(PanChannel.User_Search_OUT, event);
+        boolean sendResult = streamBridge.send(PanChannel.User_Search_OUT, event);
+        if (!sendResult) {
+            logger.warn("UserSearchEvent send failed, keyword={}, userId={}", context.getKeyword(), context.getUserId());
+        }
     }
 
     /**

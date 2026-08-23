@@ -75,21 +75,27 @@ public class CommonLoginAspect {
      */
     @Around("loginAuth()")
     public Object loginAuthAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        if (checkNeedCheckLoginInfo(joinPoint)) {
-            // 登录信息校验流程
-            ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder
-                    .getRequestAttributes();
-            HttpServletRequest request = servletRequestAttributes.getRequest();
-            String requestURI = request.getRequestURI();
-            log.info("成功拦截到请求URI");
-            if (!checkAndSaveUserId(request) && !checkMCPAndSaveUserID(request)) {
-                log.warn("成功检测到请求，URI为{}，检测到用户未登录，将跳转到登录界面", requestURI);
-                return R.fail(ResponseCode.NEED_LOGIN);
-            }
-            log.info("成功拦截到请求，URI为{}，请求通过", requestURI);
+        try {
+            if (checkNeedCheckLoginInfo(joinPoint)) {
+                // 登录信息校验流程
+                ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes) RequestContextHolder
+                        .getRequestAttributes();
+                HttpServletRequest request = servletRequestAttributes.getRequest();
+                String requestURI = request.getRequestURI();
+                log.info("成功拦截到请求URI");
+                if (!checkAndSaveUserId(request) && !checkMCPAndSaveUserID(request)) {
+                    log.warn("成功检测到请求，URI为{}，检测到用户未登录，将跳转到登录界面", requestURI);
+                    return R.fail(ResponseCode.NEED_LOGIN);
+                }
+                log.info("成功拦截到请求，URI为{}，请求通过", requestURI);
 
+            }
+            return joinPoint.proceed();
+        } finally {
+            // 关键：请求结束后必须清理线程上下文，防止线程池复用时残留 userId，
+            // 否则下一请求 set 不同 userId 会抛 IllegalStateException（被包装成 ERROR_PARAM）
+            UserIdUtil.clear();
         }
-        return joinPoint.proceed();
     }
 
     /**

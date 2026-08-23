@@ -71,7 +71,7 @@
         r_pan_user_file
         WHERE
         user_id = #{param.userId}
-        AND filename LIKE CONCAT(#{param.keyword}, '%')
+        AND filename LIKE CONCAT('%', #{param.keyword}, '%')
         <if test="param.fileTypeArray != null ">
             AND file_type IN
             <foreach collection="param.fileTypeArray" open ="(" close = ")" item="item" separator=",">

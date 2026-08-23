@@ -67,6 +67,17 @@
                     </a>
                 </li>
             </ul>
+            <ul class="pan-nav-agent">
+                <li class="pan-nav-agent-li">
+                    <a @click="change('Agent')" :class="{'checked': active === 'Agent'}"
+                       href="javascript:void(0);">
+                        <span class="text">
+                            <el-icon class="icon" :size="16" :color="active === 'Agent' ? '#09AAFF' : ''"><MagicStick/></el-icon>
+                            <span>智能助手</span>
+                        </span>
+                    </a>
+                </li>
+            </ul>
         </div>
     </div>
 </template>

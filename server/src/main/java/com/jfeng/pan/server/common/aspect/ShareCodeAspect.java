@@ -73,17 +73,22 @@ public class ShareCodeAspect {
      */
     @Around("shareCodeAuth()")
     public Object shareCodeAuthAround(ProceedingJoinPoint joinPoint) throws Throwable {
-        ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
-        assert servletRequestAttributes != null;
-        HttpServletRequest request = servletRequestAttributes.getRequest();
-        String requestURI = request.getRequestURI();
-        log.info("成功拦截到请求URI");
-        if(!checkAndSaveShareId(request)){
-            log.warn("成功检测到请求，URI为{}，检测到用户的用户码失效，将跳转到分享码校验页面", requestURI);
-            return R.fail(ResponseCode.ACCESS_DENIED);
+        try {
+            ServletRequestAttributes servletRequestAttributes = (ServletRequestAttributes)RequestContextHolder.getRequestAttributes();
+            assert servletRequestAttributes != null;
+            HttpServletRequest request = servletRequestAttributes.getRequest();
+            String requestURI = request.getRequestURI();
+            log.info("成功拦截到请求URI");
+            if(!checkAndSaveShareId(request)){
+                log.warn("成功检测到请求，URI为{}，检测到用户的用户码失效，将跳转到分享码校验页面", requestURI);
+                return R.fail(ResponseCode.ACCESS_DENIED);
+            }
+            log.info("成功拦截到请求，URI为{}，请求通过", requestURI);
+            return joinPoint.proceed();
+        } finally {
+            // 关键：请求结束后必须清理线程上下文，防止线程池复用时残留 shareId
+            ShareIdUtil.clear();
         }
-        log.info("成功拦截到请求，URI为{}，请求通过", requestURI);
-        return joinPoint.proceed();
     }
 
     /**

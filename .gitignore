@@ -32,3 +32,5 @@ frontend/dist/
 
 .codebuddy
 .idea/compiler.xml
+agent/.venv/*
+**/__pycache__/**

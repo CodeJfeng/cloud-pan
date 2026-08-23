@@ -73,4 +73,14 @@ public final class ShareIdUtil {
         return Objects.nonNull(shareId) ? shareId : RPanConstants.ZERO_LONG;
     }
 
+    /**
+     * <p>
+     * 清除当前线程的分享文件ID
+     * 在请求结束时调用，避免线程池复用时残留 shareId 导致状态串扰
+     * </p>
+     */
+    public static void clear() {
+        THREAD_LOCAL.remove();
+    }
+
 }

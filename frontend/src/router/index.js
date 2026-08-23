@@ -49,6 +49,11 @@ const router = createRouter({
                     path: '/videos',
                     name: 'Videos',
                     component: () => import('@/views/list-page/video/index.vue')
+                },
+                {
+                    path: '/agent',
+                    name: 'Agent',
+                    component: () => import('@/views/agent/index.vue')
                 }
             ]
         },
