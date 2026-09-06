@@ -11,6 +11,7 @@ import uuid
 from typing import Any
 
 from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langgraph.types import interrupt
 
 from app.core.context import _looks_like_promised_search
 from app.core.events import emit
@@ -29,11 +30,14 @@ class ReactDeps:
     """react 路径运行时依赖（节点经 graph 构造闭包注入，便于测试替换）。"""
 
     def __init__(self, model, tools_by_name: dict[str, Any], confirm: Any,
-                 sensitive: frozenset[str] = frozenset()):
+                 sensitive: frozenset[str] = frozenset(), interrupts: bool = True):
         self.model = model
         self.tools_by_name = tools_by_name
-        self.confirm = confirm  # async (tool_name, args, request_id) -> bool；None 表示不确认直接执行
+        # async (tool_name, args, request_id) -> bool；None 表示不注入回调
+        self.confirm = confirm
+        # 敏感工具集合；触发确认的两种方式：confirm 回调（测试注入）或 interrupt（真实路径）
         self.sensitive = sensitive
+        self.interrupts = interrupts
 
 
 async def react_agent(state: dict, deps: "ReactDeps") -> dict:
@@ -70,11 +74,32 @@ async def react_agent(state: dict, deps: "ReactDeps") -> dict:
         }
 
     emit(type="llm_decision", tools=[], duration_ms=llm_ms)
+    # 无工具调用即最终回答：等价旧 stream_run 的 delta（此处一次性）→ done
+    if answer:
+        emit(type="delta", content=answer)
+    emit(type="done", content=answer)
     return {"messages": [resp], "final_answer": answer}
 
 
+def _interrupt_confirm(name: str, args: dict[str, Any]) -> bool:
+    """敏感工具确认（真实路径）：interrupt 挂起整图，runner 恢复后返回批复。
+
+    挂在工具执行前调用——interrupt 前的节点副作用会被整体重放，因此
+    react_tools 采用"先确认后执行"，保证恢复后工具只执行一次。
+    """
+    request_id = uuid.uuid4().hex
+    approved = interrupt(
+        {"tool": name, "arguments": args, "requestId": request_id}
+    )
+    return bool(approved)
+
+
 async def react_tools(state: dict, deps: "ReactDeps") -> dict:
-    """执行最近一条 assistant 消息中的全部 tool_calls，结果回填为 ToolMessage。"""
+    """执行最近一条 assistant 消息中的全部 tool_calls，结果回填为 ToolMessage。
+
+    敏感工具采用"整批预确认再执行"：先对批内所有敏感调用取得批复，再统一
+    执行——避免 interrupt 前已产生工具副作用、恢复重放导致重复执行。
+    """
     msgs: list[BaseMessage] = []
     last_ai = next(
         (m for m in reversed(state["messages"]) if isinstance(m, AIMessage) and m.tool_calls),
@@ -82,10 +107,17 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
     )
     if last_ai is None:
         return {"messages": msgs}
-    for tc in last_ai.tool_calls:
-        name, args = tc["name"], tc.get("args", {})
-        # 敏感工具确认（任务 8 起经 interrupt 接入；本实现兼容可注入确认器回调）
-        if name in deps.sensitive and deps.confirm is not None:
+    calls = list(last_ai.tool_calls)
+
+    # 预确认：敏感工具在真正执行前先获得批复（工具实际执行可能延后至最终恢复后）
+    decisions: dict[str, bool] = {}
+    for tc in calls:
+        name = tc["name"]
+        if name not in deps.sensitive:
+            continue
+        args = tc.get("args", {})
+        if deps.confirm is not None:
+            # 注入式确认（直接调用/单测路径）：由节点自行发出 confirmation_required
             request_id = uuid.uuid4().hex
             emit(
                 type="confirmation_required",
@@ -93,18 +125,27 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
                 tool=name,
                 arguments=args,
             )
-            approved = await deps.confirm(name, args, request_id)
-            if not approved:
-                result = "用户拒绝了该操作，未执行。"
-                msgs.append(ToolMessage(content=result, tool_call_id=tc["id"]))
-                emit(
-                    type="tool_end",
-                    tool=name,
-                    result=result,
-                    duration_ms=0,
-                    skipped=True,
-                )
-                continue
+            decisions[tc["id"]] = await deps.confirm(name, args, request_id)
+        elif deps.interrupts:
+            # 真实 interrupt 路径：confirmation_required 由 runner 根据中断值翻译
+            decisions[tc["id"]] = _interrupt_confirm(name, args)
+        else:
+            decisions[tc["id"]] = True
+
+    for tc in calls:
+        name, args = tc["name"], tc.get("args", {})
+        # 用户拒绝：不执行工具，以拒绝文本回填并标记 skipped
+        if tc["id"] in decisions and not decisions[tc["id"]]:
+            result = "用户拒绝了该操作，未执行。"
+            msgs.append(ToolMessage(content=result, tool_call_id=tc["id"]))
+            emit(
+                type="tool_end",
+                tool=name,
+                result=result,
+                duration_ms=0,
+                skipped=True,
+            )
+            continue
 
         emit(type="tool_start", tool=name, arguments=args)
         t0 = time.perf_counter()
