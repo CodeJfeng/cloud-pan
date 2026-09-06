@@ -74,12 +74,17 @@ class FakeMCP:
 
 @pytest.fixture
 def fake_deps(monkeypatch):
+    from app.core.checkpoint import build_checkpointer
     from app.storage.session_store import SessionStore
 
     mcp = FakeMCP()
     store = SessionStore("sqlite+aiosqlite:///:memory:")
     monkeypatch.setattr(chat_module, "_store", store)
     monkeypatch.setattr(chat_module, "_mcp", mcp)
+    # 单测不连 MySQL：断点用内存版（生产由 chat 懒建 MySQL 长连接）
+    monkeypatch.setattr(
+        chat_module, "_checkpointer", build_checkpointer(force_memory=True)
+    )
 
     def _make(model_script):
         monkeypatch.setattr(chat_module, "_model", ScriptedModel(model_script))

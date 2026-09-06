@@ -17,7 +17,7 @@ from pydantic import BaseModel
 
 from app.config import settings
 from app.core import runner as agent_runner
-from app.core.checkpoint import build_checkpointer
+from app.core.checkpoint import build_checkpointer, open_mysql_checkpointer
 from app.core.context import _format_directory_context, _parse_file_list
 from app.core.graph import build_agent_graph
 from app.core.model import build_chat_model
@@ -266,7 +266,12 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                 _mcp = MCPClient()
             mcp = _mcp
             if _checkpointer is None:
-                _checkpointer = build_checkpointer(force_memory=True)
+                try:
+                    # 生产：进程级 MySQL checkpointer（跨重启断点由 thread 承载）
+                    _checkpointer = await open_mysql_checkpointer()
+                except Exception:
+                    # MySQL 暂不可用（如单测/无库环境）时降级内存版，保证请求不因断点失败
+                    _checkpointer = build_checkpointer(force_memory=True)
             checkpointer = _checkpointer
             await mcp.connect()
 
