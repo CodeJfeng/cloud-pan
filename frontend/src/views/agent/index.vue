@@ -121,6 +121,14 @@
             </div>
         </div>
 
+        <div class="chat-dir-tip">
+            <el-icon :size="14"><Folder/></el-icon>
+            <span class="dir-label">当前目录：</span>
+            <span class="dir-name">{{ currentDirName }}</span>
+            <el-tooltip content="这是智能助手当前的工作目录，涉及文件操作时会优先在该目录下查找" placement="top">
+                <el-icon :size="13" class="dir-help"><QuestionFilled/></el-icon>
+            </el-tooltip>
+        </div>
         <div class="chat-input">
             <el-input
                 v-model="input"
@@ -139,10 +147,26 @@
 </template>
 
 <script setup>
-import {nextTick, ref} from 'vue'
+import {computed, nextTick, ref} from 'vue'
 import {ElMessage, ElMessageBox} from 'element-plus'
 import {agentChat, agentConfirm, agentHistory, agentSessions, agentTraceDetail} from '@/api/agent'
 import {getToken} from '@/utils/cookie'
+import {useFileStore} from '@/stores/file'
+import {useBreadcrumbStore} from '@/stores/breadcrumb'
+
+const fileStore = useFileStore()
+const breadcrumbStore = useBreadcrumbStore()
+
+// 会话级"工作目录"：优先取文件管理页当前浏览的文件夹，缺省为根目录
+const currentDirId = computed(() => fileStore.paramParentId || '-1')
+const currentDirName = computed(() => {
+    const crumbs = breadcrumbStore.breadCrumbs
+    if (crumbs && crumbs.length) {
+        const last = crumbs[crumbs.length - 1]
+        if (last && last.name) return last.name
+    }
+    return fileStore.defaultParentFilename || '全部文件'
+})
 
 const messages = ref([])
 const input = ref('')
@@ -462,6 +486,9 @@ async function send() {
                 finishAllRunning(cur)
                 messages.value[cur].content = ev.data.content || '出错了'
             }
+        }, {
+            currentDirId: currentDirId.value,
+            currentDirName: currentDirName.value
         })
     } catch (e) {
         messages.value[cur].content = e.message || '请求失败，请确认 Agent 服务已启动'
@@ -721,11 +748,36 @@ if (saved) {
     40% {opacity: 1}
 }
 
+.chat-dir-tip {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    padding: 8px 24px 0;
+    font-size: 12px;
+    color: #909399;
+    background: #fff;
+}
+.chat-dir-tip .dir-label {
+    color: #c0c4cc;
+}
+.chat-dir-tip .dir-name {
+    color: #409eff;
+    font-weight: 600;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+}
+.chat-dir-tip .dir-help {
+    cursor: help;
+    color: #c0c4cc;
+    margin-left: 2px;
+}
 .chat-input {
     display: flex;
     gap: 12px;
     align-items: flex-end;
-    padding: 16px 24px;
+    padding: 12px 24px 16px;
     border-top: 1px solid #f0f0f0;
     background: #fff;
 }

@@ -31,12 +31,21 @@ function parseBlock(block) {
  * @param {string} userId  用户ID（注入给 MCP 工具）
  * @param {string|null} sessionId 会话ID（续聊）
  * @param {(ev: {event: string, data: object}) => void} onEvent 事件回调
+ * @param {object} [dir] 当前目录上下文（可选）
+ * @param {string} [dir.currentDirId]   用户当前浏览的文件夹 ID（缺省为根目录）
+ * @param {string} [dir.currentDirName] 当前文件夹名称（缺省为"全部文件"）
  */
-export async function agentChat(message, userId, sessionId, onEvent) {
+export async function agentChat(message, userId, sessionId, onEvent, dir = {}) {
     const resp = await fetch(`${AGENT_BASE}/api/agent/chat`, {
         method: 'POST',
         headers: {'Content-Type': 'application/json'},
-        body: JSON.stringify({message, userId, sessionId})
+        body: JSON.stringify({
+            message,
+            userId,
+            sessionId,
+            currentDirId: dir.currentDirId || null,
+            currentDirName: dir.currentDirName || null
+        })
     })
     if (!resp.ok || !resp.body) {
         throw new Error(`Agent 服务请求失败: ${resp.status}`)

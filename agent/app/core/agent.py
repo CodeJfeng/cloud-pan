@@ -7,7 +7,7 @@ from collections.abc import Awaitable, Callable
 from typing import Any, AsyncIterator
 
 from app.core.llm import LLMClient
-from app.core.prompts import SCENARIO_PROMPTS, SYSTEM_PROMPT
+from app.core.prompts import DIRECTORY_RULES, SCENARIO_PROMPTS, SYSTEM_PROMPT
 from app.mcp.client import MCPClient, MCPClientError
 
 MAX_TOOL_TURNS = 8
@@ -54,11 +54,66 @@ def _looks_like_promised_search(answer: str) -> bool:
     return bool(_PROMISED_CONTINUE_PATTERN.search(answer))
 
 
+def _parse_file_list(raw: str) -> list[dict[str, Any]] | None:
+    """从 list_files 工具返回文本中提取文件/文件夹列表。
+
+    工具返回格式形如 `[list_files] 云盘响应: {"code":0,...,"data":[...]}`，
+    也可能直接是 JSON 文本。解析失败时返回 None（调用方静默降级）。
+    """
+    text = (raw or "").strip()
+    # 去掉形如 "[list_files] 云盘响应: " 的前缀
+    idx = text.find("{")
+    if idx >= 0:
+        text = text[idx:]
+    try:
+        payload = json.loads(text)
+    except (json.JSONDecodeError, TypeError):
+        return None
+    data = payload.get("data") if isinstance(payload, dict) else payload
+    if not isinstance(data, list):
+        return None
+    return [it for it in data if isinstance(it, dict)]
+
+
+def _format_directory_context(
+    current_dir_id: str, current_dir_name: str, items: list[dict[str, Any]] | None
+) -> str:
+    """把当前目录及其中条目格式化为注入提示词的文本快照。
+
+    快照中的 fileId 供模型调用工具时使用；用中文括号包裹，提示模型这是
+    内部参数。目录为空或解析失败时也给出明确说明，避免模型臆测。
+    """
+    name = current_dir_name or "当前文件夹"
+    lines = [f"【当前目录】{name}（内部目录ID: {current_dir_id}）"]
+    if not items:
+        lines.append("该目录为空，或无法获取其内容。如需定位文件，请用 search_files 搜索。")
+    else:
+        lines.append("该目录下现有（fileId 是仅供工具调用的内部参数，不得向用户展示）:")
+        for it in items:
+            kind = "文件夹" if it.get("folderFlag") == 1 else "文件"
+            fname = it.get("filename") or ""
+            size = it.get("fileSizeDesc") or ""
+            fid = it.get("fileId") or ""
+            size_part = f"（{size}）" if size else ""
+            lines.append(f"- {kind}「{fname}」{size_part} [fileId: {fid}]")
+    return "\n".join(lines)
+
+
 class Agent:
-    def __init__(self, llm: LLMClient, mcp: MCPClient, user_id: str) -> None:
+    def __init__(
+        self,
+        llm: LLMClient,
+        mcp: MCPClient,
+        user_id: str,
+        current_dir_id: str | None = None,
+        current_dir_name: str | None = None,
+    ) -> None:
         self.llm = llm
         self.mcp = mcp
         self.user_id = user_id
+        # 会话级"工作目录"：默认根目录（-1 表示全部文件根）
+        self.current_dir_id = current_dir_id or "-1"
+        self.current_dir_name = current_dir_name or "全部文件"
         self._tools: list[Any] | None = None
         self._openai_tools: list[dict[str, Any]] = []
 
@@ -67,6 +122,37 @@ class Agent:
             await self.mcp.connect()
             self._tools = await self.mcp.list_tools()
             self._openai_tools = MCPClient.to_openai_tools(self._tools)
+
+    async def _directory_context(self) -> str:
+        """实时拉取当前工作目录快照，格式化为注入提示词的上下文文本。
+
+        通过 list_files 让模型"先看见再行动"：用户说"移动到 agent 文件夹下"
+        时，模型可直接从快照中匹配目标 fileId，无需全盘搜索。
+        拉取/解析失败时静默降级为空串，不影响对话。
+        """
+        try:
+            raw = await self.mcp.call_tool(
+                "list_files", {"parentId": self.current_dir_id}, self.user_id
+            )
+        except Exception:
+            return ""
+        items = _parse_file_list(raw)
+        if items is None:
+            return ""
+        return _format_directory_context(
+            self.current_dir_id, self.current_dir_name, items
+        )
+
+    async def _build_system_prompt(self, prompt_key: str | None, user_message: str) -> str:
+        """组装系统提示词：场景提示词 + 目录感知规则 + 当前目录快照。"""
+        system_prompt = resolve_system_prompt(prompt_key, user_message)
+        try:
+            dir_ctx = await self._directory_context()
+        except Exception:
+            dir_ctx = ""
+        if dir_ctx:
+            system_prompt = f"{system_prompt}\n\n{DIRECTORY_RULES}\n\n{dir_ctx}"
+        return system_prompt
 
     async def run(
         self,
@@ -81,7 +167,7 @@ class Agent:
         """
         await self._ensure_tools()
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": resolve_system_prompt(prompt_key, user_message)}
+            {"role": "system", "content": await self._build_system_prompt(prompt_key, user_message)}
         ]
         messages.extend(history or [])
         messages.append({"role": "user", "content": user_message})
@@ -144,7 +230,7 @@ class Agent:
         """
         await self._ensure_tools()
         messages: list[dict[str, Any]] = [
-            {"role": "system", "content": resolve_system_prompt(prompt_key, user_message)}
+            {"role": "system", "content": await self._build_system_prompt(prompt_key, user_message)}
         ]
         messages.extend(history or [])
         messages.append({"role": "user", "content": user_message})

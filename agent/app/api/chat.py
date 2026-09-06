@@ -32,6 +32,10 @@ class ChatRequest(BaseModel):
     userId: str
     sessionId: str | None = None
     history: list[dict[str, Any]] | None = None
+    # 会话级"工作目录"：前端把用户当前浏览的文件夹传下来，Agent 据此注入目录快照。
+    # 缺省时 Agent 按根目录（-1）处理。
+    currentDirId: str | None = None
+    currentDirName: str | None = None
 
 
 class ConfirmRequest(BaseModel):
@@ -178,7 +182,13 @@ async def chat(req: ChatRequest) -> StreamingResponse:
     if _store is None:
         _store = SessionStore()
 
-    agent = Agent(llm=_llm, mcp=_mcp, user_id=req.userId)
+    agent = Agent(
+        llm=_llm,
+        mcp=_mcp,
+        user_id=req.userId,
+        current_dir_id=req.currentDirId,
+        current_dir_name=req.currentDirName,
+    )
 
     async def gen() -> AsyncIterator[str]:
         session_id = req.sessionId
