@@ -17,6 +17,15 @@ class Settings(BaseSettings):
     llm_base_url: str = "https://api.deepseek.com/v1"
     llm_api_key: str = ""
     llm_model: str = "deepseek-chat"
+    llm_temperature: float = 0.3
+
+    # LangGraph 执行状态 Checkpointer（MySQL，与业务库同实例；值不含 aiomysql 驱动前缀）
+    mysql_checkpoint_url: str = "mysql://root:123456@127.0.0.1:3306/cloud_drive_pan?charset=utf8mb4"
+
+    # LangGraph 图执行限制
+    graph_recursion_limit: int = 50
+    worker_max_iterations: int = 3
+    react_max_iterations: int = 8
 
     model_config = {"env_prefix": "AGENT_"}
 
