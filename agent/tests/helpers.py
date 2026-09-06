@@ -44,3 +44,15 @@ class ScriptedModel:
 
         # 不直接在这里构造 chunk，交由具体测试覆盖；默认整段一次性产出
         yield AIMessage(content=text)
+
+
+class StubStructured:
+    """绕过 structured output 解析：按脚本顺序返回预设的 pydantic 实例。"""
+
+    def __init__(self, script: list[Any]) -> None:
+        self._script = list(script)
+        self.calls: list[list[Any]] = []
+
+    async def ainvoke(self, messages: list[Any]) -> Any:
+        self.calls.append(messages)
+        return self._script.pop(0)
