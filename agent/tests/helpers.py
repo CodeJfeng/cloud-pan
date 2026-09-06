@@ -7,12 +7,12 @@ from typing import Any, Awaitable, Callable
 
 
 class FakeWriter:
-    """捕获节点经 get_stream_writer().emit 发出的事件。"""
+    """捕获节点经 get_stream_writer() 发出的事件（LangGraph 1.x 为可调用 writer）。"""
 
     def __init__(self) -> None:
         self.events: list[dict[str, Any]] = []
 
-    def emit(self, data: dict[str, Any]) -> None:
+    def __call__(self, data: dict[str, Any]) -> None:
         self.events.append(data)
 
 

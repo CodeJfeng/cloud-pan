@@ -22,4 +22,5 @@ SSE_TYPES = frozenset(
 def emit(**data) -> None:
     """向 runner 的自定义流通道发事件（type 须为 SSE_TYPES 之一）。"""
     assert data.get("type") in SSE_TYPES, data.get("type")
-    get_stream_writer().emit(data)
+    # LangGraph 1.x：get_stream_writer() 返回可调用 StreamWriter
+    get_stream_writer()(data)
