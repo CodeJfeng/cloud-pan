@@ -3,11 +3,13 @@ import json
 
 import pytest
 from httpx import ASGITransport, AsyncClient
+from langchain_core.messages import AIMessage
 
 from app.api import chat as chat_module
-from app.core.agent import Agent
+from app.core import runner as agent_runner
 from app.main import app
 from app.mcp.client import McpToolInfo
+from tests.helpers import ScriptedModel
 
 TOOLS = [
     McpToolInfo(
@@ -70,43 +72,33 @@ class FakeMCP:
         return "list_files 结果: 3 个文件"
 
 
-class FakeLLM:
-    def __init__(self, script):
-        self._script = list(script)
-        self.last_tool_calls = []
-
-    async def chat(self, messages, tools=None, temperature=0.7):
-        step = self._script.pop(0)
-        if step.get("tool_calls"):
-            self.last_tool_calls = step["tool_calls"]
-            return None
-        self.last_tool_calls = []
-        return step.get("content")
-
-    async def stream(self, messages, tools=None, temperature=0.7):
-        for piece in ["你", "好", "！"]:
-            yield piece
-
-
 @pytest.fixture
 def fake_deps(monkeypatch):
-    from app.api import chat as chat_mod
     from app.storage.session_store import SessionStore
 
     mcp = FakeMCP()
-    llm = FakeLLM([])
     store = SessionStore("sqlite+aiosqlite:///:memory:")
-    monkeypatch.setattr(chat_mod, "_store", store)
+    monkeypatch.setattr(chat_module, "_store", store)
+    monkeypatch.setattr(chat_module, "_mcp", mcp)
 
-    def _make(llm_script):
-        fake_llm = FakeLLM(llm_script)
-        chat_mod._llm = fake_llm
-        chat_mod._mcp = mcp
-        return fake_llm, mcp
+    def _make(model_script):
+        monkeypatch.setattr(chat_module, "_model", ScriptedModel(model_script))
 
-    chat_mod._llm = llm
-    chat_mod._mcp = mcp
+    chat_module._model = ScriptedModel([])
     return _make, mcp
+
+
+def _ai_tool(tool_name: str, arguments: dict):
+    return AIMessage(
+        content="",
+        tool_calls=[
+            {
+                "id": "call_1",
+                "name": tool_name,
+                "args": arguments,
+            }
+        ],
+    )
 
 
 async def _sse_posts(req_body):
@@ -134,12 +126,11 @@ def parse_sse(body: str):
 @pytest.mark.asyncio
 async def test_sse_direct_answer(fake_deps):
     _make, _ = fake_deps
-    _make([{"content": "直接回答"}])
+    _make([AIMessage(content="直接回答")])
     body = await _sse_posts({"message": "你好", "userId": "1"})
     events = parse_sse(body)
     types = [t for t, _ in events]
     assert types[-1] == "done"
-    # 无工具事件
     assert "tool_start" not in types
 
 
@@ -148,19 +139,8 @@ async def test_sse_tool_flow(fake_deps):
     _make, mcp = fake_deps
     _make(
         [
-            {
-                "tool_calls": [
-                    {
-                        "id": "call_1",
-                        "type": "function",
-                        "function": {
-                            "name": "list_files",
-                            "arguments": json.dumps({"parentId": "abc"}),
-                        },
-                    }
-                ]
-            },
-            {"content": "好的"},
+            _ai_tool("list_files", {"parentId": "abc"}),
+            AIMessage(content="好的"),
         ]
     )
     body = await _sse_posts({"message": "看看 abc", "userId": "42"})
@@ -180,22 +160,21 @@ async def test_sse_tool_flow(fake_deps):
     assert tool_end_evt["duration_ms"] is not None
     # 工具结果预览随事件透传，供前端展示思考链路
     assert tool_end_evt["resultPreview"] == "list_files 结果: 3 个文件"
+    assert mcp.called == [("list_files", {"parentId": "abc"})]
 
 
 @pytest.mark.asyncio
 async def test_session_messages_api(fake_deps):
     """历史消息接口：能查到已保存的 user/assistant 消息，且校验归属。"""
     _make, _ = fake_deps
-    _make([{"content": "回答"}] * 2)
+    _make([AIMessage(content="回答")] * 2)
 
-    # 第一次对话创建会话并存消息
     body = await _sse_posts({"message": "第一条", "userId": "42"})
     events = parse_sse(body)
     done = [d for t, d in events if t == "done"][0]
     sid = done["sessionId"]
     assert sid
 
-    # 查询历史
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get(f"/api/agent/session/{sid}/messages", params={"userId": "42"})
@@ -206,13 +185,11 @@ async def test_session_messages_api(fake_deps):
         assert roles == ["user", "assistant"]
         assert data["messages"][0]["content"] == "第一条"
 
-    # 越权访问被拒绝
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get(f"/api/agent/session/{sid}/messages", params={"userId": "999"})
         assert resp.status_code == 200
         assert resp.json()["code"] == 403
 
-    # 不存在的会话返回 404
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get("/api/agent/session/no_such_sid/messages", params={"userId": "42"})
         assert resp.status_code == 200
@@ -223,7 +200,7 @@ async def test_session_messages_api(fake_deps):
 async def test_sessions_list_api(fake_deps):
     """会话列表接口：按用户返回历史会话（最新在前），且用户之间隔离。"""
     _make, _ = fake_deps
-    _make([{"content": "回答"}] * 2)
+    _make([AIMessage(content="回答")] * 2)
 
     body = await _sse_posts({"message": "第一条", "userId": "42"})
     sid1 = [d for t, d in parse_sse(body) if t == "done"][0]["sessionId"]
@@ -237,10 +214,9 @@ async def test_sessions_list_api(fake_deps):
         assert resp.status_code == 200
         data = resp.json()["data"]
         assert len(data) == 2
-        assert [s["sessionId"] for s in data] == [sid2, sid1]  # 最新更新的在前
+        assert [s["sessionId"] for s in data] == [sid2, sid1]
         assert data[0]["title"] == "第二条"
 
-        # 其他用户看不到这些会话
         resp = await c.get("/api/agent/sessions", params={"userId": "999"})
         assert resp.status_code == 200
         assert resp.json()["data"] == []
@@ -252,19 +228,8 @@ async def test_trace_api(fake_deps):
     _make, _ = fake_deps
     _make(
         [
-            {
-                "tool_calls": [
-                    {
-                        "id": "call_1",
-                        "type": "function",
-                        "function": {
-                            "name": "list_files",
-                            "arguments": json.dumps({"parentId": "abc"}),
-                        },
-                    }
-                ]
-            },
-            {"content": "好的"},
+            _ai_tool("list_files", {"parentId": "abc"}),
+            AIMessage(content="好的"),
         ]
     )
     body = await _sse_posts({"message": "看看 abc", "userId": "42"})
@@ -275,13 +240,12 @@ async def test_trace_api(fake_deps):
     assert sid and trace_id
 
     transport = ASGITransport(app=app)
-    # 链路详情：步骤顺序 message_in → llm_decision → tool_call → answer
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get(f"/api/agent/trace/{trace_id}", params={"userId": "42"})
         assert resp.status_code == 200
         steps = resp.json()["data"]["steps"]
         types = [s["stepType"] for s in steps]
-        # 一次工具决策 + 一次最终回答决策（均为 llm_decision）
+        # message_in → llm_decision → tool_call → llm_decision(收尾) → answer
         assert types[0] == "message_in"
         assert types[1] == "llm_decision"
         assert types.count("llm_decision") == 2
@@ -294,7 +258,6 @@ async def test_trace_api(fake_deps):
         assert tool_step["status"] == "ok"
         assert tool_step["durationMs"] is not None
 
-    # 会话内链路列表（含用户消息与回答摘要）
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get(f"/api/agent/session/{sid}/traces", params={"userId": "42"})
         assert resp.status_code == 200
@@ -306,13 +269,11 @@ async def test_trace_api(fake_deps):
         assert rows[0]["stepCount"] == 5
         assert rows[0]["hasError"] is False
 
-    # 越权访问被拒绝
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get(f"/api/agent/trace/{trace_id}", params={"userId": "999"})
         assert resp.status_code == 200
         assert resp.json()["code"] == 403
 
-    # 不存在的链路返回 404
     async with AsyncClient(transport=transport, base_url="http://test") as c:
         resp = await c.get("/api/agent/trace/no_such_trace", params={"userId": "42"})
         assert resp.status_code == 200
@@ -342,45 +303,35 @@ async def _sse_stream(req_body):
 
 
 async def _wait_pending(timeout: float = 10.0) -> tuple[str, tuple[str, asyncio.Future]]:
-    """轮询确认注册表，等待对话流挂起并注册确认请求。"""
+    """轮询 runner 确认注册表，等待对话流挂起并注册确认请求。"""
     deadline = asyncio.get_running_loop().time() + timeout
-    while not chat_module._pending_confirmations:
+    while not agent_runner._pending_confirmations:
         if asyncio.get_running_loop().time() > deadline:
             raise TimeoutError("等待确认请求注册超时")
         await asyncio.sleep(0.01)
-    return next(iter(chat_module._pending_confirmations.items()))
-
-
-def _call_tool(tool_name: str, arguments: dict):
-    return {
-        "id": "call_1",
-        "type": "function",
-        "function": {"name": tool_name, "arguments": json.dumps(arguments)},
-    }
+    return next(iter(agent_runner._pending_confirmations.items()))
 
 
 @pytest.mark.asyncio
 async def test_confirm_timeout_rejected(fake_deps, monkeypatch):
     """敏感操作（删除）无人批复（超时视为拒绝）：工具不执行，事件与链路标记 rejected。"""
-    monkeypatch.setattr(chat_module, "CONFIRM_TIMEOUT_SECONDS", 0.1)
+    monkeypatch.setattr(agent_runner, "CONFIRM_TIMEOUT_SECONDS", 0.1)
     _make, mcp = fake_deps
     _make(
         [
-            {"tool_calls": [_call_tool("delete_file", {"fileIds": ["f1"]})]},
-            {"content": "好的，已取消删除"},
+            _ai_tool("delete_file", {"fileIds": ["f1"]}),
+            AIMessage(content="好的，已取消删除"),
         ]
     )
     events = await _sse_stream({"message": "删除 f1", "userId": "42"})
     types = [t for t, _ in events]
     assert "confirmation_required" in types
-    # 未获批准则不会真正执行工具（无 tool_start，FakeMCP 未收到调用）
     assert "tool_start" not in types
     assert mcp.called == []
     tool_end = [d for t, d in events if t == "tool_end"][0]
     assert tool_end["skipped"] is True
     assert types[-1] == "done"
 
-    # 链路追踪：confirmation 步骤被拒绝、tool_call 步骤标记 rejected
     done = [d for t, d in events if t == "done"][0]
     trace_id = done["traceId"]
     transport = ASGITransport(app=app)
@@ -400,15 +351,11 @@ async def test_confirm_approved_flow(fake_deps):
     _make, mcp = fake_deps
     _make(
         [
-            {
-                "tool_calls": [
-                    _call_tool(
-                        "transfer_files",
-                        {"fileIds": ["f1", "f2"], "targetParentId": "t1"},
-                    )
-                ]
-            },
-            {"content": "已移动完成"},
+            _ai_tool(
+                "transfer_files",
+                {"fileIds": ["f1", "f2"], "targetParentId": "t1"},
+            ),
+            AIMessage(content="已移动完成"),
         ]
     )
     task = asyncio.create_task(_sse_stream({"message": "移动 f1 f2 到 t1", "userId": "42"}))
@@ -434,8 +381,8 @@ async def test_confirm_wrong_user_rejected(fake_deps):
     _make, _ = fake_deps
     _make(
         [
-            {"tool_calls": [_call_tool("delete_file", {"fileIds": ["f1"]})]},
-            {"content": "已删除"},
+            _ai_tool("delete_file", {"fileIds": ["f1"]}),
+            AIMessage(content="已删除"),
         ]
     )
     task = asyncio.create_task(_sse_stream({"message": "删除 f1", "userId": "42"}))
@@ -443,7 +390,6 @@ async def test_confirm_wrong_user_rejected(fake_deps):
     assert owner_id == "42"
     transport = ASGITransport(app=app)
     async with AsyncClient(transport=transport, base_url="http://test") as c:
-        # 错误 userId 尝试批准 → 403，且 future 未被触发
         resp = await c.post(
             "/api/agent/confirm",
             json={"requestId": request_id, "approve": True, "userId": "999"},
@@ -451,7 +397,6 @@ async def test_confirm_wrong_user_rejected(fake_deps):
         assert resp.status_code == 200
         assert resp.json()["code"] == 403
         assert not fut.done()
-        # 正确归属者批准 → 200，future 被触发，流继续
         resp = await c.post(
             "/api/agent/confirm",
             json={"requestId": request_id, "approve": True, "userId": "42"},

@@ -10,10 +10,19 @@ import time
 import uuid
 from typing import Any
 
-from langchain_core.messages import AIMessage, BaseMessage, HumanMessage, ToolMessage
+from langchain_core.messages import (
+    AIMessage,
+    BaseMessage,
+    HumanMessage,
+    SystemMessage,
+    ToolMessage,
+)
 from langgraph.types import interrupt
 
-from app.core.context import _looks_like_promised_search
+from app.core.context import (
+    _looks_like_promised_search,
+    resolve_system_prompt,
+)
 from app.core.events import emit
 
 # nudge：模型口头承诺继续却未发起工具调用时注入的强制指令（等价旧行为）
@@ -40,6 +49,19 @@ class ReactDeps:
         self.interrupts = interrupts
 
 
+def _conversation(state: dict) -> list[BaseMessage]:
+    """组装本次调模型的完整会话：系统提示词（意图路由）+ 目录快照 + 历史消息。
+
+    系统提示词不入库（不持久化到 messages），每次调用时按 user_input 现算，
+    保证切换用户/目录/场景时提示词始终与本次请求一致。
+    """
+    system = resolve_system_prompt(None, state.get("user_input") or "")
+    ctx = state.get("directory_context")
+    if ctx:
+        system = f"{system}\n\n{ctx}"
+    return [SystemMessage(content=system), *state["messages"]]
+
+
 async def react_agent(state: dict, deps: "ReactDeps") -> dict:
     """调模型做一次决策并返回增量。
 
@@ -49,7 +71,7 @@ async def react_agent(state: dict, deps: "ReactDeps") -> dict:
     """
     emit(type="thinking", content="正在分析你的需求…")
     t0 = time.perf_counter()
-    resp: AIMessage = await deps.model.ainvoke(state["messages"])
+    resp: AIMessage = await deps.model.ainvoke(_conversation(state))
     llm_ms = int((time.perf_counter() - t0) * 1000)
 
     if resp.tool_calls:
