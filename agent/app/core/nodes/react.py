@@ -6,6 +6,7 @@ tool_start / tool_end / delta / done / error。
 
 节点经图构造闭包注入 deps（react.ReactDeps），便于测试替换 model/tools。
 """
+import logging
 import time
 import uuid
 from typing import Any
@@ -20,16 +21,19 @@ from langchain_core.messages import (
 from langgraph.types import interrupt
 
 from app.core.context import (
-    _looks_like_promised_search,
-    resolve_system_prompt,
+    _looks_like_promised_action,
+    _looks_like_unbacked_listing,
 )
 from app.core.events import emit
-
-# nudge：模型口头承诺继续却未发起工具调用时注入的强制指令（等价旧行为）
-NUDGE_MESSAGE = (
-    "你刚才说还要继续搜索/检查。请直接调用搜索工具完成并如实汇报结果，"
-    "不要只描述意图而不调用工具。"
+from app.core.prompts import (
+    DIRECTORY_RULES,
+    NUDGE_LISTING_MESSAGE,
+    NUDGE_MESSAGE,
+    NUDGE_SNAPSHOT_MESSAGE,
+    SYSTEM_PROMPT,
 )
+
+logger = logging.getLogger(__name__)
 
 # 承诺搜索兜底强制次数上限（等价旧 stream_run 的 continue_prompted < 2）
 NUDGE_MAX = 2
@@ -50,16 +54,28 @@ class ReactDeps:
 
 
 def _conversation(state: dict) -> list[BaseMessage]:
-    """组装本次调模型的完整会话：系统提示词（意图路由）+ 目录快照 + 历史消息。
+    """组装本次调模型的完整会话：系统提示词 + 目录快照 + 历史消息。
 
-    系统提示词不入库（不持久化到 messages），每次调用时按 user_input 现算，
-    保证切换用户/目录/场景时提示词始终与本次请求一致。
+    系统提示词不入库（不持久化到 messages），每次调用时现算，保证切换
+    用户/目录时提示词始终与本次请求一致。意图由模型自行判断（base.md 的
+    【按情形处理】），不再按场景切换提示词。
     """
-    system = resolve_system_prompt(None, state.get("user_input") or "")
+    system = SYSTEM_PROMPT
     ctx = state.get("directory_context")
     if ctx:
-        system = f"{system}\n\n{ctx}"
+        # 目录感知规则 + 快照正文一并注入，让模型"先看见再行动"
+        system = f"{system}\n\n{DIRECTORY_RULES}\n\n{ctx}"
     return [SystemMessage(content=system), *state["messages"]]
+
+
+def _has_tool_result_this_turn(messages: list[BaseMessage]) -> bool:
+    """本轮（最后一条用户消息之后）是否已有真实工具结果。"""
+    for m in reversed(messages):
+        if isinstance(m, ToolMessage):
+            return True
+        if isinstance(m, HumanMessage):
+            return False
+    return False
 
 
 async def react_agent(state: dict, deps: "ReactDeps") -> dict:
@@ -83,15 +99,31 @@ async def react_agent(state: dict, deps: "ReactDeps") -> dict:
         return {"messages": [resp], "mode": "react"}
 
     answer = resp.content if isinstance(resp.content, str) else ""
-    # 承诺继续搜索却未调用工具 → 强制其真正发起搜索（nudge）
+    # 承诺"我来查看/再搜一下"却未调用工具 → nudge：
+    # 有快照 → 引导直接基于快照回答；无快照 → 强制真正发起工具调用
     if (
         answer
-        and _looks_like_promised_search(answer)
+        and _looks_like_promised_action(answer)
+        and state.get("retries", 0) < NUDGE_MAX
+    ):
+        nudge_text = NUDGE_SNAPSHOT_MESSAGE if state.get("directory_context") else NUDGE_MESSAGE
+        emit(type="llm_decision", tools=[], duration_ms=llm_ms, nudge=True)
+        return {
+            "messages": [resp, HumanMessage(content=nudge_text)],
+            "retries": state.get("retries", 0) + 1,
+        }
+
+    # 无快照且无工具结果却宣称"已获取到目录内容" → 强制真正调用工具（防虚假工具调用）
+    if (
+        answer
+        and _looks_like_unbacked_listing(answer)
+        and not state.get("directory_context")
+        and not _has_tool_result_this_turn(state["messages"])
         and state.get("retries", 0) < NUDGE_MAX
     ):
         emit(type="llm_decision", tools=[], duration_ms=llm_ms, nudge=True)
         return {
-            "messages": [resp, HumanMessage(content=NUDGE_MESSAGE)],
+            "messages": [resp, HumanMessage(content=NUDGE_LISTING_MESSAGE)],
             "retries": state.get("retries", 0) + 1,
         }
 
@@ -181,6 +213,7 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
                 duration_ms=int((time.perf_counter() - t0) * 1000),
             )
         except Exception as exc:
+            logger.exception("工具执行异常 | tool=%s | args=%s", name, args)
             text = f"工具执行异常: {exc}"
             msgs.append(ToolMessage(content=text, tool_call_id=tc["id"]))
             emit(

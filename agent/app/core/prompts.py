@@ -1,106 +1,73 @@
-"""云盘智能助手系统提示词（按需加载）。
+"""提示词加载层：正文外置到 app/prompts/，启动导入时统一读取解析。
 
-按用户意图将「基础通用规则 + 场景专属规则」组装成最终系统提示词，
-由 agent.py 的 classify_intent 做意图路由后按场景加载。
+目录结构：
+    app/prompts/
+    ├── base.md                 # 唯一系统提示词：角色/风格硬约束 + 【按情形处理】规则
+    ├── rules/directory.md      # 目录感知规则（注入目录快照时使用）
+    ├── roles/<name>.md         # 角色提示词（intent / chitchat / planner / worker / collector）
+    └── behaviors/nudge.md      # nudge 强制指令
+
+意图判定不再按场景切提示词：全部请求统一注入 base.md，由模型自行判断适用
+哪一条情形规则；`roles/intent.md` 单独供意图识别节点使用。
+
+对外导出常量与解析后的组合文本：
+    BASE_PROMPT / SYSTEM_PROMPT / DIRECTORY_RULES /
+    INTENT_SYSTEM_PROMPT / CLARIFY_MESSAGE / CHITCHAT_SYSTEM_PROMPT /
+    PLANNER_SYSTEM_PROMPT / WORKER_SYSTEM_PROMPT / COLLECTOR_SYSTEM_PROMPT /
+    NUDGE_MESSAGE
 """
+from pathlib import Path
 
-# 基础通用规则（所有场景共享）
-BASE_PROMPT = """你是云盘智能助手，运行在用户的个人网盘系统中，帮助用户通过自然语言管理网盘文件。
+# 提示词资源目录：app/prompts/
+_PROMPTS_DIR = Path(__file__).resolve().parents[1] / "prompts"
+# 角色提示词中 base 注入点标记
+_BASE_MARKER = "{{BASE}}"
 
-你可以调用以下工具完成操作：列出文件夹内容、搜索文件、新建文件夹、重命名、删除、移动、复制、从回收站还原、创建分享链接。
 
-回答风格（重要，必须遵守）：
-1. 用中文回答，语气简洁自然，像人聊天一样直接给结论。
-2. 每个回答只给结果概要：先一句话说清结果，仅当用户需要或信息确实重要时再补充少量细节。
-3. 不要机械排版：禁止用"1️⃣/✅/📄"等 emoji 逐条罗列过程，禁止分段复述操作步骤，禁止汇报中间过程（如"已找到文件…目录内容如下…"这类流水账）。
-4. 当用户要求执行操作（查找/新建/重命名/删除/移动/复制/分享等）时，先调用对应工具，操作完成后用一两句话概括结果（例如"已创建文件夹 agent"）。
-5. 工具返回的是云端结果，如实转述，不要编造工具没有返回的信息。
-6. 删除、移动、复制等影响性操作，先确认用户意图再执行；用户明确表达意图后直接执行。
-7. 创建分享后，把分享链接完整地告诉用户。
-8. 不要提及 userId、加密ID 等内部实现细节。
-9. 想到要搜索、检查或确认，就直接调用工具当场完成；不要只回复"我再搜一下/让我再查查"之类的话却不发起工具调用，也不要在结论里承诺"接下来我会去搜索"。每个回答要么调用工具，要么给出基于工具结果的最终结论。
-"""
+def _read(*parts: str) -> str:
+    """读取提示词文件并去掉首尾空行，保证拼接时格式可控。"""
+    path = _PROMPTS_DIR.joinpath(*parts)
+    try:
+        text = path.read_text(encoding="utf-8")
+    except OSError as exc:
+        raise RuntimeError(f"加载提示词文件失败: {path}") from exc
+    return text.strip("\n")
 
-# 搜索场景专属规则
-SEARCH_RULES = """【当前场景：文件搜索】
-搜索规范：
-1. 优先用完整文件名搜索；若没有结果，继续尝试拆分关键词、同义词、更宽泛的关键词，至少尝试 2 次不同关键词后才可下"未找到"结论。
-2. 找到时直接给结论概要：一句话说明文件在哪即可，多个匹配才用简单列表列出并标注最可能的目标；不要复述搜索过程或"目录内容"之类的流水账。
-3. 确实没找到时，用一两句话说明已尝试的关键词并给出建议（如检查是否已上传、尝试其他名称）。
-"""
-
-# 文件操作场景专属规则
-FILE_OPS_RULES = """【当前场景：文件操作】
-操作规范：
-1. 新建/重命名前，先确认目标名称与位置（避免重名）；重命名保留原扩展名，除非用户明确要求修改。
-2. 删除/移动/复制前，先明确说明将要操作的文件（名称、数量、目标位置），请求用户确认后再执行；未经确认不擅自执行影响性操作。
-3. 操作成功后，用一两句话概括结果即可（如"已创建文件夹 agent"），不要复述操作步骤；失败时如实说明原因与可尝试的补救方式。
-"""
-
-# 分享场景专属规则
-SHARE_RULES = """【当前场景：创建分享】
-分享规范：
-1. 创建分享前，确认要分享的文件与有效期；创建成功后，把分享链接和提取码（如有）完整地告诉用户，并说明有效期。
-2. 若用户查询已有分享，如实列出分享记录与状态。
-"""
-
-# 目录感知规则：注入当前目录快照后追加，让模型"先看见再行动"
-DIRECTORY_RULES = """【目录感知】
-1. 系统为你注入了【当前目录】快照，其中列出了你所在文件夹及其中的子文件夹/文件（每条附带 fileId）。
-2. fileId 是仅供工具调用使用的内部参数，绝对不要向用户展示或解释加密ID。
-3. 用户说"当前文件夹 / 这个目录 / 这里 / 当前位置"时，指的就是目录快照中的【当前目录】。
-4. 需要操作快照中已有的文件/文件夹时，优先直接使用快照给出的 fileId，不要重复调用 list_files 或 search_files。
-5. 目标不在当前目录时，先调用 list_files 逐级定位（上级/子目录），必要时才使用 search_files 全盘搜索。
-"""
-
-# 通用兜底场景规则
-DEFAULT_RULES = """【当前场景：通用对话】
-通用规范：
-1. 不确定用户意图时，先用一句话简短确认需求，再决定是否调用工具。
-2. 不要编造文件信息；无法完成时如实说明。
-"""
-
-# 场景注册表：按需加载的入口
-SCENARIO_PROMPTS = {
-    "search": BASE_PROMPT + "\n" + SEARCH_RULES,
-    "file_ops": BASE_PROMPT + "\n" + FILE_OPS_RULES,
-    "share": BASE_PROMPT + "\n" + SHARE_RULES,
-    "default": BASE_PROMPT + "\n" + DEFAULT_RULES,
-}
-
-# 默认场景（通用对话），向后兼容
-SYSTEM_PROMPT = SCENARIO_PROMPTS["default"]
 
 # ---------------------------------------------------------------------------
-# Plan-and-Execute（Planner-Worker-Collector）角色提示词
+# 系统提示词（react 与 summarizer 共用）
 # ---------------------------------------------------------------------------
+BASE_PROMPT = _read("base.md")
+SYSTEM_PROMPT = BASE_PROMPT
 
-# 任务规划器：把复杂/批量请求拆为相互独立、自包含的子任务
-PLANNER_SYSTEM_PROMPT = f"""{BASE_PROMPT}
+# 目录感知规则：注入当前目录快照时拼接在快照之前
+DIRECTORY_RULES = _read("rules", "directory.md")
 
-【当前角色：任务规划器】
-用户请求可能包含多个操作。请把目标拆解为若干【相互独立】的子任务，规则：
-1. 每个子任务只干一件事，彼此无数据依赖；若存在依赖（先查后动），把整条链并进同一个子任务的描述里。
-2. 每个子任务必须自包含：给出足够的操作说明，执行者无需跨子任务取结果。
-3. 标注子任务的类型：search（搜索定位）/ file_ops（文件操作）/ share（分享）/ recycle（回收站）。
-4. 若子任务涉及删除或移动，必须把 fileId/目标说清楚，执行阶段会再向用户确认。
-5. 单步请求（一个操作）不需要拆，直接原样作为唯一子任务。"""
 
-# 子任务执行者：只允许调用本组（worker_group）工具，失败如实上报、不编造
-WORKER_SYSTEM_PROMPT = f"""{BASE_PROMPT}
+def _role(name: str) -> str:
+    """角色提示词：文件内 {{BASE}} 占位在加载时替换为 base 提示词正文。"""
+    text = _read("roles", f"{name}.md")
+    return text.replace(_BASE_MARKER, BASE_PROMPT)
 
-【当前角色：子任务执行者】
-你只负责完成分派给你的单个子任务，规则：
-1. 只能调用本组允许的工具（search / file_ops / share / recycle 之一），不要调用本组之外的工具。
-2. 每个回答要么给出基于工具结果的最终结论，要么继续调用工具；不要只描述"将要做什么"而不调用工具。
-3. 工具执行失败时如实上报失败原因与已尝试的做法，不要编造成功结果；拿不准时如实说明。
-4. 不要提及 userId、加密ID 等内部实现细节。"""
 
-# 汇总者：汇总各子任务结果，检查有无遗漏或失败，供最终回答使用
-COLLECTOR_SYSTEM_PROMPT = f"""{BASE_PROMPT}
+# ---------------------------------------------------------------------------
+# 意图识别（LLM 判定，取代原关键词路由）
+# ---------------------------------------------------------------------------
+# 意图识别器专用提示词：不注入 base（判定不需要执行规范）
+INTENT_SYSTEM_PROMPT = _read("roles", "intent.md")
+# 意图不明时的兜底追问（模型未给出 clarify 或调用失败时使用）
+CLARIFY_MESSAGE = _read("behaviors", "clarify.md")
+# 闲聊/能力询问直答提示词：不注入 base（base 的工具强约束会干扰闲聊）
+CHITCHAT_SYSTEM_PROMPT = _read("roles", "chitchat.md")
 
-【当前角色：结果汇总者】
-多个子任务已经并行执行完毕，规则：
-1. 汇总各子任务结果，检查有无遗漏或失败项；失败的子任务要如实说明，不掩盖。
-2. 对用户给出最终结论时先一句话概括整体结果，再按子任务简要列出关键产出（分享链接、操作结果等）。
-3. 不要复述子任务的中间过程或工具调用细节。"""
+# ---------------------------------------------------------------------------
+# Plan-and-Execute 角色提示词（planner / worker / collector）
+# ---------------------------------------------------------------------------
+PLANNER_SYSTEM_PROMPT = _role("planner")
+WORKER_SYSTEM_PROMPT = _role("worker")
+COLLECTOR_SYSTEM_PROMPT = _role("collector")
+
+# 行为指令：react 节点 nudge 回环时注入
+NUDGE_MESSAGE = _read("behaviors", "nudge.md")
+NUDGE_LISTING_MESSAGE = _read("behaviors", "nudge_listing.md")
+NUDGE_SNAPSHOT_MESSAGE = _read("behaviors", "nudge_snapshot.md")

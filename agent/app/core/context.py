@@ -1,53 +1,45 @@
-"""与 LLM/MCP 无关的上下文纯函数：意图路由、系统提示词解析、目录快照格式化、
-承诺搜索识别、文件列表解析。
+"""与 LLM/MCP 无关的上下文纯函数：承诺搜索识别、文件列表解析、目录快照格式化。
 
 自 app/core/agent.py 抽取（原手写循环迁移到 LangGraph 节点后 agent.py 删除），
-供 runner 预置系统提示词与 react/plan 节点复用。
+供 runner 预置目录快照与 react/plan 节点复用。
+
+意图判定已改由 LLM 完成（app/core/nodes/intent.py），不再在此做关键词路由。
 """
 import json
 import re
 from typing import Any
 
-from app.core.prompts import SCENARIO_PROMPTS, SYSTEM_PROMPT
 
-# 意图路由关键词表：按用户消息命中场景，实现提示词按需加载。
-# 顺序即优先级——"分享"是最强信号，其次是搜索，最后是文件操作。
-_INTENT_KEYWORDS: dict[str, tuple[str, ...]] = {
-    "share": ("分享", "共享", "提取码", "访问码"),
-    "search": (
-        "搜索", "查找", "查一下", "查询", "找一下", "找到", "搜一下",
-        "搜到", "有没有", "在哪", "在哪里", "找出",
-    ),
-    "file_ops": (
-        "新建", "创建", "重命名", "改名", "删除", "删掉", "移除",
-        "移动", "移到", "复制", "拷贝", "还原", "恢复", "回收站",
-    ),
-}
-
-
-def classify_intent(message: str) -> str:
-    """按用户消息关键词路由到场景（share / search / file_ops / default）。"""
-    for intent, keywords in _INTENT_KEYWORDS.items():
-        if any(k in message for k in keywords):
-            return intent
-    return "default"
-
-
-def resolve_system_prompt(prompt_key: str | None, user_message: str) -> str:
-    """按需加载系统提示词：优先使用调用方指定的场景，否则按消息意图自动路由。"""
-    key = prompt_key or classify_intent(user_message)
-    return SCENARIO_PROMPTS.get(key, SYSTEM_PROMPT)
-
-
-# 模型"口头承诺继续搜索/检查"却未发起工具调用的常见句式，命中后强制其继续调用工具
-_PROMISED_CONTINUE_PATTERN = re.compile(
+# 模型"口头承诺要查看/搜索/检查"却未发起工具调用的句式（承诺态，区别于完成态宣称）：
+# a) 再/继续/换关键词类（继续尝试）；b) 我来/我去/这就来/现在去 + 动词（将来时标记，
+#    用单字 lookahead 避免误伤"我来自/我去年"等）；c) 让我 + 动词（意图语气）
+_PROMISED_ACTION_PATTERN = re.compile(
     r"(?:让我再|我再|继续搜索|继续查找|再搜索|再查一下|再找找|再试(?:一次|试)?|"
-    r"再尝试|换个关键词|换个关键字|换关键词|换种方式|换个词|用其他|变体)"
+    r"再尝试|换个关键词|换个关键字|换关键词|换种方式|换个词|用其他|变体|"
+    r"(?:让我|我)(?:这就|现在就?|马上|先)?(?:来|去)"
+    r"(?=看|查|找|搜|获|列|检|确|核|处|操|执|删|建|创|移|复|分)|"
+    r"让我(?:看看|查看|查查|查一下|找找|搜一下|检查一下|确认一下)"
+    r")"
 )
 
 
-def _looks_like_promised_search(answer: str) -> bool:
-    return bool(_PROMISED_CONTINUE_PATTERN.search(answer))
+def _looks_like_promised_action(answer: str) -> bool:
+    return bool(_PROMISED_ACTION_PATTERN.search(answer))
+
+
+# 无据目录宣称：模型在"无快照且无工具结果"的情况下声称已获取/列出了目录内容
+# （虚假工具调用的典型表现，如"我获取到了…共有 3 个文件夹"）
+_UNBACKED_LISTING_PATTERN = re.compile(
+    r"(?:获取到|拿到|列出|查看|看到|扫描)[了过]"
+    r".{0,16}?"
+    r"(?:目录|文件夹|文件列表|内容)"
+    r"|共\s*有\s*\d+\s*个\s*(?:文件夹|文件|目录)"
+)
+
+
+def _looks_like_unbacked_listing(answer: str) -> bool:
+    """回答是否宣称"已经获取/列出目录内容"（完成态叙述，区别于能力描述）。"""
+    return bool(_UNBACKED_LISTING_PATTERN.search(answer))
 
 
 def _parse_file_list(raw: str) -> list[dict[str, Any]] | None:
