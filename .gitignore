@@ -34,3 +34,4 @@ frontend/dist/
 .idea/compiler.xml
 agent/.venv/*
 **/__pycache__/**
+**/graphify-out/**

@@ -1,0 +1,17 @@
+[project]
+name = "cloud-pan"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "CodeJfeng", email = "1683770168@qq.com" }
+]
+requires-python = ">=3.11"
+dependencies = []
+
+[project.scripts]
+cloud-pan = "cloud_pan:main"
+
+[build-system]
+requires = ["uv_build>=0.12.14,<0.13.0"]
+build-backend = "uv_build"
