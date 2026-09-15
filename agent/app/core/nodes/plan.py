@@ -1,12 +1,14 @@
-"""Plan-and-Execute 路径节点：router / planner / worker / collector / summarizer。
+"""Plan-and-Execute 路径节点：planner / worker / collector / summarizer。
 
-router（结构化输出判复杂度）→ planner（拆子任务）→ Send 并行扇出 N 个 worker
-（各自受限工具集跑 mini ReAct）→ collector（聚合各子任务结果）→ summarizer
-（流式产出最终回答 delta/done）。
+入口由 nodes/intent.py 判定（复杂度路由在其中，不再单独设 router 节点）：
+planner（拆子任务）→ Send 并行扇出 N 个 worker（各自受限工具集跑 mini
+ReAct）→ collector（聚合各子任务结果）→ summarizer（流式产出最终回答
+delta/done）。
 
 worker 模型上下文为节点内局部会话：不写入全局 messages，避免并行分支互相
 污染共享对话；collector 再把可读汇总作为上下文消息追加给 summarizer。
 """
+import logging
 from typing import Any, Literal
 
 from langchain_core.messages import (
@@ -26,13 +28,9 @@ from app.core.prompts import (
     SYSTEM_PROMPT,
     WORKER_SYSTEM_PROMPT,
 )
+from app.core.structured import invoke_structured
 
-
-class RouterDecision(BaseModel):
-    """router 结构化输出：判定请求走 react 还是 plan。"""
-
-    mode: Literal["react", "plan"]
-    reason: str = ""
+logger = logging.getLogger(__name__)
 
 
 class PlanStep(BaseModel):
@@ -48,12 +46,11 @@ class Plan(BaseModel):
 
 
 class PlanDeps:
-    """plan 路径运行时依赖。"""
+    """plan 路径运行时依赖。复杂度判定见 nodes/intent.py（意图识别节点）。"""
 
     def __init__(
         self,
         *,
-        router_model: Any,
         planner_model: Any,
         worker_model: Any,
         summarizer_model: Any,
@@ -64,7 +61,6 @@ class PlanDeps:
         worker_max_iterations: int = 3,
         interrupts: bool = True,
     ):
-        self.router_model = router_model
         self.planner_model = planner_model
         self.worker_model = worker_model
         self.summarizer_model = summarizer_model
@@ -76,26 +72,18 @@ class PlanDeps:
         self.interrupts = interrupts
 
 
-async def router(state: dict, deps: "PlanDeps") -> dict:
-    """判定复杂度：mode=plan 交给 planner，否则走 react；结构化输出失败兜底 react。"""
-    try:
-        decision: RouterDecision = await deps.router_model.ainvoke(state["messages"])
-        mode = decision.mode if decision and decision.mode in ("react", "plan") else "react"
-    except Exception:
-        mode = "react"
-    return {"mode": mode}
-
-
-def route_after_router(state: dict) -> str:
-    return "planner" if state.get("mode") == "plan" else "react_agent"
-
-
 async def planner(state: dict, deps: "PlanDeps") -> dict:
-    """把目标拆为相互独立的自包含子任务，存入 state.steps。"""
+    """把目标拆为相互独立的自包含子任务，存入 state.steps。
+
+    规划失败（模型未按 JSON 格式输出）时直接报错，交由上层转 error 事件——
+    已判定为多步请求，静默产出空步骤只会让用户收到无意义的空回答。
+    """
     conv = [SystemMessage(content=PLANNER_SYSTEM_PROMPT), *state["messages"]]
-    plan: Plan = await deps.planner_model.ainvoke(conv)
-    steps = [s.model_dump() for s in plan.steps]
-    return {"steps": steps}
+    planned = await invoke_structured(deps.planner_model, conv, Plan)
+    if planned is None:
+        logger.error("任务规划失败：模型未返回可解析的子任务 JSON")
+        raise RuntimeError("任务规划失败：模型未返回可解析的子任务 JSON")
+    return {"steps": [s.model_dump() for s in planned.steps]}
 
 
 def dispatch(state: dict) -> list[Send]:
@@ -152,6 +140,7 @@ async def worker(state: dict, deps: "PlanDeps") -> dict:
                 result = await deps.tools_by_name[name].ainvoke(args)
                 conv.append(ToolMessage(content=str(result), tool_call_id=tc["id"]))
             except Exception as exc:
+                logger.exception("worker 工具执行异常 | tool=%s | args=%s", name, args)
                 conv.append(
                     ToolMessage(content=f"工具执行异常: {exc}", tool_call_id=tc["id"])
                 )

@@ -46,6 +46,25 @@ class ScriptedModel:
         yield AIMessage(content=text)
 
 
+class BindableScriptedModel(ScriptedModel):
+    """可绑定工具的脚本模型替身。
+
+    bind_tools() 返回一个持有工具名的新替身（脚本内容相同但各自独立消耗），
+    用于在测试中区分"执行侧（绑定工具）"与"意图/直答/收尾侧（未绑定）"。
+    """
+
+    def __init__(self, script: list[Any], tool_names: list[str] | None = None) -> None:
+        super().__init__(script)
+        self.tool_names = tool_names
+        self.bound: "BindableScriptedModel | None" = None
+
+    def bind_tools(self, tools: list[Any]) -> "BindableScriptedModel":
+        self.bound = BindableScriptedModel(
+            list(self._script), [getattr(t, "name", str(t)) for t in tools]
+        )
+        return self.bound
+
+
 class StubStructured:
     """绕过 structured output 解析：按脚本顺序返回预设的 pydantic 实例。"""
 

@@ -5,7 +5,8 @@ from langchain_core.messages import AIMessage, HumanMessage
 
 from app.core.checkpoint import build_checkpointer
 from app.core.graph import build_agent_graph
-from app.core.nodes.plan import Plan, PlanStep, RouterDecision
+from app.core.nodes.intent import IntentDecision
+from app.core.nodes.plan import Plan, PlanStep
 from app.mcp.client import McpToolInfo
 from tests.helpers import ScriptedModel, StubStructured
 
@@ -48,7 +49,13 @@ def _plan_steps():
 @pytest.mark.asyncio
 async def test_plan_path_runs_workers_and_summarize():
     """router=plan → planner 拆两子任务 → 并行 worker 各出结果 → collector/summarizer。"""
-    router_model = StubStructured([RouterDecision(mode="plan", reason="多操作请求")])
+    intent_model = StubStructured(
+        [
+            IntentDecision(
+                intent="file_ops", confidence=0.93, mode="plan", reason="多操作请求"
+            )
+        ]
+    )
     planner_model = StubStructured([Plan(steps=_plan_steps())])
     worker_model = ScriptedModel(
         [AIMessage(content="已创建文件夹 agent"), AIMessage(content="找到 1 份合同")]
@@ -62,7 +69,7 @@ async def test_plan_path_runs_workers_and_summarize():
         mcp=mcp,
         user_id="42",
         checkpointer=build_checkpointer(force_memory=True),
-        router_model=router_model,
+        intent_model=intent_model,
         planner_model=planner_model,
         worker_model=worker_model,
         summarizer_model=summarizer_model,
@@ -99,7 +106,9 @@ class SlowWorkerModel:
 @pytest.mark.asyncio
 async def test_workers_run_in_parallel_via_send():
     """Send 扇出后两个 worker 并行执行（peak 并发 ≥ 2）。"""
-    router_model = StubStructured([RouterDecision(mode="plan", reason="multi")])
+    intent_model = StubStructured(
+        [IntentDecision(intent="file_ops", confidence=0.9, mode="plan", reason="multi")]
+    )
     planner_model = StubStructured([Plan(steps=_plan_steps())])
     slow = SlowWorkerModel()
     summarizer_model = ScriptedModel([AIMessage(content="全部完成")])
@@ -109,7 +118,7 @@ async def test_workers_run_in_parallel_via_send():
         mcp=mcp,
         user_id="42",
         checkpointer=build_checkpointer(force_memory=True),
-        router_model=router_model,
+        intent_model=intent_model,
         planner_model=planner_model,
         worker_model=slow,
         summarizer_model=summarizer_model,
