@@ -165,7 +165,41 @@ async def test_sse_tool_flow(fake_deps):
     assert tool_end_evt["duration_ms"] is not None
     # 工具结果预览随事件透传，供前端展示思考链路
     assert tool_end_evt["resultPreview"] == "list_files 结果: 3 个文件"
-    assert mcp.called == [("list_files", {"parentId": "abc"})]
+    # 未指定目录：先默认预取根目录快照（parentId=-1），再执行模型决策的工具调用
+    assert mcp.called == [
+        ("list_files", {"parentId": "-1"}),
+        ("list_files", {"parentId": "abc"}),
+    ]
+
+
+@pytest.mark.asyncio
+async def test_snapshot_defaults_to_root(fake_deps):
+    """未指定 currentDirId 时，默认预取根目录快照（parentId=-1），agent 从根目录出发。"""
+    _make, mcp = fake_deps
+    _make([AIMessage(content="根目录里有 3 个文件夹")])
+    body = await _sse_posts({"message": "当前文件夹有什么内容", "userId": "42"})
+    events = parse_sse(body)
+    assert events[-1][0] == "done"
+    assert ("list_files", {"parentId": "-1"}) in mcp.called
+
+
+@pytest.mark.asyncio
+async def test_snapshot_uses_current_dir_when_specified(fake_deps):
+    """指定 currentDirId 时，预取该目录（不再默认根目录）。"""
+    _make, mcp = fake_deps
+    _make([AIMessage(content="当前目录内容已列出")])
+    body = await _sse_posts(
+        {
+            "message": "当前文件夹有什么内容",
+            "userId": "42",
+            "currentDirId": "encDir",
+            "currentDirName": "工作目录",
+        }
+    )
+    events = parse_sse(body)
+    assert events[-1][0] == "done"
+    assert ("list_files", {"parentId": "encDir"}) in mcp.called
+    assert ("list_files", {"parentId": "-1"}) not in mcp.called
 
 
 @pytest.mark.asyncio
@@ -332,7 +366,8 @@ async def test_confirm_timeout_rejected(fake_deps, monkeypatch):
     types = [t for t, _ in events]
     assert "confirmation_required" in types
     assert "tool_start" not in types
-    assert mcp.called == []
+    # 未指定目录时仍会预取根目录快照，但 delete_file 未被执行
+    assert mcp.called == [("list_files", {"parentId": "-1"})]
     tool_end = [d for t, d in events if t == "tool_end"][0]
     assert tool_end["skipped"] is True
     assert types[-1] == "done"
@@ -373,7 +408,8 @@ async def test_confirm_approved_flow(fake_deps):
     assert "confirmation_required" in types
     assert "tool_start" in types
     assert mcp.called == [
-        ("transfer_files", {"fileIds": ["f1", "f2"], "targetParentId": "t1"})
+        ("list_files", {"parentId": "-1"}),  # 根目录快照预取
+        ("transfer_files", {"fileIds": ["f1", "f2"], "targetParentId": "t1"}),
     ]
     tool_end = [d for t, d in events if t == "tool_end"][0]
     assert "skipped" not in tool_end

@@ -2,6 +2,7 @@
 from langchain_openai import ChatOpenAI
 
 from app.config import Settings
+from app.core.llm_logging import LLMErrorLoggingHandler
 
 
 class LLMError(RuntimeError):
@@ -20,4 +21,6 @@ def build_chat_model(settings: Settings) -> ChatOpenAI:
         api_key=settings.llm_api_key,
         temperature=settings.llm_temperature,
         streaming=True,
+        # 任何模型调用失败都落日志（含 trace_id），无需各节点重复 try/except
+        callbacks=[LLMErrorLoggingHandler(model_name=settings.llm_model)],
     )

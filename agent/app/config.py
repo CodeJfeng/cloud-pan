@@ -27,6 +27,10 @@ class Settings(BaseSettings):
     worker_max_iterations: int = 3
     react_max_iterations: int = 8
 
+    # 日志：级别与轮转文件（相对进程工作目录；目录不可写时自动降级为仅控制台）
+    log_level: str = "INFO"
+    log_file: str = "logs/agent.log"
+
     model_config = {"env_prefix": "AGENT_"}
 
 

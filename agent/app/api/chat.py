@@ -7,6 +7,7 @@
 confirmation_required SSE；注册表存于 app.core.runner（/confirm 读取）。
 """
 import json
+import logging
 import uuid
 from typing import Any, AsyncIterator
 
@@ -20,10 +21,13 @@ from app.core import runner as agent_runner
 from app.core.checkpoint import build_checkpointer, open_mysql_checkpointer
 from app.core.context import _format_directory_context, _parse_file_list
 from app.core.graph import build_agent_graph
+from app.core.logging_config import set_trace_id
 from app.core.model import build_chat_model
 from app.mcp.client import MCPClient
 from app.schemas.common import R
 from app.storage.session_store import SessionStore
+
+logger = logging.getLogger(__name__)
 
 router = APIRouter(prefix="/api/agent")
 
@@ -275,19 +279,20 @@ async def chat(req: ChatRequest) -> StreamingResponse:
             checkpointer = _checkpointer
             await mcp.connect()
 
-            # 目录快照预取：前端指定了当前文件夹时才注入（根目录不预取）
+            # 目录快照预取：未指定目录时默认预取根目录（parentId=-1），agent 从根目录出发
+            snapshot_dir_id = str(req.currentDirId) if req.currentDirId else "-1"
+            snapshot_dir_name = req.currentDirName or "根目录"
             directory_context = None
-            if req.currentDirId:
-                try:
-                    raw = await mcp.call_tool(
-                        "list_files", {"parentId": str(req.currentDirId)}, str(req.userId)
-                    )
-                    items = _parse_file_list(str(raw))
-                    directory_context = _format_directory_context(
-                        str(req.currentDirId), req.currentDirName or "", items
-                    )
-                except Exception:
-                    directory_context = None
+            try:
+                raw = await mcp.call_tool(
+                    "list_files", {"parentId": snapshot_dir_id}, str(req.userId)
+                )
+                items = _parse_file_list(str(raw))
+                directory_context = _format_directory_context(
+                    snapshot_dir_id, snapshot_dir_name, items
+                )
+            except Exception:
+                directory_context = None
 
             graph = await build_agent_graph(
                 model=model,
@@ -374,6 +379,8 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                     pending_conf.clear()
                 yield _sse(ev_type, evt)
         except Exception as exc:  # 任何异常都以 error 事件结束，避免连接悬挂
+            logger.exception("对话处理异常")
+            await trace("error", {"content": str(exc)}, status="error")
             yield _sse("error", {"content": f"服务异常: {exc}"})
 
     return StreamingResponse(gen(), media_type="text/event-stream")
