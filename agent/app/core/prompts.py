@@ -66,6 +66,9 @@ CHITCHAT_SYSTEM_PROMPT = _read("roles", "chitchat.md")
 PLANNER_SYSTEM_PROMPT = _role("planner")
 WORKER_SYSTEM_PROMPT = _role("worker")
 COLLECTOR_SYSTEM_PROMPT = _role("collector")
+# DAG 版任务规划：要求输出 nodes + edges 的结构化有向无环图（不注入 base，
+# 规划阶段不需要工具执行规范，避免"按情形处理"规则干扰拆图）
+PLANNER_DAG_SYSTEM_PROMPT = _read("roles", "planner_dag.md")
 
 # 行为指令：react 节点 nudge 回环时注入
 NUDGE_MESSAGE = _read("behaviors", "nudge.md")

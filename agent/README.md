@@ -62,6 +62,23 @@ $env:AGENT_LLM_MODEL    = "deepseek-chat"
 - `POST /api/agent/chat` SSE 流式对话，请求体 `{message, userId, sessionId?, currentDirId?, currentDirName?}`，事件：`thinking` / `llm_decision` / `confirmation_required` / `tool_start` / `tool_end` / `delta` / `done` / `error`
 - `POST /api/agent/confirm` 敏感操作（删除/移动）批准或拒绝，请求体 `{requestId, approve, userId}`
 
+## DAG 任务编排（demo）
+
+`app/planning/` 是一套独立可运行的任务编排 demo（尚未接入主状态图），可直接体验：
+
+```powershell
+.\.venv\Scripts\python.exe demo_planning.py
+```
+
+链路是：Planner 输出 JSON 计划（nodes + edges）→ 静态体检 → 分层并行 → 三层容错恢复。
+
+- **静态体检**（`app/planning/validate.py`）：环检测、起点可达性、AND/OR 连接一致性；
+  不通过就把体检结论反馈给 Planner 重新规划，非法图不会进执行引擎。
+- **分层调度**（`app/planning/scheduler.py`）：`topo_layers()` 按入度分层，层内并行、层间屏障。
+- **三层恢复**（`app/planning/engine.py`）：Retry（瞬时错误）→ Replan（换方法）→
+  Decompose（再拆分绕过）；节点彻底失败时只 skip 其下游，兄弟分支照常执行。
+- 子任务间通过 `{{s1.file_ids}}` 引用上游产出。
+
 ## 测试
 
 ```powershell
