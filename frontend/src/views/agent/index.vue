@@ -56,6 +56,14 @@
                                 <span v-if="step.durationMs != null" class="think-dur">{{ step.durationMs }} ms</span>
                             </div>
                             <div v-if="step.kind === 'tool' && step.expanded" class="think-detail">
+                                <div
+                                    v-if="step.display && step.display.summary"
+                                    style="font-size:13px;color:#303133;padding:2px 0 6px"
+                                >{{ step.display.summary }}</div>
+                                <div
+                                    v-if="step.display && step.display.target && step.display.target.name"
+                                    style="font-size:12px;color:#909399;padding-bottom:6px"
+                                >目标位置：{{ step.display.target.name }}</div>
                                 <div v-if="step.args != null" class="think-label">参数</div>
                                 <pre v-if="step.args != null" class="think-code">{{ formatJson(step.args) }}</pre>
                                 <div v-if="step.result" class="think-label">结果</div>
@@ -84,6 +92,10 @@
                                     <span v-else-if="step.status === 'approved'" class="trace-pass">已批准</span>
                                 </div>
                                 <div v-if="step.stepType === 'tool_call'" class="trace-detail">
+                                    <div
+                                        v-if="step.payload && step.payload.display && step.payload.display.summary"
+                                        style="font-size:13px;color:#303133;padding-bottom:6px"
+                                    >{{ step.payload.display.summary }}</div>
                                     <div class="trace-label">参数</div>
                                     <pre class="trace-code">{{ formatJson(step.payload && step.payload.arguments) }}</pre>
                                     <div class="trace-label">结果</div>
@@ -101,6 +113,10 @@
                                 </div>
                                 <div v-else-if="step.stepType === 'confirmation'" class="trace-detail">
                                     <div class="trace-label">工具：{{ toolLabel(step.payload && step.payload.tool) }}</div>
+                                    <div
+                                        v-if="step.payload && step.payload.display && step.payload.display.summary"
+                                        style="font-size:13px;color:#303133;padding:2px 0"
+                                    >{{ step.payload.display.summary }}</div>
                                     <div class="trace-label">结果：{{ step.status === 'approved' ? '已批准' : (step.status === 'rejected' ? '已拒绝' : '等待批复') }}</div>
                                 </div>
                             </div>
@@ -249,8 +265,16 @@ function stepLabel(type) {
 
 function toolLabel(tool) {
     return {
-        delete_file: '删除文件',
+        search_files: '搜索文件',
+        list_files: '查看目录',
+        create_folder: '新建文件夹',
+        rename_file: '重命名',
         transfer_files: '移动文件',
+        copy_files: '复制文件',
+        delete_file: '删除文件',
+        list_recycles: '查看回收站',
+        restore_recycle: '还原文件',
+        create_share: '创建分享',
     }[tool] || tool
 }
 
@@ -260,15 +284,34 @@ function escapeHtml(s) {
     }[c]))
 }
 
-function buildConfirmText(tool, args) {
-    return `<div style="line-height:1.6">助手准备执行「${escapeHtml(toolLabel(tool))}」操作，请确认是否允许：</div>` +
-        `<pre style="background:#f5f7fa;padding:8px;border-radius:6px;margin:8px 0 0;font-size:12px;white-space:pre-wrap;word-break:break-all;">${escapeHtml(formatJson(args))}</pre>`
+// 审批弹窗正文：优先展示后端翻译好的可读信息（文件名/目标目录），
+// 没有 display 时回退到原始参数，保证任何情况下都能看清在批什么。
+function buildConfirmText(tool, args, display) {
+    const head = `<div style="line-height:1.6">助手准备执行「${escapeHtml(toolLabel(tool))}」操作，请确认是否允许：</div>`
+    const rawBlock = `<pre style="background:#f5f7fa;padding:8px;border-radius:6px;margin:8px 0 0;font-size:12px;white-space:pre-wrap;word-break:break-all;">${escapeHtml(formatJson(args))}</pre>`
+    if (!display || !display.summary) {
+        return head + rawBlock
+    }
+    const sub = (text) => `<div style="margin-top:6px;font-size:12px;color:#909399;line-height:1.7">${text}</div>`
+    let html = head + `<div style="margin-top:10px;font-size:14px;font-weight:600;color:#303133">${escapeHtml(display.summary)}</div>`
+    if (display.items && display.items.length > 1) {
+        html += sub(`共 ${display.items.length} 项`)
+    }
+    if (display.target && display.target.name) {
+        html += sub(`目标位置：${escapeHtml(display.target.name)}`)
+    } else if (display.target && display.target.id) {
+        html += sub(`目标位置：内部ID ${escapeHtml(display.target.id)}`)
+    }
+    if (display.unresolved && display.unresolved.length) {
+        html += sub(`未识别名称的内部ID：${display.unresolved.map(escapeHtml).join('、')}`)
+    }
+    return html + rawBlock
 }
 
-async function requestConfirm(userId, requestId, tool, args) {
+async function requestConfirm(userId, requestId, tool, args, display) {
     let approved = false
     try {
-        await ElMessageBox.confirm(buildConfirmText(tool, args), '需要你的批准', {
+        await ElMessageBox.confirm(buildConfirmText(tool, args, display), '需要你的批准', {
             confirmButtonText: '允许执行',
             cancelButtonText: '拒绝',
             type: 'warning',
@@ -432,10 +475,12 @@ async function send() {
                 }
                 scrollToBottom()
             } else if (ev.event === 'confirmation_required') {
-                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `等待你批准「${toolLabel(ev.data.tool)}」操作…`, args: ev.data.arguments, running: true, awaiting: true})
+                const display = ev.data.display
+                const summary = (display && display.summary) || `「${toolLabel(ev.data.tool)}」操作`
+                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `等待你批准：${summary}`, args: ev.data.arguments, display, running: true, awaiting: true})
                 lastTooling.value = true
                 scrollToBottom()
-                const approved = await requestConfirm(userId, ev.data.requestId, ev.data.tool, ev.data.arguments)
+                const approved = await requestConfirm(userId, ev.data.requestId, ev.data.tool, ev.data.arguments, display)
                 const waitStep = lastStepOfTool(cur, ev.data.tool)
                 if (waitStep) {
                     waitStep.running = false
@@ -450,7 +495,8 @@ async function send() {
                 }
                 scrollToBottom()
             } else if (ev.event === 'tool_start') {
-                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `正在调用「${toolLabel(ev.data.tool)}」…`, args: ev.data.arguments, running: true})
+                const startDisplay = ev.data.display
+                pushStep(cur, {kind: 'tool', tool: ev.data.tool, name: toolLabel(ev.data.tool), text: `正在调用「${toolLabel(ev.data.tool)}」…`, args: ev.data.arguments, display: startDisplay, running: true})
                 lastTooling.value = true
                 scrollToBottom()
             } else if (ev.event === 'tool_end') {

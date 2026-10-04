@@ -257,6 +257,7 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                 {
                     "tool": conf.get("tool"),
                     "arguments": conf.get("arguments"),
+                    "display": conf.get("display"),
                     "approved": approved,
                 },
                 step_name=conf.get("tool"),
@@ -328,10 +329,16 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                         pending_conf[rid] = {
                             "tool": evt.get("tool"),
                             "arguments": evt.get("arguments"),
+                            "display": evt.get("display"),
                         }
                         await trace(
                             "confirmation",
-                            {"tool": evt.get("tool"), "arguments": evt.get("arguments")},
+                            {
+                                "tool": evt.get("tool"),
+                                "arguments": evt.get("arguments"),
+                                # 可读描述一并落库：链路视图展示文件名而非加密 ID
+                                "display": evt.get("display"),
+                            },
                             step_name=evt.get("tool"),
                             status="pending",
                         )
@@ -341,6 +348,7 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                     pending_tool = {
                         "tool": evt.get("tool"),
                         "arguments": evt.get("arguments"),
+                        "display": evt.get("display"),
                     }
                 elif ev_type == "tool_end":
                     result_text = evt.get("result") or ""
@@ -355,6 +363,7 @@ async def chat(req: ChatRequest) -> StreamingResponse:
                         {
                             "tool": evt.get("tool"),
                             "arguments": pending_tool.get("arguments"),
+                            "display": pending_tool.get("display"),
                             "result": evt.get("result"),
                         },
                         step_name=evt.get("tool"),

@@ -62,7 +62,10 @@ async def run_agent_stream(
             "type": "confirmation_required",
             "requestId": rid,
             "tool": value.get("tool"),
+            # arguments 是工具真正使用的加密参数（执行不变）；
+            # display 是翻译后的可读描述（文件名/目标目录），仅供前端展示
             "arguments": value.get("arguments"),
+            "display": value.get("display"),
         }
         try:
             approved = await asyncio.wait_for(fut, timeout=CONFIRM_TIMEOUT_SECONDS)

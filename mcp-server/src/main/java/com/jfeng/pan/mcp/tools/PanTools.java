@@ -144,7 +144,7 @@ public class PanTools {
                 {"type":"object",
                  "properties":{
                    "userId":{"type":"string","description":"云盘用户ID（内部注入参数，勿询问用户）"},
-                   "parentId":{"type":"string","description":"父目录ID（加密串，根目录传-1）"}},
+                   "parentId":{"type":"string","description":"父目录ID（加密串；根目录传-1；返回结果中 folderFlag=1 的条目 fileId 可作为移动/复制/新建的目标目录）"}},
                  "required":["userId","parentId"]}
                 """,
                 (exchange, request) -> {
@@ -193,7 +193,7 @@ public class PanTools {
                 {"type":"object",
                  "properties":{
                    "userId":{"type":"string","description":"云盘用户ID（内部注入参数，勿询问用户）"},
-                   "parentId":{"type":"string","description":"父目录ID（加密串）"},
+                   "parentId":{"type":"string","description":"父目录ID（加密串；不接受-1，根目录请先调用 list_files(parentId=-1) 取到「全部文件」文件夹的 fileId）"},
                    "folderName":{"type":"string","description":"新文件夹名称"}},
                  "required":["userId","parentId","folderName"]}
                 """,
@@ -265,7 +265,7 @@ public class PanTools {
                  "properties":{
                    "userId":{"type":"string","description":"云盘用户ID（内部注入参数，勿询问用户）"},
                    "fileIds":{"type":"array","items":{"type":"string"},"description":"要移动的文件ID列表（加密串）"},
-                   "targetParentId":{"type":"string","description":"目标父目录ID（加密串）"}},
+                   "targetParentId":{"type":"string","description":"目标父目录ID（加密串；不接受-1，根目录请先调用 list_files(parentId=-1) 取到「全部文件」文件夹的 fileId）"}},
                  "required":["userId","fileIds","targetParentId"]}
                 """,
                 (exchange, request) -> {
@@ -289,7 +289,7 @@ public class PanTools {
                  "properties":{
                    "userId":{"type":"string","description":"云盘用户ID（内部注入参数，勿询问用户）"},
                    "fileIds":{"type":"array","items":{"type":"string"},"description":"要复制的文件ID列表（加密串）"},
-                   "targetParentId":{"type":"string","description":"目标父目录ID（加密串）"}},
+                   "targetParentId":{"type":"string","description":"目标父目录ID（加密串；不接受-1，根目录请先调用 list_files(parentId=-1) 取到「全部文件」文件夹的 fileId）"}},
                  "required":["userId","fileIds","targetParentId"]}
                 """,
                 (exchange, request) -> {

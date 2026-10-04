@@ -22,7 +22,7 @@ from langgraph.types import Send
 from pydantic import BaseModel
 
 from app.core.events import emit
-from app.core.nodes.react import _interrupt_confirm
+from app.core.nodes.react import _interrupt_confirm, describe_sensitive
 from app.core.prompts import (
     PLANNER_SYSTEM_PROMPT,
     SYSTEM_PROMPT,
@@ -60,6 +60,7 @@ class PlanDeps:
         worker_groups: dict[str, frozenset[str]] | None = None,
         worker_max_iterations: int = 3,
         interrupts: bool = True,
+        describe: Any = None,
     ):
         self.planner_model = planner_model
         self.worker_model = worker_model
@@ -70,6 +71,8 @@ class PlanDeps:
         self.worker_groups = worker_groups or {}
         self.worker_max_iterations = worker_max_iterations
         self.interrupts = interrupts
+        # (tool_name, args) -> 可读描述 dict；供 worker 的审批弹窗展示
+        self.describe = describe
 
 
 async def planner(state: dict, deps: "PlanDeps") -> dict:
@@ -121,10 +124,13 @@ async def worker(state: dict, deps: "PlanDeps") -> dict:
         # 预确认敏感调用，再统一执行（interrupt 前无副作用，恢复安全）
         decisions: dict[str, bool] = {}
         for tc in calls:
-            if tc["name"] in deps.sensitive and deps.confirm is not None:
-                decisions[tc["id"]] = await deps.confirm(tc["name"], tc.get("args", {}), "worker")
-            elif tc["name"] in deps.sensitive and deps.interrupts:
-                decisions[tc["id"]] = _interrupt_confirm(tc["name"], tc.get("args", {}))
+            name = tc["name"]
+            args = tc.get("args", {})
+            if name in deps.sensitive and deps.confirm is not None:
+                decisions[tc["id"]] = await deps.confirm(name, args, "worker")
+            elif name in deps.sensitive and deps.interrupts:
+                display = describe_sensitive(deps.describe, name, args)
+                decisions[tc["id"]] = _interrupt_confirm(name, args, display)
         for tc in calls:
             name, args = tc["name"], tc.get("args", {})
             if tc["id"] in decisions and not decisions[tc["id"]]:

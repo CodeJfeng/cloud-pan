@@ -42,7 +42,7 @@ def _looks_like_unbacked_listing(answer: str) -> bool:
     return bool(_UNBACKED_LISTING_PATTERN.search(answer))
 
 
-def _parse_file_list(raw: str) -> list[dict[str, Any]] | None:
+def parse_file_list(raw: str) -> list[dict[str, Any]] | None:
     """从 list_files 工具返回文本中提取文件/文件夹列表。
 
     工具返回格式形如 `[list_files] 云盘响应: {"code":0,...,"data":[...]}`，
@@ -61,6 +61,10 @@ def _parse_file_list(raw: str) -> list[dict[str, Any]] | None:
     if not isinstance(data, list):
         return None
     return [it for it in data if isinstance(it, dict)]
+
+
+# 旧私有名保留为别名：既有调用方（chat.py 等）无需同步修改
+_parse_file_list = parse_file_list
 
 
 def _format_directory_context(

@@ -73,6 +73,8 @@ async def build_agent_graph(
         tools_by_name=tools,
         confirm=confirm,
         sensitive=SENSITIVE_TOOLS,
+        # 审批可读化：把加密 fileId 翻译成文件名（工厂内部维护 list/search 索引）
+        describe=factory.describe,
     )
 
     # 意图识别：LLM 判定意图 + 置信度（可由外部注入专用模型）
@@ -91,6 +93,7 @@ async def build_agent_graph(
             confirm=confirm,
             worker_groups=TOOL_GROUP,
             worker_max_iterations=worker_max_iterations,
+            describe=factory.describe,
         )
 
     async def _react_agent(state: dict) -> dict:

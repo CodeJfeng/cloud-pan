@@ -43,7 +43,8 @@ class ReactDeps:
     """react 路径运行时依赖（节点经 graph 构造闭包注入，便于测试替换）。"""
 
     def __init__(self, model, tools_by_name: dict[str, Any], confirm: Any,
-                 sensitive: frozenset[str] = frozenset(), interrupts: bool = True):
+                 sensitive: frozenset[str] = frozenset(), interrupts: bool = True,
+                 describe: Any = None):
         self.model = model
         self.tools_by_name = tools_by_name
         # async (tool_name, args, request_id) -> bool；None 表示不注入回调
@@ -51,6 +52,25 @@ class ReactDeps:
         # 敏感工具集合；触发确认的两种方式：confirm 回调（测试注入）或 interrupt（真实路径）
         self.sensitive = sensitive
         self.interrupts = interrupts
+        # (tool_name, args) -> 可读描述 dict；None 表示不提供（审批弹窗回退原始参数）
+        self.describe = describe
+
+
+def describe_sensitive(
+    describe: Any, name: str, args: dict[str, Any]
+) -> dict[str, Any] | None:
+    """生成审批用的可读描述（把加密 fileId 翻译成文件名）。
+
+    描述器缺失或内部异常时返回 None，前端回退显示原始参数——
+    审批是安全边界，宁可退化也不能因为翻译失败而漏掉确认。
+    """
+    if describe is None:
+        return None
+    try:
+        return describe(name, args)
+    except Exception:
+        logger.warning("生成审批描述失败 | tool=%s", name, exc_info=True)
+        return None
 
 
 def _conversation(state: dict) -> list[BaseMessage]:
@@ -135,16 +155,24 @@ async def react_agent(state: dict, deps: "ReactDeps") -> dict:
     return {"messages": [resp], "final_answer": answer}
 
 
-def _interrupt_confirm(name: str, args: dict[str, Any]) -> bool:
+def _interrupt_confirm(
+    name: str,
+    args: dict[str, Any],
+    display: dict[str, Any] | None = None,
+) -> bool:
     """敏感工具确认（真实路径）：interrupt 挂起整图，runner 恢复后返回批复。
 
     挂在工具执行前调用——interrupt 前的节点副作用会被整体重放，因此
     react_tools 采用"先确认后执行"，保证恢复后工具只执行一次。
+
+    `display` 是给用户看的可读描述（文件名/目标目录），与 `arguments`（工具真正
+    使用的加密参数）并行传递：前者负责"让用户看懂在批什么"，后者保证执行不变。
     """
     request_id = uuid.uuid4().hex
-    approved = interrupt(
-        {"tool": name, "arguments": args, "requestId": request_id}
-    )
+    payload: dict[str, Any] = {"tool": name, "arguments": args, "requestId": request_id}
+    if display is not None:
+        payload["display"] = display
+    approved = interrupt(payload)
     return bool(approved)
 
 
@@ -170,6 +198,7 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
         if name not in deps.sensitive:
             continue
         args = tc.get("args", {})
+        display = describe_sensitive(deps.describe, name, args)
         if deps.confirm is not None:
             # 注入式确认（直接调用/单测路径）：由节点自行发出 confirmation_required
             request_id = uuid.uuid4().hex
@@ -178,11 +207,12 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
                 requestId=request_id,
                 tool=name,
                 arguments=args,
+                display=display,
             )
             decisions[tc["id"]] = await deps.confirm(name, args, request_id)
         elif deps.interrupts:
             # 真实 interrupt 路径：confirmation_required 由 runner 根据中断值翻译
-            decisions[tc["id"]] = _interrupt_confirm(name, args)
+            decisions[tc["id"]] = _interrupt_confirm(name, args, display)
         else:
             decisions[tc["id"]] = True
 
@@ -201,7 +231,12 @@ async def react_tools(state: dict, deps: "ReactDeps") -> dict:
             )
             continue
 
-        emit(type="tool_start", tool=name, arguments=args)
+        emit(
+            type="tool_start",
+            tool=name,
+            arguments=args,
+            display=describe_sensitive(deps.describe, name, args),
+        )
         t0 = time.perf_counter()
         try:
             result = await deps.tools_by_name[name].ainvoke(args)

@@ -44,6 +44,20 @@ class FakeMCP:
         return "已删除 1 个文件" if name == "delete_file" else "搜索完成"
 
 
+class IndexedFakeMCP(FakeMCP):
+    """search_files 返回带 fileId/fileName 的 JSON，用于验证审批可读化。"""
+
+    async def call_tool(self, name, arguments, user_id):
+        self.called.append((name, arguments))
+        if name == "search_files":
+            return (
+                '[search_files] 云盘响应: {"code":0,"data":['
+                '{"fileId":"s31d-resume","parentId":"Hkpu-agent",'
+                '"parentFilename":"agent","fileName":"李京峰-个人简历.pdf","folderFlag":0}]}'
+            )
+        return "已删除 1 个文件"
+
+
 def ai_tool(name, args, call_id):
     return AIMessage(
         content="", tool_calls=[{"name": name, "args": args, "id": call_id}]
@@ -158,3 +172,69 @@ async def test_runner_multiple_interrupts_same_thread():
         ("delete_file", {"fileIds": ["f2"]}),
     ]
     assert types[-1] == "done"
+
+
+@pytest.mark.asyncio
+async def test_confirmation_carries_readable_display():
+    """审批事件要带可读描述：加密 fileId 翻译成文件名，供前端直接展示。
+
+    同时锁死：arguments 仍是工具真正使用的原始参数，展示层不改变执行语义。
+    """
+    model = ScriptedModel(
+        [
+            ai_tool("search_files", {"keyword": "简历"}, "call_1"),
+            ai_tool("delete_file", {"fileIds": ["s31d-resume"]}, "call_2"),
+            AIMessage(content="已删除"),
+        ]
+    )
+    mcp = IndexedFakeMCP()
+    graph = await build_agent_graph(
+        model=model,
+        mcp=mcp,
+        user_id="42",
+        checkpointer=build_checkpointer(force_memory=True),
+    )
+    events = await _drain(
+        graph,
+        mcp,
+        "t-display",
+        {"messages": [HumanMessage(content="删掉简历")], "user_input": "删掉简历"},
+        on_confirm=lambda rid: True,
+    )
+    conf = next(e for e in events if e["type"] == "confirmation_required")
+    display = conf.get("display")
+    assert display is not None, "审批事件应带可读描述"
+    assert "李京峰-个人简历.pdf" in display["summary"]
+    assert display["items"][0]["name"] == "李京峰-个人简历.pdf"
+    assert display["items"][0]["kind"] == "文件"
+    # 原始参数不变：展示层只影响"看得懂"，不影响"怎么执行"
+    assert conf["arguments"] == {"fileIds": ["s31d-resume"]}
+
+
+@pytest.mark.asyncio
+async def test_confirmation_without_index_falls_back_to_ids():
+    """索引里没有该 fileId 时，如实放进 unresolved，不猜测名称。"""
+    model = ScriptedModel(
+        [
+            ai_tool("delete_file", {"fileIds": ["f-unknown"]}, "call_1"),
+            AIMessage(content="已处理"),
+        ]
+    )
+    mcp = FakeMCP()
+    graph = await build_agent_graph(
+        model=model,
+        mcp=mcp,
+        user_id="42",
+        checkpointer=build_checkpointer(force_memory=True),
+    )
+    events = await _drain(
+        graph,
+        mcp,
+        "t-fallback",
+        {"messages": [HumanMessage(content="删除 f-unknown")], "user_input": "删除 f-unknown"},
+        on_confirm=lambda rid: True,
+    )
+    conf = next(e for e in events if e["type"] == "confirmation_required")
+    display = conf["display"]
+    assert display["unresolved"] == ["f-unknown"]
+    assert display["items"] == []
